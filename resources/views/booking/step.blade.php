@@ -128,13 +128,39 @@
                 
                 @if($booking->is_short_term)
                 <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <p class="text-sm text-yellow-800">This is a short-term booking. Payment will be required after completing this form.</p>
+                    <p class="text-sm text-yellow-800 font-semibold mb-2">This is a short-term booking. Payment is required.</p>
+                    <p class="text-sm text-yellow-700">Total Amount: <strong>€{{ number_format($booking->total_amount, 2) }}</strong></p>
                 </div>
+                
+                @if(config('services.stripe.key'))
+                <!-- Stripe Payment Element -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Information *</label>
+                    <div id="payment-element" class="p-4 border border-gray-300 rounded-md bg-white">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                    <div id="payment-message" class="mt-2 text-sm text-red-600 hidden"></div>
+                    <input type="hidden" name="payment_method_id" id="payment_method_id">
+                </div>
+                @else
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                    <p class="text-sm text-red-800 font-semibold">Payment processing is not configured.</p>
+                    <p class="text-sm text-red-700 mt-1">Please contact the administrator to complete your booking.</p>
+                </div>
+                @endif
                 @endif
                 
                 <div class="flex justify-end">
-                    <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors">
-                        Next
+                    <button type="submit" id="submit-btn" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" @if($booking->is_short_term && !config('services.stripe.key')) disabled @endif>
+                        @if($booking->is_short_term)
+                            @if(config('services.stripe.key'))
+                                Pay & Continue
+                            @else
+                                Payment Not Available
+                            @endif
+                        @else
+                            Next
+                        @endif
                     </button>
                 </div>
             </form>
@@ -199,6 +225,58 @@
 </div>
 
 @push('scripts')
+@if($step == 1 && $booking->is_short_term && config('services.stripe.key'))
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    // Initialize Stripe
+    const stripeKey = '{{ config("services.stripe.key") }}';
+    if (!stripeKey) {
+        console.error('Stripe publishable key is not configured');
+        document.getElementById('payment-message').textContent = 'Payment processing is not configured. Please contact support.';
+        document.getElementById('payment-message').classList.remove('hidden');
+    } else {
+        const stripe = Stripe(stripeKey);
+        let elements;
+        let paymentElement;
+        
+        // Initialize payment element
+        (async function() {
+            try {
+                const response = await fetch('{{ route("booking.payment", $booking) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'setup' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.client_secret) {
+                    elements = stripe.elements({ 
+                        clientSecret: data.client_secret,
+                        appearance: {
+                            theme: 'stripe',
+                        }
+                    });
+                    paymentElement = elements.create('payment');
+                    paymentElement.mount('#payment-element');
+                } else if (data.error) {
+                    document.getElementById('payment-message').textContent = data.error;
+                    document.getElementById('payment-message').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error setting up payment:', error);
+                document.getElementById('payment-message').textContent = 'Error setting up payment. Please refresh the page.';
+                document.getElementById('payment-message').classList.remove('hidden');
+            }
+        })();
+    }
+</script>
+@endif
+
 <script>
     const canvas = document.getElementById('signature-pad');
     const signaturePad = new SignaturePad(canvas, {
@@ -225,7 +303,7 @@
     
     // Handle form submission
     const form = document.getElementById('step{{ $step }}-form');
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         if (signaturePad.isEmpty()) {
             e.preventDefault();
             alert('Please provide your signature');
@@ -234,6 +312,38 @@
         
         const signatureData = signaturePad.toDataURL();
         document.getElementById('signature-data').value = signatureData;
+        
+        // Handle payment for short-term bookings
+        @if($step == 1 && $booking->is_short_term && config('services.stripe.key'))
+        e.preventDefault();
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+        
+        try {
+            const { error, paymentMethod } = await stripe.createPaymentMethod({
+                elements: elements,
+            });
+            
+            if (error) {
+                document.getElementById('payment-message').textContent = error.message;
+                document.getElementById('payment-message').classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Pay & Continue';
+                return;
+            }
+            
+            document.getElementById('payment_method_id').value = paymentMethod.id;
+            
+            // Now submit the form
+            form.submit();
+        } catch (err) {
+            document.getElementById('payment-message').textContent = 'An error occurred. Please try again.';
+            document.getElementById('payment-message').classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Pay & Continue';
+        }
+        @endif
     });
 </script>
 @endpush

@@ -28,6 +28,7 @@ class Booking extends Model
         'paid_amount',
         'payment_status',
         'stripe_payment_intent_id',
+        'external_uid',
     ];
 
     protected $casts = [
@@ -46,6 +47,11 @@ class Booking extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function paymentLogs(): HasMany
+    {
+        return $this->hasMany(PaymentLog::class)->orderBy('created_at', 'desc');
     }
 
     public function getGuestFullNameAttribute(): string

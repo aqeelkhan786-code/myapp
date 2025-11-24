@@ -1,0 +1,291 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Room;
+use App\Models\Property;
+use App\Models\IcalFeed;
+use App\Services\IcalService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+
+class RoomController extends Controller
+{
+    protected $icalService;
+
+    public function __construct(IcalService $icalService)
+    {
+        $this->middleware('auth');
+        $this->icalService = $icalService;
+    }
+
+    /**
+     * Display a listing of rooms
+     */
+    public function index()
+    {
+        $rooms = Room::with(['property', 'images'])->get();
+        return view('admin.rooms.index', compact('rooms'));
+    }
+
+    /**
+     * Show the form for creating a new room
+     */
+    public function create()
+    {
+        $properties = Property::all();
+        return view('admin.rooms.create', compact('properties'));
+    }
+
+    /**
+     * Store a newly created room
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'property_id' => 'required|exists:properties,id',
+            'name' => 'required|string|max:255',
+            'capacity' => 'required|integer|min:1',
+            'base_price' => 'required|numeric|min:0',
+            'short_term_allowed' => 'boolean',
+            'description' => 'nullable|string',
+        ]);
+
+        $room = Room::create([
+            'property_id' => $request->property_id,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'capacity' => $request->capacity,
+            'base_price' => $request->base_price,
+            'short_term_allowed' => $request->has('short_term_allowed'),
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('admin.rooms.index')
+            ->with('success', 'Room created successfully.');
+    }
+
+    /**
+     * Display the specified room
+     */
+    public function show(Room $room)
+    {
+        $room->load(['property', 'images', 'icalFeeds', 'blackoutDates']);
+        return view('admin.rooms.show', compact('room'));
+    }
+
+    /**
+     * Upload image(s) for room (supports bulk upload with auto-resize)
+     */
+    public function uploadImage(Request $request, Room $room)
+    {
+        $request->validate([
+            'images' => 'required|array',
+            'images.*' => 'image|max:5120', // 5MB max per image
+        ]);
+
+        $maxSortOrder = $room->images()->max('sort_order') ?? 0;
+        $uploaded = 0;
+        
+        foreach ($request->file('images') as $image) {
+            // Resize image to max 1920x1080 while maintaining aspect ratio
+            // Use GD driver if Imagick is not available
+            try {
+                if (extension_loaded('imagick')) {
+                    $manager = \Intervention\Image\ImageManager::imagick();
+                } else {
+                    $manager = \Intervention\Image\ImageManager::gd();
+                }
+                
+                $img = $manager->read($image->getRealPath());
+                
+                // Resize only if larger than max dimensions
+                $maxWidth = 1920;
+                $maxHeight = 1080;
+                
+                if ($img->width() > $maxWidth || $img->height() > $maxHeight) {
+                    $img->scaleDown($maxWidth, $maxHeight);
+                }
+                
+                // Generate unique filename
+                $filename = uniqid() . '.' . $image->getClientOriginalExtension();
+                $path = 'room-images/' . $filename;
+                
+                // Save resized image
+                $img->save(storage_path('app/public/' . $path), quality: 85);
+            } catch (\Exception $e) {
+                // Fallback: save original image if resize fails
+                \Log::warning('Image resize failed, saving original', ['error' => $e->getMessage()]);
+                $filename = uniqid() . '.' . $image->getClientOriginalExtension();
+                $path = $image->storeAs('room-images', $filename, 'public');
+            }
+            
+            $maxSortOrder++;
+            $room->images()->create([
+                'path' => $path,
+                'sort_order' => $maxSortOrder,
+            ]);
+            
+            $uploaded++;
+        }
+
+        $message = $uploaded === 1 ? 'Image uploaded successfully.' : "{$uploaded} images uploaded successfully.";
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Update image sort order
+     */
+    public function updateImageOrder(Request $request, Room $room)
+    {
+        $request->validate([
+            'images' => 'required|array',
+            'images.*' => 'exists:room_images,id',
+        ]);
+
+        foreach ($request->images as $index => $imageId) {
+            $room->images()->where('id', $imageId)->update(['sort_order' => $index + 1]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Delete image
+     */
+    public function deleteImage(Room $room, $imageId)
+    {
+        $image = $room->images()->findOrFail($imageId);
+        
+        if (Storage::disk('public')->exists($image->path)) {
+            Storage::disk('public')->delete($image->path);
+        }
+        
+        $image->delete();
+
+        return back()->with('success', 'Image deleted successfully.');
+    }
+
+    /**
+     * Show the form for editing the specified room
+     */
+    public function edit(Room $room)
+    {
+        $properties = Property::all();
+        $room->load(['icalFeeds']);
+        return view('admin.rooms.edit', compact('room', 'properties'));
+    }
+
+    /**
+     * Update the specified room
+     */
+    public function update(Request $request, Room $room)
+    {
+        $request->validate([
+            'property_id' => 'required|exists:properties,id',
+            'name' => 'required|string|max:255',
+            'capacity' => 'required|integer|min:1',
+            'base_price' => 'required|numeric|min:0',
+            'short_term_allowed' => 'boolean',
+            'description' => 'nullable|string',
+        ]);
+
+        $room->update([
+            'property_id' => $request->property_id,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'capacity' => $request->capacity,
+            'base_price' => $request->base_price,
+            'short_term_allowed' => $request->has('short_term_allowed'),
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('admin.rooms.index')
+            ->with('success', 'Room updated successfully.');
+    }
+
+    /**
+     * Remove the specified room
+     */
+    public function destroy(Room $room)
+    {
+        $room->delete();
+        return redirect()->route('admin.rooms.index')
+            ->with('success', 'Room deleted successfully.');
+    }
+
+    /**
+     * Update iCal import URL
+     */
+    public function updateIcalImport(Request $request, Room $room)
+    {
+        $request->validate([
+            'import_url' => 'nullable|url',
+        ]);
+
+        $feed = IcalFeed::firstOrNew([
+            'room_id' => $room->id,
+            'direction' => 'import',
+        ]);
+
+        $feed->url = $request->import_url;
+        $feed->active = $request->has('import_active');
+        $feed->save();
+
+        return back()->with('success', 'Import URL updated successfully.');
+    }
+
+    /**
+     * Generate or revoke export token
+     */
+    public function manageExportToken(Request $request, Room $room)
+    {
+        if ($request->action === 'generate') {
+            $feed = IcalFeed::firstOrNew([
+                'room_id' => $room->id,
+                'direction' => 'export',
+            ]);
+
+            if (!$feed->token) {
+                $feed->token = Str::random(32);
+            }
+            $feed->active = true;
+            $feed->save();
+
+            return back()->with('success', 'Export token generated successfully.');
+        } elseif ($request->action === 'revoke') {
+            $feed = IcalFeed::where('room_id', $room->id)
+                ->where('direction', 'export')
+                ->first();
+
+            if ($feed) {
+                $feed->token = null;
+                $feed->active = false;
+                $feed->save();
+            }
+
+            return back()->with('success', 'Export token revoked successfully.');
+        }
+
+        return back()->withErrors(['action' => 'Invalid action']);
+    }
+
+    /**
+     * Sync iCal for a specific room
+     */
+    public function syncIcal(Room $room)
+    {
+        $importFeed = $room->icalImportFeed;
+        
+        if (!$importFeed || !$importFeed->active) {
+            return back()->withErrors(['sync' => 'No active import feed configured for this room.']);
+        }
+
+        // Dispatch sync job to queue
+        \App\Jobs\SyncIcalFeed::dispatch($importFeed, auth()->id());
+
+        return back()->with('success', 'iCal sync has been queued. Please wait a moment and refresh to see results.');
+    }
+}

@@ -42,8 +42,23 @@ class Room extends Model
         return $this->hasMany(Booking::class);
     }
 
-    public function icalFeed(): HasOne
+    public function icalFeeds(): HasMany
+    {
+        return $this->hasMany(IcalFeed::class);
+    }
+
+    public function icalExportFeed(): HasOne
     {
         return $this->hasOne(IcalFeed::class)->where('direction', 'export');
+    }
+
+    public function icalImportFeed(): HasOne
+    {
+        return $this->hasOne(IcalFeed::class)->where('direction', 'import');
+    }
+
+    public function blackoutDates(): HasMany
+    {
+        return $this->hasMany(BlackoutDate::class);
     }
 }

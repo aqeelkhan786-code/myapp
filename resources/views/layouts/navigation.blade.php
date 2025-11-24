@@ -15,6 +15,18 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.bookings.index')" :active="request()->routeIs('admin.bookings.*')">
+                        {{ __('Manage Bookings') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('admin.rooms.index')" :active="request()->routeIs('admin.rooms.*')">
+                        {{ __('Manage Rooms') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
+                        {{ __('Settings') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
+                        {{ __('View Rooms') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -69,6 +81,12 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.bookings.index')" :active="request()->routeIs('admin.bookings.*')">
+                {{ __('Manage Bookings') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
+                {{ __('View Rooms') }}
             </x-responsive-nav-link>
         </div>
 

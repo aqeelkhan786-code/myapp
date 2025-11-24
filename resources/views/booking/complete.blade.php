@@ -54,6 +54,36 @@
         
         <p class="text-sm text-gray-500 mb-6">A confirmation email has been sent to {{ $booking->email }}</p>
         
+        @if($booking->documents->count() > 0)
+        <div class="bg-blue-50 rounded-lg p-6 mb-6 text-left">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Download Documents</h3>
+            <div class="space-y-2">
+                @foreach($booking->documents as $document)
+                    @if($document->storage_path && Storage::exists($document->storage_path))
+                        @php
+                            $docTypeNames = [
+                                'rental_agreement' => 'Rental Agreement',
+                                'landlord_confirmation' => 'Landlord Confirmation',
+                                'rent_arrears' => 'Rent Arrears Certificate',
+                            ];
+                            $docTypeName = $docTypeNames[$document->doc_type] ?? $document->doc_type;
+                        @endphp
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md">
+                            <div>
+                                <p class="font-medium text-gray-900">{{ $docTypeName }}</p>
+                                <p class="text-sm text-gray-500">Version {{ $document->version }}</p>
+                            </div>
+                            <a href="{{ route('documents.download', $document) }}" 
+                               class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">
+                                Download PDF
+                            </a>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+        
         <a href="{{ route('booking.index') }}" class="inline-block bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors">
             Book Another Room
         </a>

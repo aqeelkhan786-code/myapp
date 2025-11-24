@@ -6,6 +6,59 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <h1 class="text-3xl font-bold text-gray-900 mb-8">Select Your Apartment</h1>
     
+    <!-- Date Range Filter -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <form method="GET" action="{{ route('booking.index') }}" class="flex flex-col md:flex-row gap-4 items-end">
+            <div class="flex-1">
+                <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">Check-in Date</label>
+                <input type="date" 
+                       name="check_in" 
+                       id="check_in" 
+                       value="{{ request('check_in') }}"
+                       min="{{ date('Y-m-d') }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex-1">
+                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">Check-out Date</label>
+                <input type="date" 
+                       name="check_out" 
+                       id="check_out" 
+                       value="{{ request('check_out') }}"
+                       min="{{ date('Y-m-d', strtotime('+1 day')) }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    Filter Available Rooms
+                </button>
+                @if(request('check_in') || request('check_out'))
+                <a href="{{ route('booking.index') }}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors">
+                    Clear
+                </a>
+                @endif
+            </div>
+        </form>
+        @if(request('check_in') && request('check_out'))
+        <p class="mt-4 text-sm text-gray-600">
+            Showing {{ $rooms->count() }} available room(s) from 
+            <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> to 
+            <strong>{{ \Carbon\Carbon::parse(request('check_out'))->format('M d, Y') }}</strong>
+        </p>
+        @endif
+    </div>
+    
+    @if($rooms->count() === 0)
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+        <p class="text-yellow-800">
+            @if(request('check_in') && request('check_out'))
+                No rooms available for the selected dates. Please try different dates.
+            @else
+                No rooms available at the moment.
+            @endif
+        </p>
+    </div>
+    @endif
+    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         @foreach($rooms as $room)
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">

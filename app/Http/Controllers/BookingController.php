@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Room;
 use App\Models\Booking;
 use App\Models\Document;
+use Illuminate\Support\Facades\Storage;
 use App\Services\BookingService;
 use App\Services\DocumentService;
 use App\Services\IcalService;
@@ -34,9 +35,35 @@ class BookingController extends Controller
     /**
      * Display the apartment selection page
      */
-    public function index()
+    public function index(Request $request)
     {
-        $rooms = Room::with('images')->get();
+        $query = Room::with('images');
+        
+        // Filter by availability if dates are provided
+        if ($request->has('check_in') && $request->has('check_out')) {
+            try {
+                $checkIn = Carbon::parse($request->check_in)->setTimezone('Europe/Berlin')->startOfDay();
+                $checkOut = Carbon::parse($request->check_out)->setTimezone('Europe/Berlin')->startOfDay();
+                
+                // Get room IDs that have confirmed bookings for these dates
+                $unavailableRoomIds = Booking::where('status', 'confirmed')
+                    ->where(function ($q) use ($checkIn, $checkOut) {
+                        $q->where(function ($q2) use ($checkIn, $checkOut) {
+                            $q2->where('start_at', '<', $checkOut->utc())
+                               ->where('end_at', '>', $checkIn->utc());
+                        });
+                    })
+                    ->pluck('room_id')
+                    ->unique();
+                
+                // Exclude unavailable rooms
+                $query->whereNotIn('id', $unavailableRoomIds);
+            } catch (\Exception $e) {
+                // Invalid dates, show all rooms
+            }
+        }
+        
+        $rooms = $query->get();
         
         return view('booking.index', compact('rooms'));
     }
@@ -146,6 +173,7 @@ class BookingController extends Controller
                 'city' => 'nullable|string|max:255',
                 'postal_code' => 'nullable|string|max:255',
                 'notes' => 'nullable|string',
+                'payment_method_id' => $booking->is_short_term ? 'required|string' : 'nullable',
             ]);
 
             $booking->update($request->only([
@@ -164,6 +192,30 @@ class BookingController extends Controller
                     $request->postal_code,
                 ]));
                 $booking->update(['notes' => ($booking->notes ? $booking->notes . "\n\n" : '') . "Address: {$address}"]);
+            }
+
+            // Process payment for short-term bookings
+            if ($booking->is_short_term && $request->payment_method_id) {
+                try {
+                    if (!$booking->stripe_payment_intent_id) {
+                        $paymentIntent = $this->paymentService->createPaymentIntent($booking);
+                    } else {
+                        $paymentIntent = \Stripe\PaymentIntent::retrieve($booking->stripe_payment_intent_id);
+                    }
+
+                    $paymentIntent = $this->paymentService->confirmPayment(
+                        $paymentIntent->id,
+                        $request->payment_method_id
+                    );
+
+                    if ($paymentIntent->status !== 'succeeded') {
+                        return back()->withErrors(['payment' => 'Payment could not be processed. Please try again.'])->withInput();
+                    }
+
+                    $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                } catch (\Exception $e) {
+                    return back()->withErrors(['payment' => $e->getMessage()])->withInput();
+                }
             }
 
             // Create rental agreement document and generate PDF
@@ -242,6 +294,24 @@ class BookingController extends Controller
      */
     public function processPayment(Request $request, Booking $booking)
     {
+        // Handle setup request for Stripe Elements
+        if ($request->has('action') && $request->action === 'setup') {
+            try {
+                if (!$booking->stripe_payment_intent_id) {
+                    $paymentIntent = $this->paymentService->createPaymentIntent($booking);
+                } else {
+                    $paymentIntent = \Stripe\PaymentIntent::retrieve($booking->stripe_payment_intent_id);
+                }
+                
+                return response()->json([
+                    'client_secret' => $paymentIntent->client_secret
+                ]);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        }
+
+        // Handle payment confirmation
         $request->validate([
             'payment_method_id' => 'required|string',
         ]);
@@ -299,5 +369,43 @@ class BookingController extends Controller
         return response($ical, 200)
             ->header('Content-Type', 'text/calendar; charset=utf-8')
             ->header('Content-Disposition', 'attachment; filename="room-' . $room->id . '.ics"');
+    }
+
+    /**
+     * Download a document PDF
+     */
+    public function downloadDocument($documentId)
+    {
+        try {
+            // Find document by ID (using explicit lookup for better error handling)
+            $document = Document::with('booking')->findOrFail($documentId);
+            
+            // Check if document exists and has a storage path
+            if (empty($document->storage_path)) {
+                abort(404, 'Document PDF has not been generated yet. Please wait a moment and try again.');
+            }
+            
+            if (!Storage::exists($document->storage_path)) {
+                abort(404, 'Document file not found in storage. The PDF may still be generating. Please make sure the queue worker is running.');
+            }
+
+            // Generate a friendly filename
+            $booking = $document->booking;
+            $docTypeNames = [
+                'rental_agreement' => 'Rental-Agreement',
+                'landlord_confirmation' => 'Landlord-Confirmation',
+                'rent_arrears' => 'Rent-Arrears-Certificate',
+            ];
+            
+            $docTypeName = $docTypeNames[$document->doc_type] ?? $document->doc_type;
+            $filename = $docTypeName . '-Booking-' . $booking->id . '-v' . $document->version . '.pdf';
+
+            return Storage::download($document->storage_path, $filename);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            abort(404, 'Document not found.');
+        } catch (\Exception $e) {
+            \Log::error('Document download error', ['document_id' => $documentId, 'error' => $e->getMessage()]);
+            abort(500, 'An error occurred while downloading the document.');
+        }
     }
 }

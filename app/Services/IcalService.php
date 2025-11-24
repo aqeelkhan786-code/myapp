@@ -30,6 +30,24 @@ class IcalService
             $icalContent = $response->body();
             $events = $this->parseIcal($icalContent);
             
+            // Get all UIDs from the feed
+            $feedUids = array_filter(array_column($events, 'uid'));
+            
+            // Get existing bookings for this room from this feed
+            $existingBookings = Booking::where('room_id', $feed->room_id)
+                ->where('source', 'airbnb')
+                ->whereNotNull('external_uid')
+                ->get();
+            
+            // Mark bookings as cancelled if their UID is no longer in the feed
+            $cancelled = 0;
+            foreach ($existingBookings as $booking) {
+                if (!in_array($booking->external_uid, $feedUids)) {
+                    $booking->update(['status' => 'cancelled']);
+                    $cancelled++;
+                }
+            }
+            
             $imported = 0;
             $updated = 0;
             $errors = [];
@@ -53,6 +71,7 @@ class IcalService
                 'sync_log' => [
                     'imported' => $imported,
                     'updated' => $updated,
+                    'cancelled' => $cancelled,
                     'errors' => $errors,
                     'synced_at' => now()->toIso8601String(),
                 ],
@@ -62,6 +81,7 @@ class IcalService
                 'success' => true,
                 'imported' => $imported,
                 'updated' => $updated,
+                'cancelled' => $cancelled,
                 'errors' => $errors,
             ];
         } catch (\Exception $e) {
@@ -150,21 +170,28 @@ class IcalService
         $startAt = $event['start']->utc();
         $endAt = $event['end']->utc();
         
-        // Find existing booking by UID (stored in notes or external identifier)
+        // Find existing booking by UID
         $booking = Booking::where('room_id', $room->id)
-            ->where('source', 'airbnb')
-            ->where('start_at', $startAt)
-            ->where('end_at', $endAt)
+            ->where('external_uid', $event['uid'])
             ->first();
         
         if ($booking) {
             // Update existing booking
             $booking->update([
+                'start_at' => $startAt,
+                'end_at' => $endAt,
                 'status' => 'confirmed',
+                'notes' => ($booking->notes ?? '') . "\nLast synced: " . now()->toDateTimeString(),
             ]);
             
             return ['created' => false, 'booking' => $booking];
         } else {
+            // Extract guest name from SUMMARY if available
+            $guestName = 'Airbnb Guest';
+            if (isset($event['summary'])) {
+                $guestName = $event['summary'];
+            }
+            
             // Create new booking
             $booking = Booking::create([
                 'room_id' => $room->id,
@@ -176,6 +203,7 @@ class IcalService
                 'guest_last_name' => 'Guest',
                 'email' => 'airbnb@example.com',
                 'notes' => 'Imported from Airbnb - UID: ' . $event['uid'],
+                'external_uid' => $event['uid'],
             ]);
             
             return ['created' => true, 'booking' => $booking];

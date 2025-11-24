@@ -17,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Webhook endpoint for immediate iCal sync
+Route::post('/webhook/ical-sync', [\App\Http\Controllers\Api\WebhookController::class, 'syncIcal'])
+    ->middleware('throttle:60,1'); // Rate limit: 60 requests per minute

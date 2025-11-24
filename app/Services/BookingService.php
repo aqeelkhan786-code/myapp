@@ -13,6 +13,7 @@ class BookingService
      */
     public function isAvailable(Room $room, Carbon $startAt, Carbon $endAt, ?int $excludeBookingId = null): bool
     {
+        // Check for conflicting bookings
         $query = Booking::where('room_id', $room->id)
             ->where('status', 'confirmed')
             ->where(function ($q) use ($startAt, $endAt) {
@@ -27,7 +28,17 @@ class BookingService
             $query->where('id', '!=', $excludeBookingId);
         }
 
-        return $query->count() === 0;
+        if ($query->count() > 0) {
+            return false;
+        }
+
+        // Check for blackout dates (maintenance, etc.)
+        $blackoutDates = \App\Models\BlackoutDate::where('room_id', $room->id)
+            ->where('start_date', '<=', $endAt->format('Y-m-d'))
+            ->where('end_date', '>=', $startAt->format('Y-m-d'))
+            ->exists();
+
+        return !$blackoutDates;
     }
 
     /**
