@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Booking')
+@section('title', __('admin.edit_booking'))
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Booking #{{ $booking->id }}</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ __('admin.edit_booking') }} #{{ $booking->id }}</h1>
 
     @if(session('conflicts'))
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <h3 class="text-lg font-semibold text-red-800 mb-2">⚠️ Conflicting Bookings Detected</h3>
+        <h3 class="text-lg font-semibold text-red-800 mb-2">⚠️ {{ __('admin.conflicting_bookings_detected') }}</h3>
         <ul class="list-disc list-inside text-sm text-red-700 mb-4">
             @foreach(session('conflicts') as $conflict)
             <li>Booking #{{ $conflict['id'] }}: {{ $conflict['guest_first_name'] }} {{ $conflict['guest_last_name'] }} 
@@ -16,7 +16,7 @@
             </li>
             @endforeach
         </ul>
-        <p class="text-sm text-red-700">Check "Override Conflict" below to proceed despite conflicts.</p>
+        <p class="text-sm text-red-700">{{ __('admin.check_override_conflict') }}</p>
     </div>
     @endif
 

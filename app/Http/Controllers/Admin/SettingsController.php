@@ -28,6 +28,7 @@ class SettingsController extends Controller
     {
         $request->validate([
             'timezone' => 'required|string|timezone',
+            'locale' => 'required|string|in:en,de',
         ]);
 
         // Update .env or config cache
@@ -40,9 +41,20 @@ class SettingsController extends Controller
             $env .= "\nAPP_TIMEZONE=" . $request->timezone;
         }
         
+        // Update locale
+        if (preg_match('/^APP_LOCALE=.*/m', $env)) {
+            $env = preg_replace('/^APP_LOCALE=.*/m', 'APP_LOCALE=' . $request->locale, $env);
+        } else {
+            $env .= "\nAPP_LOCALE=" . $request->locale;
+        }
+        
         file_put_contents($envPath, $env);
         
-        return back()->with('success', 'Settings updated. Please clear config cache: php artisan config:clear');
+        // Set locale in session for immediate effect
+        app()->setLocale($request->locale);
+        session(['locale' => $request->locale]);
+        
+        return back()->with('success', __('settings.settings_updated'));
     }
 
     /**
@@ -76,7 +88,7 @@ class SettingsController extends Controller
         
         file_put_contents($envPath, $env);
         
-        return back()->with('success', 'Payment settings updated. Please clear config cache: php artisan config:clear');
+        return back()->with('success', __('settings.payment_settings_updated'));
     }
 
     /**
@@ -100,6 +112,6 @@ class SettingsController extends Controller
         
         file_put_contents($templatePath, $request->body);
         
-        return back()->with('success', 'Email template updated successfully.');
+        return back()->with('success', __('settings.email_template_updated'));
     }
 }

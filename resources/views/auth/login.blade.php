@@ -2,8 +2,12 @@
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login') }}" id="login-form">
         @csrf
+        <!-- Debug: Show CSRF token (remove in production) -->
+        @if(config('app.debug'))
+            <input type="hidden" name="_debug_token" value="{{ csrf_token() }}">
+        @endif
 
         <!-- Email Address -->
         <div>
@@ -44,4 +48,34 @@
             </x-primary-button>
         </div>
     </form>
+    
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('login-form');
+            if (!form) return;
+            
+            form.addEventListener('submit', function(e) {
+                console.log('Form submitting...');
+                const submitBtn = form.querySelector('button[type="submit"]');
+                
+                // Disable submit button to prevent double submission
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    const originalText = submitBtn.textContent || submitBtn.innerHTML;
+                    submitBtn.textContent = 'Logging in...';
+                    
+                    // Re-enable after 5 seconds in case of error
+                    setTimeout(function() {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }, 5000);
+                }
+                
+                // Let the form submit normally - don't prevent default
+                // The form will submit via POST and Laravel will handle the redirect
+            });
+        });
+    </script>
+    @endpush
 </x-guest-layout>

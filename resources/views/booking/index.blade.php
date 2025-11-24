@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Select Apartment')
+@section('title', __('booking.select_apartment'))
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Select Your Apartment</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ __('booking.select_apartment') }}</h1>
     
     <!-- Date Range Filter -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <form method="GET" action="{{ route('booking.index') }}" class="flex flex-col md:flex-row gap-4 items-end">
             <div class="flex-1">
-                <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">Check-in Date</label>
+                <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_in_date') }}</label>
                 <input type="date" 
                        name="check_in" 
                        id="check_in" 
@@ -19,7 +19,7 @@
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex-1">
-                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">Check-out Date</label>
+                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_out_date') }}</label>
                 <input type="date" 
                        name="check_out" 
                        id="check_out" 
@@ -29,19 +29,19 @@
             </div>
             <div class="flex gap-2">
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                    Filter Available Rooms
+                    {{ __('booking.filter_available_rooms') }}
                 </button>
                 @if(request('check_in') || request('check_out'))
                 <a href="{{ route('booking.index') }}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors">
-                    Clear
+                    {{ __('booking.clear') }}
                 </a>
                 @endif
             </div>
         </form>
         @if(request('check_in') && request('check_out'))
         <p class="mt-4 text-sm text-gray-600">
-            Showing {{ $rooms->count() }} available room(s) from 
-            <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> to 
+            {{ __('booking.showing') }} {{ $rooms->count() }} {{ __('booking.available_rooms') }} 
+            <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> {{ __('booking.to') }} 
             <strong>{{ \Carbon\Carbon::parse(request('check_out'))->format('M d, Y') }}</strong>
         </p>
         @endif
@@ -51,9 +51,9 @@
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
         <p class="text-yellow-800">
             @if(request('check_in') && request('check_out'))
-                No rooms available for the selected dates. Please try different dates.
+                {{ __('booking.no_rooms_selected_dates') }}
             @else
-                No rooms available at the moment.
+                {{ __('booking.no_rooms_available') }}
             @endif
         </p>
     </div>
@@ -90,11 +90,11 @@
                 <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ $room->name }}</h2>
                 <p class="text-gray-600 mb-4">{{ Str::limit($room->description, 100) }}</p>
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-sm text-gray-500">Capacity: {{ $room->capacity }} guests</span>
-                    <span class="text-lg font-bold text-gray-900">€{{ number_format($room->base_price, 2) }}/night</span>
+                    <span class="text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ __('booking.guests') }}</span>
+                    <span class="text-lg font-bold text-gray-900">€{{ number_format($room->base_price, 2) }}{{ __('booking.night') }}</span>
                 </div>
                 <a href="{{ route('booking.show', $room) }}" class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                    View Details & Book
+                    {{ __('booking.view_details_book') }}
                 </a>
             </div>
         </div>

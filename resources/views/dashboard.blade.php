@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
+            {{ __('common.Dashboard') }}
         </h2>
     </x-slot>
 
@@ -14,10 +14,10 @@
                          alt="Luxury Apartment" 
                          class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-transparent flex items-center">
-                        <div class="px-8 text-white">
-                            <h1 class="text-4xl font-bold mb-2">Welcome to Your Dashboard</h1>
-                            <p class="text-xl">Manage your bookings and properties</p>
-                        </div>
+                    <div class="px-8 text-white">
+                        <h1 class="text-4xl font-bold mb-2">{{ __('dashboard.welcome') }}</h1>
+                        <p class="text-xl">{{ __('dashboard.manage_bookings_properties') }}</p>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -33,7 +33,7 @@
                                      class="w-12 h-12 rounded-lg object-cover">
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Bookings</p>
+                                <p class="text-sm font-medium text-gray-500">{{ __('dashboard.total_bookings') }}</p>
                                 <p class="text-2xl font-semibold text-gray-900">{{ $totalBookings ?? 0 }}</p>
                             </div>
                         </div>
@@ -49,7 +49,7 @@
                                      class="w-12 h-12 rounded-lg object-cover">
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Confirmed</p>
+                                <p class="text-sm font-medium text-gray-500">{{ __('dashboard.confirmed') }}</p>
                                 <p class="text-2xl font-semibold text-gray-900">{{ $confirmedBookings ?? 0 }}</p>
                             </div>
                         </div>
@@ -65,7 +65,7 @@
                                      class="w-12 h-12 rounded-lg object-cover">
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Pending</p>
+                                <p class="text-sm font-medium text-gray-500">{{ __('dashboard.pending') }}</p>
                                 <p class="text-2xl font-semibold text-gray-900">{{ $pendingBookings ?? 0 }}</p>
                             </div>
                         </div>
@@ -81,7 +81,7 @@
                                      class="w-12 h-12 rounded-lg object-cover">
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Revenue</p>
+                                <p class="text-sm font-medium text-gray-500">{{ __('dashboard.total_revenue') }}</p>
                                 <p class="text-2xl font-semibold text-gray-900">€{{ number_format($totalRevenue ?? 0, 2) }}</p>
                             </div>
                         </div>
@@ -94,7 +94,7 @@
                 <!-- Upcoming Arrivals -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Upcoming Arrivals (Next 7 Days)</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('dashboard.upcoming_arrivals') }}</h3>
                         @if(isset($arrivals) && $arrivals->count() > 0)
                         <div class="space-y-3">
                             @foreach($arrivals as $booking)
@@ -115,7 +115,7 @@
                             @endforeach
                         </div>
                         @else
-                        <p class="text-sm text-gray-500">No upcoming arrivals</p>
+                        <p class="text-sm text-gray-500">{{ __('dashboard.no_upcoming_arrivals') }}</p>
                         @endif
                     </div>
                 </div>
@@ -123,26 +123,26 @@
                 <!-- Conflicts Panel -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">⚠️ Booking Conflicts</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">⚠️ {{ __('dashboard.booking_conflicts') }}</h3>
                         @if(isset($conflicts) && count($conflicts) > 0)
                         <div class="space-y-3">
                             @foreach($conflicts as $conflict)
                             <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <p class="text-sm font-medium text-red-900 mb-1">Room: {{ $conflict['booking1']->room->name }}</p>
+                                <p class="text-sm font-medium text-red-900 mb-1">{{ __('dashboard.room') }}: {{ $conflict['booking1']->room->name }}</p>
                                 <p class="text-xs text-red-700">
                                     Booking #{{ $conflict['booking1']->id }} ({{ $conflict['booking1']->guest_full_name }}) 
-                                    conflicts with 
+                                    {{ __('dashboard.conflicts_with') }} 
                                     Booking #{{ $conflict['booking2']->id }} ({{ $conflict['booking2']->guest_full_name }})
                                 </p>
                                 <div class="mt-2 flex gap-2">
-                                    <a href="{{ route('admin.bookings.edit', $conflict['booking1']) }}" class="text-xs text-blue-600 hover:text-blue-800">Edit #{{ $conflict['booking1']->id }}</a>
-                                    <a href="{{ route('admin.bookings.edit', $conflict['booking2']) }}" class="text-xs text-blue-600 hover:text-blue-800">Edit #{{ $conflict['booking2']->id }}</a>
+                                    <a href="{{ route('admin.bookings.edit', $conflict['booking1']) }}" class="text-xs text-blue-600 hover:text-blue-800">{{ __('admin.edit') }} #{{ $conflict['booking1']->id }}</a>
+                                    <a href="{{ route('admin.bookings.edit', $conflict['booking2']) }}" class="text-xs text-blue-600 hover:text-blue-800">{{ __('admin.edit') }} #{{ $conflict['booking2']->id }}</a>
                                 </div>
                             </div>
                             @endforeach
                         </div>
                         @else
-                        <p class="text-sm text-gray-500">No conflicts detected</p>
+                        <p class="text-sm text-gray-500">{{ __('dashboard.no_conflicts') }}</p>
                         @endif
                     </div>
                 </div>
@@ -152,7 +152,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold">Quick Actions</h3>
+                        <h3 class="text-lg font-semibold">{{ __('dashboard.quick_actions') }}</h3>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <a href="{{ route('booking.index') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -160,8 +160,8 @@
                                  alt="View Bookings" 
                                  class="w-16 h-16 rounded-lg object-cover mr-4">
                             <div>
-                                <p class="font-medium text-gray-900">View Bookings</p>
-                                <p class="text-sm text-gray-500">Browse available rooms</p>
+                                <p class="font-medium text-gray-900">{{ __('dashboard.view_bookings') }}</p>
+                                <p class="text-sm text-gray-500">{{ __('dashboard.browse_available_rooms') }}</p>
                             </div>
                         </a>
                         <a href="{{ route('admin.bookings.index') }}" class="flex items-center p-4 border-2 border-blue-300 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
@@ -169,8 +169,8 @@
                                  alt="Admin Bookings" 
                                  class="w-16 h-16 rounded-lg object-cover mr-4">
                             <div>
-                                <p class="font-medium text-gray-900">Admin: Manage Bookings</p>
-                                <p class="text-sm text-gray-500">Create and edit bookings manually</p>
+                                <p class="font-medium text-gray-900">{{ __('dashboard.admin_manage_bookings') }}</p>
+                                <p class="text-sm text-gray-500">{{ __('dashboard.create_edit_bookings_manually') }}</p>
                             </div>
                         </a>
                         <a href="{{ route('admin.bookings.create') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -178,8 +178,8 @@
                                  alt="Create Booking" 
                                  class="w-16 h-16 rounded-lg object-cover mr-4">
                             <div>
-                                <p class="font-medium text-gray-900">Create New Booking</p>
-                                <p class="text-sm text-gray-500">Add manual booking</p>
+                                <p class="font-medium text-gray-900">{{ __('dashboard.create_new_booking') }}</p>
+                                <p class="text-sm text-gray-500">{{ __('dashboard.add_manual_booking') }}</p>
                             </div>
                         </a>
                     </div>

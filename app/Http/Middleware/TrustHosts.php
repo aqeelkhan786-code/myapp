@@ -15,6 +15,10 @@ class TrustHosts extends Middleware
     {
         return [
             $this->allSubdomainsOfApplicationUrl(),
+            // Allow ngrok domains
+            '*.ngrok-free.app',
+            '*.ngrok.io',
+            '*.ngrok.app',
         ];
     }
 }
