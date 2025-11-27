@@ -16,7 +16,15 @@
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-transparent flex items-center">
                     <div class="px-8 text-white">
                         <h1 class="text-4xl font-bold mb-2">{{ __('dashboard.welcome') }}</h1>
-                        <p class="text-xl">{{ __('dashboard.manage_bookings_properties') }}</p>
+                        <p class="text-xl mb-4">{{ __('dashboard.manage_bookings_properties') }}</p>
+                        <a href="{{ route('booking-flow.home') }}" 
+                           class="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            {{ __('dashboard.visit_us') }}
+                        </a>
                     </div>
                     </div>
                 </div>

@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'welcome' => 'Welcome',
+    'welcome_subtitle' => 'Discover your perfect accommodation',
+    'book_now' => 'Book Now',
+    'book_now_description' => 'Start your booking journey',
+    'view_properties' => 'View Properties',
+    'view_properties_description' => 'Browse all available rooms',
+    'select_location' => 'Select Location',
+    'select_location_description' => 'Choose your preferred location',
+    'no_locations' => 'No locations available',
+    'main_house' => 'Main House',
+    'view_apartments' => 'View Apartments',
+    'view_apartments_description' => 'Explore available apartments',
+    'select_apartment' => 'Select Apartment',
+    'select_apartment_description' => 'Choose your perfect apartment',
+    'no_apartments' => 'No apartments available',
+    'back_to_home' => 'Back to Home',
+    'back_to_locations' => 'Back to Locations',
+    'back_to_house' => 'Back to House',
+    'view_details' => 'View Details',
+    'home' => 'HOME',
+    'ma_room_title' => 'MA ROOM',
+    'description_line1' => 'We offer good rooms and service around living.',
+    'description_line2' => 'From cleaning to bed linen to support with registration, we want to make your living as carefree as possible.',
+    'deutsch' => 'Deutsch',
+    'englisch' => 'Englisch',
+];
+

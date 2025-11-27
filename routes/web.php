@@ -56,6 +56,32 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Language switching route
+Route::post('/set-locale', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'locale' => 'required|string|in:en,de',
+    ]);
+    
+    session(['locale' => $request->locale]);
+    app()->setLocale($request->locale);
+    
+    // Redirect to specified page or back
+    if ($request->has('redirect_to')) {
+        return redirect($request->redirect_to);
+    }
+    
+    return redirect()->back();
+})->name('set-locale');
+
+// Booking Flow Routes (New Flow: Home → Locations → House → Apartments → Room Details)
+Route::prefix('booking-flow')->name('booking-flow.')->group(function () {
+    Route::get('/home', [\App\Http\Controllers\Customer\BookingFlowController::class, 'home'])->name('home');
+    Route::get('/locations', [\App\Http\Controllers\Customer\BookingFlowController::class, 'locations'])->name('locations');
+    Route::get('/locations/{location}/house', [\App\Http\Controllers\Customer\BookingFlowController::class, 'house'])->name('house');
+    Route::get('/houses/{house}/apartments', [\App\Http\Controllers\Customer\BookingFlowController::class, 'apartments'])->name('apartments');
+    Route::get('/rooms/{room}/details', [\App\Http\Controllers\Customer\BookingFlowController::class, 'roomDetails'])->name('room-details');
+});
+
 // Guest Booking Routes
 Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
 Route::get('/booking/{room}', [BookingController::class, 'show'])->name('booking.show');

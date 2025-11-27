@@ -32,3 +32,10 @@ return [
     'email_template_updated' => 'E-Mail-Vorlage erfolgreich aktualisiert.',
 ];
 
+
+
+
+
+
+
+

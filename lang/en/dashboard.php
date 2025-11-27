@@ -20,5 +20,10 @@ return [
     'add_manual_booking' => 'Add manual booking',
     'room' => 'Room',
     'conflicts_with' => 'conflicts with',
+    'visit_us' => 'Visit Us',
 ];
+
+
+
+
 

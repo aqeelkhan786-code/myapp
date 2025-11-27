@@ -14,6 +14,7 @@ class Room extends Model
 
     protected $fillable = [
         'property_id',
+        'house_id',
         'name',
         'slug',
         'capacity',
@@ -30,6 +31,11 @@ class Room extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    public function house(): BelongsTo
+    {
+        return $this->belongsTo(House::class);
     }
 
     public function images(): HasMany

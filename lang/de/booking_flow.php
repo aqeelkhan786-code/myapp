@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'welcome' => 'Willkommen',
+    'welcome_subtitle' => 'Entdecken Sie Ihre perfekte Unterkunft',
+    'book_now' => 'Jetzt buchen',
+    'book_now_description' => 'Starten Sie Ihre Buchungsreise',
+    'view_properties' => 'Immobilien anzeigen',
+    'view_properties_description' => 'Alle verfügbaren Zimmer durchsuchen',
+    'select_location' => 'Standort auswählen',
+    'select_location_description' => 'Wählen Sie Ihren bevorzugten Standort',
+    'no_locations' => 'Keine Standorte verfügbar',
+    'main_house' => 'Hauptgebäude',
+    'view_apartments' => 'Wohnungen anzeigen',
+    'view_apartments_description' => 'Verfügbare Wohnungen erkunden',
+    'select_apartment' => 'Wohnung auswählen',
+    'select_apartment_description' => 'Wählen Sie Ihre perfekte Wohnung',
+    'no_apartments' => 'Keine Wohnungen verfügbar',
+    'back_to_home' => 'Zurück zur Startseite',
+    'back_to_locations' => 'Zurück zu den Standorten',
+    'back_to_house' => 'Zurück zum Gebäude',
+    'view_details' => 'Details anzeigen',
+    'home' => 'HOME',
+    'ma_room_title' => 'MA ROOM',
+    'description_line1' => 'Wir bieten gute Zimmer und Service rund ums Wohnen.',
+    'description_line2' => 'Von der Reinigung über die Bettwäsche bis hin zur Unterstützung bei der Anmeldung möchten wir Ihnen das Wohnen so sorgenfrei wie möglich gestalten.',
+    'deutsch' => 'Deutsch',
+    'englisch' => 'Englisch',
+];
+

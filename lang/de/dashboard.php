@@ -20,5 +20,10 @@ return [
     'add_manual_booking' => 'Manuelle Buchung hinzufügen',
     'room' => 'Zimmer',
     'conflicts_with' => 'steht in Konflikt mit',
+    'visit_us' => 'Besuchen Sie uns',
 ];
+
+
+
+
 

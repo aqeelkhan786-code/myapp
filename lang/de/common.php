@@ -10,3 +10,10 @@ return [
     'Log Out' => 'Abmelden',
 ];
 
+
+
+
+
+
+
+
