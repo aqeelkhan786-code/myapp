@@ -16,49 +16,73 @@ class BookingFlowSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create 3 Locations
-        $locations = [
+        // Define the 3 locations we want
+        $targetLocations = [
             [
-                'name' => 'Berlin Center',
-                'description' => 'Prime location in the heart of Berlin',
+                'name' => 'Fürstenwalde',
+                'description' => null,
                 'sort_order' => 1,
             ],
             [
-                'name' => 'Berlin East',
-                'description' => 'Modern apartments in Berlin East',
+                'name' => 'Hoppegarten',
+                'description' => null,
                 'sort_order' => 2,
             ],
             [
-                'name' => 'Berlin West',
-                'description' => 'Luxury accommodations in Berlin West',
+                'name' => 'Magdeburg',
+                'description' => null,
                 'sort_order' => 3,
             ],
         ];
 
-        foreach ($locations as $locationData) {
-            $location = Location::create([
-                'name' => $locationData['name'],
-                'slug' => Str::slug($locationData['name']),
-                'description' => $locationData['description'],
-                'image' => null, // You can add images later
-                'sort_order' => $locationData['sort_order'],
-            ]);
+        // Get all existing locations
+        $allExistingLocations = Location::all();
+        
+        // Create or update the 3 target locations
+        $targetLocationIds = [];
+        foreach ($targetLocations as $locationData) {
+            $location = Location::updateOrCreate(
+                ['slug' => Str::slug($locationData['name'])],
+                [
+                    'name' => $locationData['name'],
+                    'description' => $locationData['description'],
+                    'image' => null,
+                    'sort_order' => $locationData['sort_order'],
+                ]
+            );
+            $targetLocationIds[] = $location->id;
+            $this->command->info("Ensured location exists: {$locationData['name']}");
+        }
+        
+        // Delete any locations that are NOT in our target list
+        $locationsToDelete = Location::whereNotIn('id', $targetLocationIds)->get();
+        foreach ($locationsToDelete as $locationToDelete) {
+            $this->command->info("Deleting location: {$locationToDelete->name}");
+            $locationToDelete->delete();
+        }
 
-            // Create 1 House per Location
-            $house = House::create([
-                'location_id' => $location->id,
-                'name' => 'Main House',
-                'slug' => Str::slug($location->name . '-main-house'),
-                'description' => 'Beautiful main house with multiple apartments',
-                'image' => null, // You can add images later
-            ]);
+        // Get the final 3 locations
+        $locations = Location::orderBy('sort_order')->get();
 
-            // Create 3-4 Apartments (Rooms) per House
+        foreach ($locations as $location) {
+
+            // Create 1 House per Location with location name (use firstOrCreate)
+            $house = House::firstOrCreate(
+                ['slug' => Str::slug($location->name . '-house')],
+                [
+                    'location_id' => $location->id,
+                    'name' => $location->name . ' House',
+                    'description' => 'Beautiful house in ' . $location->name . ' with multiple apartments',
+                    'image' => null, // You can add images later
+                ]
+            );
+
+            // Create 3-4 Apartments (Rooms) per House with location name
             $apartments = [
-                ['name' => 'Apartment A', 'capacity' => 2, 'base_price' => 80.00],
-                ['name' => 'Apartment B', 'capacity' => 4, 'base_price' => 120.00],
-                ['name' => 'Apartment C', 'capacity' => 3, 'base_price' => 100.00],
-                ['name' => 'Apartment D', 'capacity' => 2, 'base_price' => 90.00],
+                ['name' => $location->name . ' Apartment A', 'capacity' => 2, 'base_price' => 80.00],
+                ['name' => $location->name . ' Apartment B', 'capacity' => 4, 'base_price' => 120.00],
+                ['name' => $location->name . ' Apartment C', 'capacity' => 3, 'base_price' => 100.00],
+                ['name' => $location->name . ' Apartment D', 'capacity' => 2, 'base_price' => 90.00],
             ];
 
             // Get or create a property for backward compatibility
@@ -66,22 +90,25 @@ class BookingFlowSeeder extends Seeder
                 ['name' => $location->name . ' Property'],
                 [
                     'address' => 'Sample Address',
-                    'city' => 'Berlin',
+                    'city' => $location->name,
                     'postal_code' => '10115',
                 ]
             );
 
             foreach ($apartments as $apt) {
-                Room::create([
-                    'property_id' => $property->id,
-                    'house_id' => $house->id,
-                    'name' => $apt['name'],
-                    'slug' => Str::slug($location->name . '-' . $apt['name']),
-                    'capacity' => $apt['capacity'],
-                    'base_price' => $apt['base_price'],
-                    'short_term_allowed' => true,
-                    'description' => "Comfortable {$apt['name']} with modern amenities. Perfect for {$apt['capacity']} guests.",
-                ]);
+                // Use firstOrCreate to avoid duplicate entry errors
+                Room::firstOrCreate(
+                    ['slug' => Str::slug($apt['name'])],
+                    [
+                        'property_id' => $property->id,
+                        'house_id' => $house->id,
+                        'name' => $apt['name'],
+                        'capacity' => $apt['capacity'],
+                        'base_price' => $apt['base_price'],
+                        'short_term_allowed' => true,
+                        'description' => "Comfortable {$apt['name']} with modern amenities. Perfect for {$apt['capacity']} guests.",
+                    ]
+                );
             }
         }
 

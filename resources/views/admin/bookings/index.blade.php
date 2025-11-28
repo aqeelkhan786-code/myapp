@@ -36,15 +36,42 @@
 
     <!-- Filters -->
     <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-        <form method="GET" action="{{ route('admin.bookings.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form method="GET" action="{{ route('admin.bookings.index') }}" id="filterForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Optimized Status Filter with Quick Buttons -->
             <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.status') }}</label>
-                <select name="status" id="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">{{ __('admin.all') }}</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
-                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>{{ __('admin.confirmed') }}</option>
-                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>{{ __('admin.cancelled') }}</option>
-                </select>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.status') }}</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('admin.bookings.index', request()->except('status')) }}" 
+                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors {{ !request('status') || request('status') == '' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ __('admin.all') }}
+                        <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full {{ !request('status') || request('status') == '' ? 'bg-blue-500' : 'bg-gray-200' }}">
+                            {{ $statusCounts['all'] ?? 0 }}
+                        </span>
+                    </a>
+                    <a href="{{ route('admin.bookings.index', array_merge(request()->except('status'), ['status' => 'pending'])) }}" 
+                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors {{ request('status') == 'pending' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ __('admin.pending') }}
+                        <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full {{ request('status') == 'pending' ? 'bg-yellow-400' : 'bg-gray-200' }}">
+                            {{ $statusCounts['pending'] ?? 0 }}
+                        </span>
+                    </a>
+                    <a href="{{ route('admin.bookings.index', array_merge(request()->except('status'), ['status' => 'confirmed'])) }}" 
+                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors {{ request('status') == 'confirmed' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ __('admin.confirmed') }}
+                        <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full {{ request('status') == 'confirmed' ? 'bg-green-400' : 'bg-gray-200' }}">
+                            {{ $statusCounts['confirmed'] ?? 0 }}
+                        </span>
+                    </a>
+                    <a href="{{ route('admin.bookings.index', array_merge(request()->except('status'), ['status' => 'cancelled'])) }}" 
+                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors {{ request('status') == 'cancelled' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ __('admin.cancelled') }}
+                        <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full {{ request('status') == 'cancelled' ? 'bg-red-400' : 'bg-gray-200' }}">
+                            {{ $statusCounts['cancelled'] ?? 0 }}
+                        </span>
+                    </a>
+                </div>
+                <!-- Hidden input to preserve status in form submission -->
+                <input type="hidden" name="status" id="status" value="{{ request('status') }}">
             </div>
             <div>
                 <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.room') }}</label>
@@ -88,6 +115,20 @@
             </div>
         </form>
     </div>
+
+    <script>
+        // Auto-submit form when other filters change (status is handled by links)
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('filterForm');
+            const inputs = form.querySelectorAll('select:not(#status), input[type="date"]');
+            
+            inputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    form.submit();
+                });
+            });
+        });
+    </script>
 
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">

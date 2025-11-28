@@ -40,25 +40,9 @@
             gap: 0.5rem;
         }
         
-        .logo-ma {
-            font-size: 1.2rem;
-            font-weight: 400;
-            color: #7cb342;
-            line-height: 1;
-        }
-        
-        .logo-room {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #2e7d32;
-            font-family: 'Playfair Display', serif;
-            line-height: 1;
-        }
-        
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            color: #2e7d32;
+        .logo-image {
+            height: 50px;
+            width: auto;
         }
         
         .nav-home {
@@ -82,7 +66,7 @@
             justify-content: center;
             align-items: center;
             padding: 2rem;
-            background-image: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1920&h=1080&fit=crop');
+            background-image: url('{{ asset('images/main bg.jpeg') }}');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -193,20 +177,7 @@
     <div class="header-top-strip"></div>
     <header class="header">
         <div class="logo-container">
-            <span class="logo-ma">Ma</span>
-            <span class="logo-room">Room</span>
-            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <!-- House outline -->
-                <path d="M3 12l9-9 9 9v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <!-- Door -->
-                <path d="M9 22V12h6v10"/>
-                <!-- Window left -->
-                <rect x="4" y="8" width="3" height="3" rx="0.5"/>
-                <!-- Window right -->
-                <rect x="17" y="8" width="3" height="3" rx="0.5"/>
-                <!-- Lamp (circle on top) -->
-                <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
-            </svg>
+            <img src="{{ asset('images/logo.png') }}" alt="Ma Room Logo" class="logo-image" />
         </div>
         <a href="{{ route('dashboard') }}" class="nav-home">{{ __('booking_flow.home') }}</a>
     </header>

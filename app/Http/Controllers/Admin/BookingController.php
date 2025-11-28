@@ -87,7 +87,15 @@ class BookingController extends Controller
         $bookings = $query->orderBy('start_at', 'desc')->paginate(20)->withQueryString();
         $rooms = \App\Models\Room::with('property')->get();
         
-        return view('admin.bookings.index', compact('bookings', 'rooms'));
+        // Get status counts for filter optimization
+        $statusCounts = [
+            'all' => Booking::count(),
+            'pending' => Booking::where('status', 'pending')->count(),
+            'confirmed' => Booking::where('status', 'confirmed')->count(),
+            'cancelled' => Booking::where('status', 'cancelled')->count(),
+        ];
+        
+        return view('admin.bookings.index', compact('bookings', 'rooms', 'statusCounts'));
     }
 
     /**
@@ -188,6 +196,7 @@ class BookingController extends Controller
 
         $amount = $request->amount;
         $newPaidAmount = $booking->paid_amount + $amount;
+        $oldStatus = $booking->status;
 
         // Create payment log
         \App\Models\PaymentLog::create([
@@ -200,13 +209,40 @@ class BookingController extends Controller
             'user_id' => auth()->id(),
         ]);
 
+        // Determine new status: if pending and payment is made, change to confirmed
+        $newStatus = $booking->status;
+        if ($booking->status === 'pending' && $newPaidAmount > 0) {
+            $newStatus = 'confirmed';
+        }
+
         // Update booking
-        $booking->update([
+        $updateData = [
             'paid_amount' => min($newPaidAmount, $booking->total_amount ?? 0),
             'payment_status' => $newPaidAmount >= ($booking->total_amount ?? 0) ? 'paid' : 'pending',
-        ]);
+        ];
 
-        return back()->with('success', 'Payment recorded successfully.');
+        // Only update status if it changed
+        if ($newStatus !== $oldStatus) {
+            $updateData['status'] = $newStatus;
+        }
+
+        $booking->update($updateData);
+
+        // Audit log: status change if status was updated
+        if ($newStatus !== $oldStatus) {
+            \App\Services\AuditService::log('booking_status_changed', [
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'reason' => 'Payment marked as paid',
+            ], auth()->id(), $booking);
+        }
+
+        $message = 'Payment recorded successfully.';
+        if ($newStatus !== $oldStatus) {
+            $message .= ' Booking status automatically changed from Pending to Confirmed.';
+        }
+
+        return back()->with('success', $message);
     }
 
     /**

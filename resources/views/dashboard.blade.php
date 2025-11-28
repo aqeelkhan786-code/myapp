@@ -10,8 +10,8 @@
             <!-- Hero Section with Image -->
             <div class="mb-8 bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="relative h-64 md:h-96">
-                    <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=600&fit=crop" 
-                         alt="Luxury Apartment" 
+                    <img src="{{ asset('images/main bg.jpeg') }}" 
+                         alt="Ma Room Background" 
                          class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-transparent flex items-center">
                     <div class="px-8 text-white">

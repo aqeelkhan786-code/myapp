@@ -73,8 +73,9 @@
                     
                     <!-- Location Info -->
                     <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ $location->name }}</h3>
                         @if($location->description)
-                        <p class="text-gray-600 line-clamp-2">{{ Str::limit($location->description, 100) }}</p>
+                        <p class="text-gray-600 line-clamp-2 mb-4">{{ Str::limit($location->description, 100) }}</p>
                         @endif
                         <div class="mt-4 flex items-center text-blue-600 font-semibold">
                             <span>{{ __('booking_flow.view_details') }}</span>
