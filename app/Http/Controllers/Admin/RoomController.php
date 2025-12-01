@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Room;
 use App\Models\Property;
+use App\Models\House;
+use App\Models\Location;
 use App\Models\IcalFeed;
 use App\Services\IcalService;
 use Illuminate\Http\Request;
@@ -26,7 +28,7 @@ class RoomController extends Controller
      */
     public function index()
     {
-        $rooms = Room::with(['property', 'images'])->get();
+        $rooms = Room::with(['property', 'house.location', 'images'])->get();
         return view('admin.rooms.index', compact('rooms'));
     }
 
@@ -36,7 +38,9 @@ class RoomController extends Controller
     public function create()
     {
         $properties = Property::all();
-        return view('admin.rooms.create', compact('properties'));
+        $locations = Location::orderBy('sort_order')->get();
+        $houses = House::with('location')->get();
+        return view('admin.rooms.create', compact('properties', 'locations', 'houses'));
     }
 
     /**
@@ -46,6 +50,7 @@ class RoomController extends Controller
     {
         $request->validate([
             'property_id' => 'required|exists:properties,id',
+            'house_id' => 'nullable|exists:houses,id',
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'base_price' => 'required|numeric|min:0',
@@ -55,6 +60,7 @@ class RoomController extends Controller
 
         $room = Room::create([
             'property_id' => $request->property_id,
+            'house_id' => $request->house_id,
             'name' => $request->name,
             'slug' => Str::slug($request->name),
             'capacity' => $request->capacity,
@@ -174,8 +180,10 @@ class RoomController extends Controller
     public function edit(Room $room)
     {
         $properties = Property::all();
+        $locations = Location::orderBy('sort_order')->get();
+        $houses = House::with('location')->get();
         $room->load(['icalFeeds']);
-        return view('admin.rooms.edit', compact('room', 'properties'));
+        return view('admin.rooms.edit', compact('room', 'properties', 'locations', 'houses'));
     }
 
     /**
@@ -185,6 +193,7 @@ class RoomController extends Controller
     {
         $request->validate([
             'property_id' => 'required|exists:properties,id',
+            'house_id' => 'nullable|exists:houses,id',
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'base_price' => 'required|numeric|min:0',
@@ -194,6 +203,7 @@ class RoomController extends Controller
 
         $room->update([
             'property_id' => $request->property_id,
+            'house_id' => $request->house_id,
             'name' => $request->name,
             'slug' => Str::slug($request->name),
             'capacity' => $request->capacity,

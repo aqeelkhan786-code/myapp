@@ -73,11 +73,12 @@ Route::post('/set-locale', function (\Illuminate\Http\Request $request) {
     return redirect()->back();
 })->name('set-locale');
 
-// Booking Flow Routes (New Flow: Home → Locations → House → Apartments → Room Details)
+// Booking Flow Routes (New Flow: Home → Locations → House → Room Details)
 Route::prefix('booking-flow')->name('booking-flow.')->group(function () {
     Route::get('/home', [\App\Http\Controllers\Customer\BookingFlowController::class, 'home'])->name('home');
     Route::get('/locations', [\App\Http\Controllers\Customer\BookingFlowController::class, 'locations'])->name('locations');
     Route::get('/locations/{location}/house', [\App\Http\Controllers\Customer\BookingFlowController::class, 'house'])->name('house');
+    // Redirect old apartments route to house page
     Route::get('/houses/{house}/apartments', [\App\Http\Controllers\Customer\BookingFlowController::class, 'apartments'])->name('apartments');
     Route::get('/rooms/{room}/details', [\App\Http\Controllers\Customer\BookingFlowController::class, 'roomDetails'])->name('room-details');
 });

@@ -1,29 +1,36 @@
 @extends('layouts.app')
 
-@section('title', $room->name . ' - Booking')
+@section('title', ($room && $room->name ? $room->name : 'Room') . ' - Booking')
 
 @section('content')
+@if(!$room)
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p class="text-red-800">Room not found.</p>
+        </div>
+    </div>
+@else
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Room Images -->
         <div>
             <div class="swiper room-detail-swiper h-96 mb-4">
                 <div class="swiper-wrapper">
-                    @if($room->images->count() > 0)
+                    @if($room->images && $room->images->count() > 0)
                         @foreach($room->images as $image)
                         <div class="swiper-slide">
-                            <img src="{{ asset('storage/' . $image->path) }}" alt="{{ $room->name }}" class="w-full h-full object-cover rounded-lg">
+                            <img src="{{ asset('storage/' . $image->path) }}" alt="{{ $room->name ?? 'Room' }}" class="w-full h-full object-cover rounded-lg">
                         </div>
                         @endforeach
                     @else
                         <div class="swiper-slide">
                             <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&h=800&fit=crop" 
-                                 alt="{{ $room->name }}" 
+                                 alt="{{ $room->name ?? 'Room' }}" 
                                  class="w-full h-full object-cover rounded-lg">
                         </div>
                     @endif
                 </div>
-                @if($room->images->count() > 1)
+                @if($room->images && $room->images->count() > 1)
                 <div class="swiper-pagination"></div>
                 <div class="swiper-button-next"></div>
                 <div class="swiper-button-prev"></div>
@@ -31,16 +38,16 @@
             </div>
             
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ $room->name }}</h1>
-                <p class="text-gray-600 mb-4">{{ $room->description }}</p>
+                <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ $room->name ?? 'Room' }}</h1>
+                <p class="text-gray-600 mb-4">{{ $room->description ?? '' }}</p>
                 <div class="space-y-2">
                     <div class="flex justify-between">
                         <span class="text-gray-600">Capacity:</span>
-                        <span class="font-semibold">{{ $room->capacity }} guests</span>
+                        <span class="font-semibold">{{ $room->capacity ?? 0 }} guests</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Price per night:</span>
-                        <span class="font-semibold">€{{ number_format($room->base_price, 2) }}</span>
+                        <span class="font-semibold">€{{ number_format($room->base_price ?? 0, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -104,10 +111,10 @@
     });
     
     // Get blocked dates from bookings
-    const blockedDates = @json($bookings->map(function($booking) {
+    const blockedDates = @json(($bookings ?? collect())->map(function($booking) {
         return [
-            new Date($booking->start_at).toISOString().split('T')[0],
-            new Date($booking->end_at).toISOString().split('T')[0]
+            \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
+            \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
         ];
     }));
     
@@ -128,7 +135,7 @@
                 const start = selectedDates[0];
                 const end = selectedDates[1];
                 const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-                const pricePerNight = {{ $room->base_price }};
+                const pricePerNight = {{ $room->base_price ?? 0 }};
                 const total = nights * pricePerNight;
                 
                 // Format dates as YYYY-MM-DD
@@ -167,5 +174,6 @@
     });
 </script>
 @endpush
+@endif
 @endsection
 

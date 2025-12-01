@@ -13,24 +13,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
-        .house-card {
-            transition: all 0.3s ease;
-        }
-        .house-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-        .house-card img {
-            transition: transform 0.7s ease;
-        }
-        .house-card:hover img {
-            transform: scale(1.1);
-        }
     </style>
 </head>
 <body class="font-sans antialiased bg-gray-50">
     <div class="min-h-screen py-12 px-4">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-7xl mx-auto">
             <!-- Header -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -39,20 +26,19 @@
                 <p class="text-xl text-gray-600">{{ __('booking_flow.main_house') }}</p>
             </div>
             
-            <!-- House Card -->
-            <a href="{{ route('booking-flow.apartments', $house) }}" 
-               class="house-card block bg-white rounded-2xl overflow-hidden shadow-lg group">
+            <!-- House Header -->
+            <div class="mb-8 bg-white rounded-2xl overflow-hidden shadow-lg">
                 <!-- House Image -->
-                <div class="h-96 bg-gray-200 relative overflow-hidden">
+                <div class="h-64 bg-gray-200 relative overflow-hidden">
                     @if($house->image)
                         <img src="{{ asset('storage/' . $house->image) }}" 
                              alt="{{ $house->name }}" 
-                             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                             class="w-full h-full object-cover"
                              loading="lazy">
                     @else
                         <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop" 
                              alt="{{ $house->name }}" 
-                             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                             class="w-full h-full object-cover"
                              loading="lazy">
                     @endif
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
@@ -63,25 +49,21 @@
                         @endif
                     </div>
                 </div>
-                
-                <!-- House Info -->
-                <div class="p-8">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ __('booking_flow.view_apartments') }}</h3>
-                            <p class="text-gray-600">{{ __('booking_flow.view_apartments_description') }}</p>
-                        </div>
-                        <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </div>
-                </div>
-            </a>
+            </div>
             
-            <!-- Back Button -->
-            <div class="text-center mt-8">
+            <!-- Action Buttons -->
+            <div class="text-center mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
+                @if($availableRoom)
+                <a href="{{ route('booking.show', $availableRoom) }}" 
+                   class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {{ __('booking_flow.book_now') }}
+                </a>
+                @endif
                 <a href="{{ route('booking-flow.locations') }}" 
-                   class="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                   class="inline-flex items-center px-6 py-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>

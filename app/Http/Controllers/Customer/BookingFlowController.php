@@ -28,7 +28,7 @@ class BookingFlowController extends Controller
     }
 
     /**
-     * Show house page for a location
+     * Show house page for a location with rooms directly
      */
     public function house(Location $location)
     {
@@ -36,16 +36,28 @@ class BookingFlowController extends Controller
         if (!$house) {
             abort(404, 'House not found for this location');
         }
-        return view('booking-flow.house', compact('location', 'house'));
+        
+        // Get rooms assigned to this house
+        $rooms = $house->rooms()->with('images')->get();
+        
+        // If no rooms are assigned to the house, get all available rooms as fallback
+        if ($rooms->isEmpty()) {
+            $rooms = Room::with('images')->get();
+        }
+        
+        // Get first available room for booking button
+        $availableRoom = $rooms->isNotEmpty() ? $rooms->first() : null;
+        
+        return view('booking-flow.house', compact('location', 'house', 'rooms', 'availableRoom'));
     }
 
     /**
-     * Show apartments page for a house
+     * Show apartments page for a house (redirects to house page)
      */
     public function apartments(House $house)
     {
-        $apartments = $house->rooms()->with('images')->get();
-        return view('booking-flow.apartments', compact('house', 'apartments'));
+        // Redirect to house page which now shows rooms directly
+        return redirect()->route('booking-flow.house', $house->location);
     }
 
     /**

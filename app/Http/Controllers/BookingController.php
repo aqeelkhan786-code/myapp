@@ -73,12 +73,18 @@ class BookingController extends Controller
      */
     public function show(Room $room)
     {
-        // Ensure room exists
-        if (!$room->exists) {
+        // Ensure room exists and has required data
+        if (!$room || !$room->exists) {
             abort(404, 'Room not found');
         }
         
+        // Load relationships, but property might be null
         $room->load('images', 'property');
+        
+        // Ensure room has a name
+        if (!$room->name) {
+            abort(404, 'Room data is incomplete');
+        }
         
         // Get confirmed bookings for calendar
         $bookings = Booking::where('room_id', $room->id)
@@ -149,13 +155,16 @@ class BookingController extends Controller
      */
     public function step(Booking $booking, int $step)
     {
-        $booking->load('room', 'documents');
+        $booking->load('room', 'documents', 'room.property');
         
         if ($step < 1 || $step > 3) {
             abort(404);
         }
 
-        return view('booking.step', compact('booking', 'step'));
+        // Get all rooms for apartment selection
+        $rooms = \App\Models\Room::with('property')->orderBy('name')->get();
+
+        return view('booking.step', compact('booking', 'step', 'rooms'));
     }
 
     /**
@@ -167,31 +176,51 @@ class BookingController extends Controller
             $request->validate([
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
+                'job' => 'required|string|max:255',
+                'language' => 'required|in:Deutsch,Englisch',
+                'communication_preference' => 'required|in:Mail,Whatsapp',
                 'email' => 'required|email|max:255',
-                'phone' => 'nullable|string|max:255',
-                'address' => 'nullable|string|max:255',
-                'city' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|string|max:255',
-                'notes' => 'nullable|string',
+                'phone' => 'required|string|max:255',
+                'renter_address' => 'required|string|max:255',
+                'renter_postal_code' => 'required|string|max:255',
+                'renter_city' => 'required|string|max:255',
+                'room_id' => 'nullable|exists:rooms,id',
+                'start_at' => 'nullable|date',
+                'end_at' => 'nullable|date',
+                'signature' => 'required|string',
                 'payment_method_id' => $booking->is_short_term ? 'required|string' : 'nullable',
             ]);
 
             $booking->update($request->only([
                 'guest_first_name',
                 'guest_last_name',
+                'job',
+                'language',
+                'communication_preference',
                 'email',
                 'phone',
-                'notes',
+                'renter_address',
+                'renter_postal_code',
+                'renter_city',
             ]));
 
-            // Store address in notes if provided
-            if ($request->address || $request->city || $request->postal_code) {
-                $address = implode(', ', array_filter([
-                    $request->address,
-                    $request->city,
-                    $request->postal_code,
-                ]));
-                $booking->update(['notes' => ($booking->notes ? $booking->notes . "\n\n" : '') . "Address: {$address}"]);
+            // Update room if changed
+            if ($request->room_id && $request->room_id != $booking->room_id) {
+                $booking->update(['room_id' => $request->room_id]);
+                // Recalculate total amount if room changed
+                $newRoom = \App\Models\Room::find($request->room_id);
+                if ($newRoom) {
+                    $nights = \Carbon\Carbon::parse($booking->start_at)->diffInDays(\Carbon\Carbon::parse($booking->end_at));
+                    $booking->update(['total_amount' => $nights * $newRoom->base_price]);
+                }
+            }
+
+            // Update dates if changed
+            if ($request->start_at) {
+                $booking->update(['start_at' => $request->start_at]);
+            }
+            if ($request->end_at) {
+                $booking->update(['end_at' => $request->end_at]);
             }
 
             // Process payment for short-term bookings
@@ -218,8 +247,13 @@ class BookingController extends Controller
                 }
             }
 
-            // Create rental agreement document and generate PDF
-            $document = $this->documentService->createDocument($booking, 'rental_agreement', app()->getLocale());
+            // Save signature and create rental agreement document
+            $document = $this->documentService->createDocument(
+                $booking, 
+                'rental_agreement', 
+                app()->getLocale(),
+                ['signature' => $request->signature]
+            );
             GenerateDocumentPdf::dispatch($document);
             
             // Send email after PDF is generated (will be handled in job)

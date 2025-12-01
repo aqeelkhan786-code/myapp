@@ -26,6 +26,40 @@
             </div>
 
             <div>
+                <label for="location_id" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <select name="location_id" id="location_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Location (Optional)</option>
+                    @foreach($locations as $location)
+                        <option value="{{ $location->id }}" 
+                                {{ old('location_id', $room->house && $room->house->location_id ? $room->house->location_id : '') == $location->id ? 'selected' : '' }}>
+                            {{ $location->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('location_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
+                <label for="house_id" class="block text-sm font-medium text-gray-700 mb-2">House</label>
+                <select name="house_id" id="house_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select House (Optional)</option>
+                    @foreach($houses as $house)
+                        <option value="{{ $house->id }}" 
+                                data-location-id="{{ $house->location_id }}"
+                                {{ old('house_id', $room->house_id) == $house->id ? 'selected' : '' }}>
+                            {{ $house->location->name ?? 'N/A' }} - {{ $house->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('house_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="mt-1 text-xs text-gray-500">Select a location first to filter houses</p>
+            </div>
+
+            <div>
                 <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Room Name *</label>
                 <input type="text" name="name" id="name" value="{{ old('name', $room->name) }}" required
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -83,7 +117,57 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const locationSelect = document.getElementById('location_id');
+        const houseSelect = document.getElementById('house_id');
+        const allHouses = Array.from(houseSelect.options).slice(1); // Get all houses except the first option
+        const currentHouseId = houseSelect.value;
+
+        locationSelect.addEventListener('change', function() {
+            const selectedLocationId = this.value;
+            
+            // Clear house selection
+            houseSelect.innerHTML = '<option value="">Select House (Optional)</option>';
+            
+            if (selectedLocationId) {
+                // Filter houses by location
+                allHouses.forEach(function(option) {
+                    if (option.dataset.locationId === selectedLocationId) {
+                        const newOption = option.cloneNode(true);
+                        houseSelect.appendChild(newOption);
+                    }
+                });
+            } else {
+                // Show all houses if no location selected
+                allHouses.forEach(function(option) {
+                    houseSelect.appendChild(option.cloneNode(true));
+                });
+            }
+
+            // Restore previously selected house if it matches the location
+            if (currentHouseId && selectedLocationId) {
+                const selectedHouse = Array.from(houseSelect.options).find(opt => 
+                    opt.value === currentHouseId && opt.dataset.locationId === selectedLocationId
+                );
+                if (selectedHouse) {
+                    houseSelect.value = currentHouseId;
+                }
+            }
+        });
+
+        // Trigger change on page load if location is pre-selected
+        if (locationSelect.value) {
+            locationSelect.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+@endpush
 @endsection
+
+
 
 
 
