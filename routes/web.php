@@ -73,11 +73,12 @@ Route::post('/set-locale', function (\Illuminate\Http\Request $request) {
     return redirect()->back();
 })->name('set-locale');
 
-// Booking Flow Routes (New Flow: Home → Locations → House → Room Details)
+// Booking Flow Routes (New Flow: Home → Locations → House → Search → Booking Form)
 Route::prefix('booking-flow')->name('booking-flow.')->group(function () {
     Route::get('/home', [\App\Http\Controllers\Customer\BookingFlowController::class, 'home'])->name('home');
     Route::get('/locations', [\App\Http\Controllers\Customer\BookingFlowController::class, 'locations'])->name('locations');
     Route::get('/locations/{location}/house', [\App\Http\Controllers\Customer\BookingFlowController::class, 'house'])->name('house');
+    Route::get('/locations/{location}/house/{house}/search', [\App\Http\Controllers\Customer\BookingFlowController::class, 'search'])->name('search');
     // Redirect old apartments route to house page
     Route::get('/houses/{house}/apartments', [\App\Http\Controllers\Customer\BookingFlowController::class, 'apartments'])->name('apartments');
     Route::get('/rooms/{room}/details', [\App\Http\Controllers\Customer\BookingFlowController::class, 'roomDetails'])->name('room-details');
@@ -87,6 +88,12 @@ Route::prefix('booking-flow')->name('booking-flow.')->group(function () {
 Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
 Route::get('/booking/{room}', [BookingController::class, 'show'])->name('booking.show');
 Route::post('/booking/{room}', [BookingController::class, 'store'])->name('booking.store');
+
+// 3-Step Booking Form (Before booking creation)
+Route::get('/booking/{room}/form', [BookingController::class, 'showForm'])->name('booking.form');
+Route::post('/booking/{room}/form/step/{step}', [BookingController::class, 'saveFormStep'])->name('booking.form-step');
+Route::post('/booking/{room}/form/complete', [BookingController::class, 'completeForm'])->name('booking.form-complete');
+
 Route::get('/booking/{booking}/step/{step}', [BookingController::class, 'step'])->name('booking.step');
 Route::post('/booking/{booking}/step/{step}', [BookingController::class, 'saveStep'])->name('booking.save-step');
 Route::post('/booking/{booking}/signature', [BookingController::class, 'saveSignature'])->name('booking.signature');

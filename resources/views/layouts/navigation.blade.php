@@ -12,6 +12,7 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    @auth
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('common.Dashboard') }}
                     </x-nav-link>
@@ -24,6 +25,7 @@
                     <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
                         {{ __('common.Settings') }}
                     </x-nav-link>
+                    @endauth
                     <x-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
                         {{ __('common.View Rooms') }}
                     </x-nav-link>
@@ -64,6 +66,7 @@
                     </form>
                 </div>
                 
+                @auth
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -94,6 +97,12 @@
                         </form>
                     </x-slot>
                 </x-dropdown>
+                @else
+                <div class="flex items-center">
+                    <a href="{{ route('login') }}" class="text-sm text-gray-700 hover:text-gray-900 mr-4">Login</a>
+                    <a href="{{ route('register') }}" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Register</a>
+                </div>
+                @endauth
             </div>
 
             <!-- Hamburger -->
@@ -111,12 +120,14 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
+            @auth
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('common.Dashboard') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.bookings.index')" :active="request()->routeIs('admin.bookings.*')">
                 {{ __('common.Manage Bookings') }}
             </x-responsive-nav-link>
+            @endauth
             <x-responsive-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
                 {{ __('common.View Rooms') }}
             </x-responsive-nav-link>
@@ -148,6 +159,7 @@
                 </div>
             </div>
             
+            @auth
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
@@ -169,6 +181,12 @@
                     </x-responsive-nav-link>
                 </form>
             </div>
+            @else
+            <div class="px-4 space-y-2">
+                <a href="{{ route('login') }}" class="block text-sm text-gray-700 hover:text-gray-900">Login</a>
+                <a href="{{ route('register') }}" class="block text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-center">Register</a>
+            </div>
+            @endauth
         </div>
     </div>
 </nav>

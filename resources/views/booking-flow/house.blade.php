@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $house->name }} - {{ config('app.name', 'Laravel') }}</title>
+    <title>Living in {{ $location->name }} - {{ config('app.name', 'Laravel') }}</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -13,65 +13,178 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
+        body {
+            font-family: 'Figtree', sans-serif;
+        }
+        .room-card {
+            transition: all 0.3s ease;
+        }
+        .room-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .amenity-item::before {
+            content: "•";
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50">
-    <div class="min-h-screen py-12 px-4">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header -->
+<body class="font-sans antialiased bg-white">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 py-4 px-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="{{ route('booking-flow.home') }}" class="text-gray-700 hover:text-gray-900">
+                <span class="font-semibold">Home</span>
+            </a>
+            <button class="text-gray-700 hover:text-gray-900">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <!-- Main Title -->
             <div class="text-center mb-12">
-                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                    {{ $house->name }}
+                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                    Living in {{ $location->name }}
                 </h1>
-                <p class="text-xl text-gray-600">{{ __('booking_flow.main_house') }}</p>
             </div>
-            
-            <!-- House Header -->
-            <div class="mb-8 bg-white rounded-2xl overflow-hidden shadow-lg">
-                <!-- House Image -->
-                <div class="h-64 bg-gray-200 relative overflow-hidden">
-                    @if($house->image)
-                        <img src="{{ asset('storage/' . $house->image) }}" 
-                             alt="{{ $house->name }}" 
-                             class="w-full h-full object-cover"
-                             loading="lazy">
-                    @else
-                        <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop" 
-                             alt="{{ $house->name }}" 
-                             class="w-full h-full object-cover"
-                             loading="lazy">
-                    @endif
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                    <div class="absolute bottom-6 left-6 right-6">
-                        <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">{{ $house->name }}</h2>
-                        @if($house->description)
-                        <p class="text-white/95 text-lg drop-shadow-md">{{ Str::limit($house->description, 150) }}</p>
-                        @endif
+
+            <!-- Description Section -->
+            <div class="mb-12 max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Description:</h2>
+                <div class="prose prose-lg max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-6">
+                        <strong>Furnished Rooms in Brandenburg – Haus {{ $location->name }}</strong>
+                    </p>
+                    <p class="text-gray-700 leading-relaxed mb-6">
+                        At Haus {{ $location->name }}, we offer {{ $rooms->count() }} furnished rooms for rent – ideal for construction workers,<br>
+                        business travelers, or commuters.
+                    </p>
+                </div>
+                
+                <!-- BOOK NOW Button -->
+                <div class="text-center mb-12">
+                    <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                       class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                        BOOK NOW
+                    </a>
+                </div>
+            </div>
+
+            <!-- Room Amenities Section -->
+            <div class="mb-12 max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Room Amenities:</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="amenity-item">
+                        <span class="text-gray-700">WLAN – free and reliable</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Fully equipped kitchen – for shared use</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Comfortable beds – for a restful sleep</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">TV in every room</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Common areas – for relaxing evenings</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Parking spaces – available at the house or nearby</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Central location – close to shopping facilities and public transport</span>
+                    </div>
+                    <div class="amenity-item">
+                        <span class="text-gray-700">Flexible rental periods – short- and long-term stays possible</span>
+                    </div>
+                </div>
+
+                <!-- Interested? Book Now Section -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-8">
+                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>Interested? Book Now</strong></p>
+                    <div class="text-center">
+                        <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                           class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                            BOOK NOW
+                        </a>
                     </div>
                 </div>
             </div>
-            
-            <!-- Action Buttons -->
-            <div class="text-center mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
-                @if($availableRoom)
-                <a href="{{ route('booking.show', $availableRoom) }}" 
-                   class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {{ __('booking_flow.book_now') }}
-                </a>
-                @endif
-                <a href="{{ route('booking-flow.locations') }}" 
-                   class="inline-flex items-center px-6 py-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    {{ __('booking_flow.back_to_locations') }}
-                </a>
+
+            <!-- Location Name -->
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">{{ $location->name }}</h2>
+            </div>
+
+            <!-- Rooms Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                @foreach($rooms as $room)
+                <div class="room-card bg-white rounded-lg overflow-hidden shadow-md">
+                    <!-- Room Image -->
+                    <div class="h-48 bg-gray-200 relative overflow-hidden">
+                        @if($room->images && $room->images->count() > 0)
+                            <img src="{{ asset('storage/' . $room->images->first()->path) }}" 
+                                 alt="{{ $room->name }}" 
+                                 class="w-full h-full object-cover"
+                                 loading="lazy">
+                        @else
+                            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop" 
+                                 alt="{{ $room->name }}" 
+                                 class="w-full h-full object-cover"
+                                 loading="lazy">
+                        @endif
+                    </div>
+                    
+                    <!-- Room Name -->
+                    <div class="p-4 text-center">
+                        <h3 class="text-xl font-bold text-gray-900">{{ $room->name }}</h3>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            <!-- Guest Favorite Badge -->
+            <div class="max-w-4xl mx-auto text-center mb-12">
+                <div class="inline-block bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div class="text-3xl font-bold text-yellow-600 mb-2">4.65</div>
+                    <div class="text-lg font-semibold text-gray-900 mb-2">
+                        <strong>Guest favorite</strong>
+                    </div>
+                    <p class="text-sm text-gray-600">
+                        One of the most loved homes based<br>
+                        on ratings, reviews, and reliability
+                    </p>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 border-t border-gray-200 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-600 text-sm">
+                <p>Copyright 2025 | Ma Room – Zimmervermietung in Deutschland | All Right Reserved</p>
+                <div class="mt-4 space-x-4">
+                    <a href="#" class="hover:text-gray-900">Impressum</a>
+                    <span>|</span>
+                    <a href="#" class="hover:text-gray-900">Datenschutzerklärung</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
-

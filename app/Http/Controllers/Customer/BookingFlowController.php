@@ -68,4 +68,61 @@ class BookingFlowController extends Controller
         // Redirect to existing booking flow
         return redirect()->route('booking.show', $room);
     }
+
+    /**
+     * Show search/filter page with date picker and filtered rooms
+     */
+    public function search(Location $location, House $house, Request $request)
+    {
+        // Get all rooms for this house
+        $rooms = $house->rooms()->with('images', 'property')->get();
+        
+        // Get filter parameters
+        $checkIn = $request->get('check_in');
+        $checkOut = $request->get('check_out');
+        
+        $filteredRooms = $rooms;
+        
+        // Filter by availability if dates are provided
+        if ($checkIn && $checkOut) {
+            try {
+                $startAt = \Carbon\Carbon::parse($checkIn)->setTimezone('Europe/Berlin')->startOfDay();
+                $endAt = \Carbon\Carbon::parse($checkOut)->setTimezone('Europe/Berlin')->startOfDay();
+                
+                // Get room IDs that have confirmed bookings for these dates
+                $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
+                    ->where(function ($q) use ($startAt, $endAt) {
+                        $q->where(function ($q2) use ($startAt, $endAt) {
+                            $q2->where('start_at', '<', $endAt->utc())
+                               ->where('end_at', '>', $startAt->utc());
+                        });
+                    })
+                    ->pluck('room_id')
+                    ->unique();
+                
+                // Filter available rooms
+                $filteredRooms = $rooms->filter(function ($room) use ($unavailableRoomIds) {
+                    return !$unavailableRoomIds->contains($room->id);
+                });
+            } catch (\Exception $e) {
+                // Invalid dates, show all rooms
+            }
+        }
+        
+        // Get blocked dates for JavaScript calendar
+        $blockedDates = \App\Models\Booking::where('status', 'confirmed')
+            ->whereHas('room', function($q) use ($house) {
+                $q->where('house_id', $house->id);
+            })
+            ->get()
+            ->map(function($booking) {
+                return [
+                    \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
+                    \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
+                ];
+            })
+            ->toArray();
+        
+        return view('booking-flow.search', compact('location', 'house', 'rooms', 'filteredRooms', 'checkIn', 'checkOut', 'blockedDates'));
+    }
 }

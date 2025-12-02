@@ -442,4 +442,284 @@ class BookingController extends Controller
             abort(500, 'An error occurred while downloading the document.');
         }
     }
+
+    /**
+     * Show 3-step booking form (before booking creation)
+     */
+    public function showForm(Room $room, Request $request)
+    {
+        $step = $request->get('step', 1);
+        
+        if ($step < 1 || $step > 3) {
+            $step = 1;
+        }
+        
+        // Get session data if exists
+        $formData = session('booking_form_data', []);
+        
+        // Pre-fill dates from query parameters if coming from search page
+        if ($request->has('check_in') && $request->has('check_out') && empty($formData['step2'])) {
+            $formData['step2'] = [
+                'start_at' => $request->get('check_in'),
+                'end_at' => $request->get('check_out'),
+                'renter_address' => '',
+                'renter_postal_code' => '',
+                'renter_city' => '',
+            ];
+            session(['booking_form_data' => $formData]);
+        }
+        
+        $room->load('images', 'property');
+        
+        // Get all rooms for apartment selection dropdown
+        $allRooms = Room::with('property')->orderBy('name')->get();
+        
+        // Prepare rooms data for JavaScript
+        $roomsData = $allRooms->map(function($r) {
+            return [
+                'id' => $r->id,
+                'name' => $r->name,
+                'address' => ($r->property && $r->property->address) ? $r->property->address : 'N/A',
+                'price' => $r->base_price
+            ];
+        })->values()->all();
+        
+        // Get confirmed bookings for calendar (for step 2)
+        $bookings = Booking::where('room_id', $room->id)
+            ->where('status', 'confirmed')
+            ->get(['start_at', 'end_at']);
+        
+        return view('booking.form', compact('room', 'step', 'formData', 'bookings', 'allRooms', 'roomsData'));
+    }
+
+    /**
+     * Save form step data to session
+     */
+    public function saveFormStep(Request $request, Room $room, int $step)
+    {
+        $formData = session('booking_form_data', []);
+        
+        if ($step === 1) {
+            $request->validate([
+                'guest_first_name' => 'required|string|max:255',
+                'guest_last_name' => 'required|string|max:255',
+                'job' => 'required|string|max:255',
+                'language' => 'required|in:Deutsch,Englisch',
+                'communication_preference' => 'required|in:Mail,Whatsapp',
+                'email' => 'required|email|max:255',
+                'phone' => 'required|string|max:255',
+                'room_id' => 'nullable|exists:rooms,id',
+                'start_at' => 'required|date|after:yesterday',
+                'end_at' => 'required|date|after:start_at',
+                'renter_address' => 'required|string|max:255',
+                'renter_postal_code' => 'required|string|max:255',
+                'renter_city' => 'required|string|max:255',
+                'signature' => 'required|string',
+            ]);
+            
+            // Update room if changed
+            $selectedRoomId = $request->room_id ?: $room->id;
+            $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
+            
+            // Check availability
+            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
+            
+            if (!$this->bookingService->isAvailable($selectedRoom, $startAt, $endAt)) {
+                return back()->withErrors(['dates' => 'The selected dates are not available.'])->withInput();
+            }
+            
+            $formData['step1'] = $request->only([
+                'guest_first_name',
+                'guest_last_name',
+                'job',
+                'language',
+                'communication_preference',
+                'email',
+                'phone',
+            ]);
+            
+            $formData['step2'] = [
+                'room_id' => $selectedRoomId,
+                'start_at' => $request->start_at,
+                'end_at' => $request->end_at,
+                'renter_address' => $request->renter_address,
+                'renter_postal_code' => $request->renter_postal_code,
+                'renter_city' => $request->renter_city,
+            ];
+            
+            $formData['step3'] = [
+                'signature' => $request->signature,
+            ];
+            
+            // Step 1 includes everything, so create booking directly
+            try {
+                // Calculate total
+                $totalAmount = $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt);
+                $isShortTerm = $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+                
+                // Create booking
+                $booking = Booking::create([
+                    'room_id' => $selectedRoomId,
+                    'start_at' => $startAt->utc(),
+                    'end_at' => $endAt->utc(),
+                    'source' => 'website',
+                    'status' => 'pending',
+                    'is_short_term' => $isShortTerm,
+                    'total_amount' => $totalAmount,
+                    'guest_first_name' => $formData['step1']['guest_first_name'],
+                    'guest_last_name' => $formData['step1']['guest_last_name'],
+                    'job' => $formData['step1']['job'],
+                    'language' => $formData['step1']['language'],
+                    'communication_preference' => $formData['step1']['communication_preference'],
+                    'email' => $formData['step1']['email'],
+                    'phone' => $formData['step1']['phone'],
+                    'renter_address' => $formData['step2']['renter_address'],
+                    'renter_postal_code' => $formData['step2']['renter_postal_code'],
+                    'renter_city' => $formData['step2']['renter_city'],
+                ]);
+                
+                // Create rental agreement document
+                $document = $this->documentService->createDocument(
+                    $booking,
+                    'rental_agreement',
+                    app()->getLocale(),
+                    ['signature' => $formData['step3']['signature']]
+                );
+                
+                GenerateDocumentPdf::dispatch($document);
+                SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+                
+                // Clear session
+                session()->forget('booking_form_data');
+                
+                // Redirect to document signing steps (steps 2 and 3)
+                return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => 2]);
+                
+            } catch (\Exception $e) {
+                \Log::error('Booking creation failed: ' . $e->getMessage());
+                return back()->withErrors(['error' => 'An error occurred. Please try again.'])->withInput();
+            }
+            
+        } elseif ($step === 2) {
+            $request->validate([
+                'renter_address' => 'required|string|max:255',
+                'renter_postal_code' => 'required|string|max:255',
+                'renter_city' => 'required|string|max:255',
+                'start_at' => 'required|date|after:yesterday',
+                'end_at' => 'required|date|after:start_at',
+            ]);
+            
+            // Check availability
+            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
+            
+            if (!$this->bookingService->isAvailable($room, $startAt, $endAt)) {
+                return back()->withErrors(['dates' => 'The selected dates are not available.'])->withInput();
+            }
+            
+            $formData['step2'] = $request->only([
+                'renter_address',
+                'renter_postal_code',
+                'renter_city',
+                'start_at',
+                'end_at',
+            ]);
+            
+        } elseif ($step === 3) {
+            $request->validate([
+                'signature' => 'required|string',
+            ]);
+            
+            $formData['step3'] = $request->only(['signature']);
+        }
+        
+        if ($step !== 1) {
+            session(['booking_form_data' => $formData]);
+        }
+        
+        if ($step < 3 && $step !== 1) {
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => $step + 1]);
+        }
+        
+        // All steps complete, redirect to completion
+        if ($step === 3) {
+            return redirect()->route('booking.form-complete', $room);
+        }
+    }
+
+    /**
+     * Complete form and create booking
+     */
+    public function completeForm(Request $request, Room $room)
+    {
+        $formData = session('booking_form_data', []);
+        
+        if (empty($formData['step1']) || empty($formData['step2']) || empty($formData['step3'])) {
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                ->withErrors(['error' => 'Please complete all steps.']);
+        }
+        
+        try {
+            // Get selected room first
+            $selectedRoomId = $formData['step2']['room_id'] ?? $room->id;
+            $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
+            
+            $startAt = Carbon::parse($formData['step2']['start_at'])->setTimezone('Europe/Berlin')->startOfDay();
+            $endAt = Carbon::parse($formData['step2']['end_at'])->setTimezone('Europe/Berlin')->startOfDay();
+            
+            // Re-check availability
+            if (!$this->bookingService->isAvailable($selectedRoom, $startAt, $endAt)) {
+                return redirect()->route('booking.form', ['room' => $selectedRoomId, 'step' => 1])
+                    ->withErrors(['dates' => 'The selected dates are no longer available.']);
+            }
+            
+            // Calculate total
+            $totalAmount = $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt);
+            $isShortTerm = $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+            
+            // Create booking
+            $booking = Booking::create([
+                'room_id' => $selectedRoomId,
+                'start_at' => $startAt->utc(),
+                'end_at' => $endAt->utc(),
+                'source' => 'website',
+                'status' => 'pending',
+                'is_short_term' => $isShortTerm,
+                'total_amount' => $totalAmount,
+                'guest_first_name' => $formData['step1']['guest_first_name'],
+                'guest_last_name' => $formData['step1']['guest_last_name'],
+                'job' => $formData['step1']['job'],
+                'language' => $formData['step1']['language'],
+                'communication_preference' => $formData['step1']['communication_preference'],
+                'email' => $formData['step1']['email'],
+                'phone' => $formData['step1']['phone'],
+                'renter_address' => $formData['step2']['renter_address'],
+                'renter_postal_code' => $formData['step2']['renter_postal_code'],
+                'renter_city' => $formData['step2']['renter_city'],
+            ]);
+            
+            // Create rental agreement document
+            $document = $this->documentService->createDocument(
+                $booking,
+                'rental_agreement',
+                app()->getLocale(),
+                ['signature' => $formData['step3']['signature']]
+            );
+            
+            GenerateDocumentPdf::dispatch($document);
+            SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+            
+            // Clear session
+            session()->forget('booking_form_data');
+            
+            // Redirect to document signing steps (steps 2 and 3)
+            return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => 2]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Booking creation failed: ' . $e->getMessage());
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                ->withErrors(['error' => 'An error occurred. Please try again.']);
+        }
+    }
 }
