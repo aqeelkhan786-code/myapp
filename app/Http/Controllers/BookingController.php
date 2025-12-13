@@ -333,6 +333,54 @@ class BookingController extends Controller
     }
 
     /**
+     * Create payment intent for booking form (before booking creation)
+     */
+    public function createPaymentIntent(Request $request)
+    {
+        $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'start_at' => 'required|date',
+            'end_at' => 'required|date|after:start_at',
+        ]);
+        
+        try {
+            $room = Room::findOrFail($request->room_id);
+            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
+            
+            // Check if it's short-term
+            $isShortTerm = $room->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+            
+            if (!$isShortTerm) {
+                return response()->json(['error' => 'Payment is only required for short-term bookings.'], 400);
+            }
+            
+            // Calculate total
+            $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
+            
+            // Create payment intent directly using Stripe
+            \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+            $paymentIntent = \Stripe\PaymentIntent::create([
+                'amount' => (int)($totalAmount * 100), // Convert to cents
+                'currency' => 'eur',
+                'metadata' => [
+                    'room_id' => $room->id,
+                    'start_at' => $startAt->format('Y-m-d'),
+                    'end_at' => $endAt->format('Y-m-d'),
+                ],
+            ]);
+            
+            return response()->json([
+                'client_secret' => $paymentIntent->client_secret,
+                'amount' => $totalAmount,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Payment intent creation failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to create payment intent: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Process payment for short-term booking
      */
     public function processPayment(Request $request, Booking $booking)
@@ -468,9 +516,10 @@ class BookingController extends Controller
         
         // Pre-fill dates from query parameters if coming from search page
         if ($request->has('check_in') && empty($formData['step2'])) {
+            $checkOut = $request->get('check_out');
             $formData['step2'] = [
                 'start_at' => $request->get('check_in'),
-                'end_at' => $request->get('check_out', null), // Optional for long-term rentals
+                'end_at' => !empty($checkOut) ? $checkOut : null, // Optional for long-term rentals
                 'renter_address' => '',
                 'renter_postal_code' => '',
                 'renter_city' => '',
@@ -498,7 +547,25 @@ class BookingController extends Controller
             ->where('status', 'confirmed')
             ->get(['start_at', 'end_at']);
         
-        return view('booking.form', compact('room', 'step', 'formData', 'bookings', 'allRooms', 'roomsData'));
+        // Calculate if this will be a short-term booking for payment display
+        $isShortTerm = false;
+        $totalAmount = 0;
+        if (isset($formData['step2']['start_at'])) {
+            $startAt = \Carbon\Carbon::parse($formData['step2']['start_at']);
+            $endAt = isset($formData['step2']['end_at']) && $formData['step2']['end_at'] 
+                ? \Carbon\Carbon::parse($formData['step2']['end_at']) 
+                : null;
+            
+            if ($endAt && $room->short_term_allowed) {
+                $nights = $startAt->diffInDays($endAt);
+                $isShortTerm = $nights <= 30;
+                if ($isShortTerm) {
+                    $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
+                }
+            }
+        }
+        
+        return view('booking.form', compact('room', 'step', 'formData', 'bookings', 'allRooms', 'roomsData', 'isShortTerm', 'totalAmount'));
     }
 
     /**
@@ -527,6 +594,7 @@ class BookingController extends Controller
                 'renter_phone' => 'required|string|max:255',
                 'renter_email' => 'required|email|max:255',
                 'signature' => 'required|string',
+                'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
             ]);
             
             // Update room if changed (shouldn't happen as it's disabled, but keep for safety)
@@ -588,6 +656,11 @@ class BookingController extends Controller
                 $totalAmount = $endAt ? $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt) : 0;
                 $isShortTerm = $endAt && $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
                 
+                // Validate payment for short-term bookings
+                if ($isShortTerm && !$request->payment_method_id) {
+                    return back()->withErrors(['payment' => 'Payment is required for short-term bookings.'])->withInput();
+                }
+                
                 // Create booking
                 $booking = Booking::create([
                     'room_id' => $selectedRoomId,
@@ -642,6 +715,47 @@ class BookingController extends Controller
                 );
                 GenerateDocumentPdf::dispatch($document3);
                 // NOTE: Admin will sign and send this document manually
+                
+                // Process payment for short-term bookings
+                if ($isShortTerm) {
+                    if (!$request->payment_method_id) {
+                        // Short-term booking requires payment
+                        $booking->delete();
+                        return back()->withErrors(['payment' => 'Payment is required for short-term bookings.'])->withInput();
+                    }
+                    
+                    try {
+                        // Retrieve the payment intent that was created on the frontend
+                        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+                        
+                        // The payment_method_id contains the payment intent ID
+                        $paymentIntentId = $request->payment_method_id;
+                        
+                        // Retrieve the payment intent
+                        $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+                        
+                        // Update booking with payment intent ID
+                        $booking->update([
+                            'stripe_payment_intent_id' => $paymentIntent->id,
+                        ]);
+                        
+                        // Check if payment succeeded
+                        if ($paymentIntent->status === 'succeeded') {
+                            $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                        } else {
+                            // Payment not completed - delete booking
+                            $booking->delete();
+                            return back()->withErrors(['payment' => 'Payment was not completed. Please try again.'])->withInput();
+                        }
+                    } catch (\Exception $e) {
+                        // Delete booking if payment fails
+                        if ($booking->exists) {
+                            $booking->delete();
+                        }
+                        \Log::error('Payment processing failed: ' . $e->getMessage());
+                        return back()->withErrors(['payment' => 'Payment processing failed: ' . $e->getMessage()])->withInput();
+                    }
+                }
                 
                 // Clear session
                 session()->forget('booking_form_data');

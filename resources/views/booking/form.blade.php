@@ -141,10 +141,15 @@
                     <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
                     @php
                         $dateDisplay = '';
-                        if (isset($formData['step2']['start_at'])) {
-                            $startDate = \Carbon\Carbon::parse($formData['step2']['start_at'])->format('Y-m-d');
-                            if (isset($formData['step2']['end_at']) && $formData['step2']['end_at']) {
-                                $endDate = \Carbon\Carbon::parse($formData['step2']['end_at'])->format('Y-m-d');
+                        // Get dates from formData or request parameters
+                        $startAt = $formData['step2']['start_at'] ?? request()->get('check_in');
+                        $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
+                        
+                        if ($startAt) {
+                            $startDate = \Carbon\Carbon::parse($startAt)->format('Y-m-d');
+                            // Check if end_at exists and is not empty/null
+                            if (!empty($endAt) && $endAt !== null && trim($endAt) !== '') {
+                                $endDate = \Carbon\Carbon::parse($endAt)->format('Y-m-d');
                                 $dateDisplay = $startDate . ' to ' . $endDate;
                             } else {
                                 $dateDisplay = $startDate . ' (Long-term rental)';
@@ -369,6 +374,34 @@
                         <input type="hidden" name="signature" id="signature-data">
                     </div>
                 </div>
+                
+                @if($isShortTerm && config('services.stripe.key'))
+                <!-- Payment Section for Short-term Bookings -->
+                <div class="mb-8 border-t pt-8">
+                    <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p class="text-sm text-yellow-800 font-semibold mb-2">Payment Required for Short-term Booking</p>
+                        <p class="text-sm text-yellow-700">Total Amount: <strong>€{{ number_format($totalAmount, 2) }}</strong></p>
+                        <p class="text-xs text-yellow-600 mt-1">Payment will be processed securely via Stripe</p>
+                    </div>
+                    
+                    <!-- Stripe Payment Element -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Information *</label>
+                        <div id="payment-element" class="p-4 border border-gray-300 rounded-md bg-white">
+                            <!-- Stripe Elements will create form elements here -->
+                        </div>
+                        <div id="payment-message" class="mt-2 text-sm text-red-600 hidden"></div>
+                        <input type="hidden" name="payment_method_id" id="payment_method_id">
+                    </div>
+                </div>
+                @elseif($isShortTerm && !config('services.stripe.key'))
+                <div class="mb-8 border-t pt-8">
+                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                        <p class="text-sm text-red-800 font-semibold mb-2">Payment Processing Not Configured</p>
+                        <p class="text-sm text-red-700">Please contact support to complete your booking.</p>
+                    </div>
+                </div>
+                @endif
                 
                 <div class="flex justify-end">
                     <button type="submit" id="submit-btn" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
@@ -639,7 +672,7 @@
         // Handle form submission
         const form = document.getElementById('step1-form');
         if (form) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 if (signaturePad.isEmpty()) {
                     e.preventDefault();
                     alert('Please provide your signature');
@@ -651,9 +684,145 @@
                 if (signatureInput) {
                     signatureInput.value = signatureData;
                 }
+                
+                @if($isShortTerm && config('services.stripe.key'))
+                // Process payment for short-term bookings
+                e.preventDefault();
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing Payment...';
+                
+                try {
+                    // Confirm payment with Stripe
+                    const {error: submitError, paymentIntent} = await stripe.confirmPayment({
+                        elements,
+                        confirmParams: {
+                            return_url: window.location.href,
+                        },
+                        redirect: 'if_required'
+                    });
+                    
+                    if (submitError) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Complete Booking';
+                        document.getElementById('payment-message').textContent = submitError.message;
+                        document.getElementById('payment-message').classList.remove('hidden');
+                        return false;
+                    }
+                    
+                    // Check payment status
+                    let finalPaymentIntent = paymentIntent;
+                    
+                    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+                        // Retrieve payment intent to check status
+                        const {error: retrieveError, paymentIntent: retrievedIntent} = await stripe.retrievePaymentIntent(clientSecret);
+                        if (retrieveError) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Complete Booking';
+                            document.getElementById('payment-message').textContent = 'Failed to verify payment. Please try again.';
+                            document.getElementById('payment-message').classList.remove('hidden');
+                            return false;
+                        }
+                        finalPaymentIntent = retrievedIntent;
+                    }
+                    
+                    if (finalPaymentIntent && finalPaymentIntent.status === 'succeeded') {
+                        // Store payment intent ID for form submission
+                        const paymentMethodIdInput = document.getElementById('payment_method_id');
+                        if (paymentMethodIdInput) {
+                            paymentMethodIdInput.value = finalPaymentIntent.id || window.paymentIntentId;
+                        }
+                        // Submit the form
+                        form.submit();
+                    } else {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Complete Booking';
+                        document.getElementById('payment-message').textContent = 'Payment was not successful. Status: ' + (finalPaymentIntent ? finalPaymentIntent.status : 'unknown');
+                        document.getElementById('payment-message').classList.remove('hidden');
+                    }
+                } catch (error) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Complete Booking';
+                    document.getElementById('payment-message').textContent = 'Payment processing error: ' + error.message;
+                    document.getElementById('payment-message').classList.remove('hidden');
+                }
+                @endif
             });
         }
     }
+    
+    @if($isShortTerm && config('services.stripe.key'))
+    // Initialize Stripe Payment for short-term bookings
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        const stripeKey = '{{ config("services.stripe.key") }}';
+        let stripe;
+        let elements;
+        let paymentElement;
+        let clientSecret;
+        
+        if (stripeKey) {
+            stripe = Stripe(stripeKey);
+            
+            // Initialize payment element
+            (async function() {
+                try {
+                    // Get booking details for payment intent
+                    const startAt = document.getElementById('start_at').value;
+                    const endAt = document.getElementById('end_at').value;
+                    const roomId = document.getElementById('room_id').value || {{ $room->id }};
+                    
+                    if (!startAt || !endAt) {
+                        console.error('Start and end dates are required for payment');
+                        return;
+                    }
+                    
+                    // Create payment intent via API
+                    const response = await fetch('{{ route("booking.payment-intent") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            room_id: roomId,
+                            start_at: startAt,
+                            end_at: endAt
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.client_secret) {
+                        clientSecret = data.client_secret;
+                        // Extract payment intent ID from client secret (format: pi_xxx_secret_xxx)
+                        window.paymentIntentId = clientSecret.split('_secret_')[0];
+                        
+                        elements = stripe.elements({ 
+                            clientSecret: clientSecret,
+                            appearance: {
+                                theme: 'stripe',
+                            }
+                        });
+                        paymentElement = elements.create('payment');
+                        paymentElement.mount('#payment-element');
+                    } else if (data.error) {
+                        document.getElementById('payment-message').textContent = data.error;
+                        document.getElementById('payment-message').classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Payment initialization error:', error);
+                    document.getElementById('payment-message').textContent = 'Failed to initialize payment. Please refresh the page.';
+                    document.getElementById('payment-message').classList.remove('hidden');
+                }
+            })();
+        } else {
+            document.getElementById('payment-message').textContent = 'Payment processing is not configured. Please contact support.';
+            document.getElementById('payment-message').classList.remove('hidden');
+        }
+    </script>
+    @endif
 </script>
 @endif
 

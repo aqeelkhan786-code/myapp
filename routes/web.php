@@ -98,6 +98,7 @@ Route::get('/booking/{booking}/step/{step}', [BookingController::class, 'step'])
 Route::post('/booking/{booking}/step/{step}', [BookingController::class, 'saveStep'])->name('booking.save-step');
 Route::post('/booking/{booking}/signature', [BookingController::class, 'saveSignature'])->name('booking.signature');
 Route::post('/booking/{booking}/payment', [BookingController::class, 'processPayment'])->name('booking.payment');
+Route::post('/booking/payment-intent', [BookingController::class, 'createPaymentIntent'])->name('booking.payment-intent');
 Route::get('/booking/{booking}/complete', [BookingController::class, 'complete'])->name('booking.complete');
 
 // iCal Export
