@@ -47,7 +47,13 @@
                     <!-- Location Image -->
                     <div class="h-64 md:h-80 bg-gray-200 relative overflow-hidden">
                         @if($location->image)
-                            <img src="{{ asset('storage/' . $location->image) }}" 
+                            @php
+                                // Check if image is a full URL (external) or local path
+                                $imageUrl = filter_var($location->image, FILTER_VALIDATE_URL) 
+                                    ? $location->image 
+                                    : asset('storage/' . $location->image);
+                            @endphp
+                            <img src="{{ $imageUrl }}" 
                                  alt="{{ $location->name }}" 
                                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                  loading="lazy">

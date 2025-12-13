@@ -57,13 +57,13 @@
             <!-- Main Title -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                    Living in {{ $location->name }}
+                    Wohnen in {{ $location->name }}
                 </h1>
             </div>
 
             <!-- Description Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Description:</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Beschreibung:</h2>
                 <div class="prose prose-lg max-w-none">
                     <p class="text-gray-700 leading-relaxed mb-6">
                         <strong>Furnished Rooms in Brandenburg – Haus {{ $location->name }}</strong>
@@ -74,52 +74,52 @@
                     </p>
                 </div>
                 
-                <!-- BOOK NOW Button -->
+                <!-- Verfügbarkeit prüfen Button -->
                 <div class="text-center mb-12">
                     <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                        class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                        BOOK NOW
+                        Verfügbarkeit prüfen
                     </a>
                 </div>
             </div>
 
             <!-- Room Amenities Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Room Amenities:</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Ausstattung der Zimmer:</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div class="amenity-item">
-                        <span class="text-gray-700">WLAN – free and reliable</span>
+                        <span class="text-gray-700">WLAN – kostenlos und zuverlässig</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Fully equipped kitchen – for shared use</span>
+                        <span class="text-gray-700">Voll ausgestattete Küche – zur gemeinschaftlichen Nutzung</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Comfortable beds – for a restful sleep</span>
+                        <span class="text-gray-700">Bequeme Betten – erholsamer Schlaf garantiert</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">TV in every room</span>
+                        <span class="text-gray-700">TV in jedem Zimmer</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Common areas – for relaxing evenings</span>
+                        <span class="text-gray-700">Gemeinschaftsbereiche – für entspannte Abende</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Parking spaces – available at the house or nearby</span>
+                        <span class="text-gray-700">Parkmöglichkeiten – direkt am Haus oder in der Nähe</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Central location – close to shopping facilities and public transport</span>
+                        <span class="text-gray-700">Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten und öffentliche Verkehrsmittel</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Flexible rental periods – short- and long-term stays possible</span>
+                        <span class="text-gray-700">Flexible Mietdauer – kurz- und langfristige Aufenthalte möglich</span>
                     </div>
                 </div>
 
                 <!-- Interested? Book Now Section -->
                 <div class="bg-gray-50 rounded-lg p-6 mb-8">
-                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>Interested? Book Now</strong></p>
+                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>Interessiert? Dann klicken sie hier auf Jetzt Buchen</strong></p>
                     <div class="text-center">
                         <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                            class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                            BOOK NOW
+                            Verfügbarkeit prüfen
                         </a>
                     </div>
                 </div>
@@ -162,11 +162,10 @@
                 <div class="inline-block bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                     <div class="text-3xl font-bold text-yellow-600 mb-2">4.65</div>
                     <div class="text-lg font-semibold text-gray-900 mb-2">
-                        <strong>Guest favorite</strong>
+                        <strong>Gastfavorit</strong>
                     </div>
                     <p class="text-sm text-gray-600">
-                        One of the most loved homes based<br>
-                        on ratings, reviews, and reliability
+                        Eines der beliebtesten Häuser basierend auf Bewertungen, Rezensionen und Zuverlässigkeit
                     </p>
                 </div>
             </div>

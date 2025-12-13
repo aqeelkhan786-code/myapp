@@ -83,27 +83,46 @@ class BookingFlowController extends Controller
         
         $filteredRooms = $rooms;
         
-        // Filter by availability if dates are provided
-        if ($checkIn && $checkOut) {
+        // Filter by availability if check-in date is provided
+        if ($checkIn) {
             try {
                 $startAt = \Carbon\Carbon::parse($checkIn)->setTimezone('Europe/Berlin')->startOfDay();
-                $endAt = \Carbon\Carbon::parse($checkOut)->setTimezone('Europe/Berlin')->startOfDay();
                 
-                // Get room IDs that have confirmed bookings for these dates
-                $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
-                    ->where(function ($q) use ($startAt, $endAt) {
-                        $q->where(function ($q2) use ($startAt, $endAt) {
-                            $q2->where('start_at', '<', $endAt->utc())
-                               ->where('end_at', '>', $startAt->utc());
-                        });
-                    })
-                    ->pluck('room_id')
-                    ->unique();
-                
-                // Filter available rooms
-                $filteredRooms = $rooms->filter(function ($room) use ($unavailableRoomIds) {
-                    return !$unavailableRoomIds->contains($room->id);
-                });
+                if ($checkOut) {
+                    // Both dates provided - check availability for date range
+                    $endAt = \Carbon\Carbon::parse($checkOut)->setTimezone('Europe/Berlin')->startOfDay();
+                    
+                    // Get room IDs that have confirmed bookings for these dates
+                    $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
+                        ->where(function ($q) use ($startAt, $endAt) {
+                            $q->where(function ($q2) use ($startAt, $endAt) {
+                                $q2->where('start_at', '<', $endAt->utc())
+                                   ->where('end_at', '>', $startAt->utc());
+                            });
+                        })
+                        ->pluck('room_id')
+                        ->unique();
+                    
+                    // Filter available rooms
+                    $filteredRooms = $rooms->filter(function ($room) use ($unavailableRoomIds) {
+                        return !$unavailableRoomIds->contains($room->id);
+                    });
+                } else {
+                    // Only check-in provided - check if room is available on that date (for long-term rentals)
+                    // Get room IDs that have confirmed bookings starting on or before check-in and ending after check-in
+                    $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
+                        ->where(function ($q) use ($startAt) {
+                            $q->where('start_at', '<=', $startAt->utc())
+                              ->where('end_at', '>', $startAt->utc());
+                        })
+                        ->pluck('room_id')
+                        ->unique();
+                    
+                    // Filter available rooms
+                    $filteredRooms = $rooms->filter(function ($room) use ($unavailableRoomIds) {
+                        return !$unavailableRoomIds->contains($room->id);
+                    });
+                }
             } catch (\Exception $e) {
                 // Invalid dates, show all rooms
             }

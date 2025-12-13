@@ -22,16 +22,19 @@ class BookingFlowSeeder extends Seeder
                 'name' => 'Fürstenwalde',
                 'description' => null,
                 'sort_order' => 1,
+                'image' => 'https://testedwebsite.us/bookingpagejanek/wp-content/uploads/2025/03/Ftenwalde-view-scaled.jpg',
             ],
             [
                 'name' => 'Hoppegarten',
                 'description' => null,
                 'sort_order' => 2,
+                'image' => 'https://testedwebsite.us/bookingpagejanek/wp-content/uploads/2025/07/60d70b46-1864-439e-a302-f448b52ac3e3.webp',
             ],
             [
                 'name' => 'Magdeburg',
                 'description' => null,
                 'sort_order' => 3,
+                'image' => 'https://testedwebsite.us/bookingpagejanek/wp-content/uploads/2025/03/Magdeburg-View-1024x410.jpg',
             ],
         ];
 
@@ -46,7 +49,7 @@ class BookingFlowSeeder extends Seeder
                 [
                     'name' => $locationData['name'],
                     'description' => $locationData['description'],
-                    'image' => null,
+                    'image' => $locationData['image'] ?? null,
                     'sort_order' => $locationData['sort_order'],
                 ]
             );

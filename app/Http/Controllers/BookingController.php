@@ -152,6 +152,7 @@ class BookingController extends Controller
 
     /**
      * Show booking step form
+     * Steps 2 and 3 are admin-only
      */
     public function step(Booking $booking, int $step)
     {
@@ -159,6 +160,14 @@ class BookingController extends Controller
         
         if ($step < 1 || $step > 3) {
             abort(404);
+        }
+
+        // Steps 2 and 3 are admin-only
+        if ($step === 2 || $step === 3) {
+            // Check if user is admin (using Spatie Permission roles)
+            if (!auth()->check() || !auth()->user()->hasRole('admin')) {
+                abort(403, 'Only administrators can access steps 2 and 3.');
+            }
         }
 
         // Get all rooms for apartment selection
@@ -458,10 +467,10 @@ class BookingController extends Controller
         $formData = session('booking_form_data', []);
         
         // Pre-fill dates from query parameters if coming from search page
-        if ($request->has('check_in') && $request->has('check_out') && empty($formData['step2'])) {
+        if ($request->has('check_in') && empty($formData['step2'])) {
             $formData['step2'] = [
                 'start_at' => $request->get('check_in'),
-                'end_at' => $request->get('check_out'),
+                'end_at' => $request->get('check_out', null), // Optional for long-term rentals
                 'renter_address' => '',
                 'renter_postal_code' => '',
                 'renter_city' => '',
@@ -510,23 +519,40 @@ class BookingController extends Controller
                 'phone' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
                 'start_at' => 'required|date|after:yesterday',
-                'end_at' => 'required|date|after:start_at',
+                'end_at' => 'nullable|date|after:start_at',
+                'renter_name' => 'required|string|max:255',
                 'renter_address' => 'required|string|max:255',
                 'renter_postal_code' => 'required|string|max:255',
                 'renter_city' => 'required|string|max:255',
+                'renter_phone' => 'required|string|max:255',
+                'renter_email' => 'required|email|max:255',
                 'signature' => 'required|string',
             ]);
             
-            // Update room if changed
+            // Update room if changed (shouldn't happen as it's disabled, but keep for safety)
             $selectedRoomId = $request->room_id ?: $room->id;
             $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
             
             // Check availability
             $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
-            $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
             
-            if (!$this->bookingService->isAvailable($selectedRoom, $startAt, $endAt)) {
-                return back()->withErrors(['dates' => 'The selected dates are not available.'])->withInput();
+            if ($request->end_at) {
+                // Short-term rental with check-out date
+                $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
+                if (!$this->bookingService->isAvailable($selectedRoom, $startAt, $endAt)) {
+                    return back()->withErrors(['dates' => 'The selected dates are not available.'])->withInput();
+                }
+            } else {
+                // Long-term rental - check if room is available on check-in date
+                $unavailableRoomIds = Booking::where('status', 'confirmed')
+                    ->where('room_id', $selectedRoom->id)
+                    ->where('start_at', '<=', $startAt->utc())
+                    ->where('end_at', '>', $startAt->utc())
+                    ->exists();
+                
+                if ($unavailableRoomIds) {
+                    return back()->withErrors(['dates' => 'The selected date is not available.'])->withInput();
+                }
             }
             
             $formData['step1'] = $request->only([
@@ -542,10 +568,13 @@ class BookingController extends Controller
             $formData['step2'] = [
                 'room_id' => $selectedRoomId,
                 'start_at' => $request->start_at,
-                'end_at' => $request->end_at,
+                'end_at' => $request->end_at ?? null, // Optional for long-term rentals
+                'renter_name' => $request->renter_name,
                 'renter_address' => $request->renter_address,
                 'renter_postal_code' => $request->renter_postal_code,
                 'renter_city' => $request->renter_city,
+                'renter_phone' => $request->renter_phone,
+                'renter_email' => $request->renter_email,
             ];
             
             $formData['step3'] = [
@@ -555,14 +584,15 @@ class BookingController extends Controller
             // Step 1 includes everything, so create booking directly
             try {
                 // Calculate total
-                $totalAmount = $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt);
-                $isShortTerm = $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+                $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
+                $totalAmount = $endAt ? $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt) : 0;
+                $isShortTerm = $endAt && $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
                 
                 // Create booking
                 $booking = Booking::create([
                     'room_id' => $selectedRoomId,
                     'start_at' => $startAt->utc(),
-                    'end_at' => $endAt->utc(),
+                    'end_at' => $endAt ? $endAt->utc() : null,
                     'source' => 'website',
                     'status' => 'pending',
                     'is_short_term' => $isShortTerm,
@@ -579,22 +609,46 @@ class BookingController extends Controller
                     'renter_city' => $formData['step2']['renter_city'],
                 ]);
                 
-                // Create rental agreement document
-                $document = $this->documentService->createDocument(
+                // Create rental agreement document (Step 1) - user signs this
+                // Document is created in background, admin will send it
+                $document1 = $this->documentService->createDocument(
                     $booking,
                     'rental_agreement',
                     app()->getLocale(),
                     ['signature' => $formData['step3']['signature']]
                 );
+                $document1->update(['signed_at' => now()]);
+                GenerateDocumentPdf::dispatch($document1);
+                // NOTE: Admin will send this document manually, not automatically sent
                 
-                GenerateDocumentPdf::dispatch($document);
-                SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+                // Create landlord confirmation document (Step 2) - in background, admin only
+                // Document is created but not signed yet, admin will handle signature and sending
+                $document2 = $this->documentService->createDocument(
+                    $booking,
+                    'landlord_confirmation',
+                    app()->getLocale(),
+                    [] // No signature yet, admin will handle
+                );
+                GenerateDocumentPdf::dispatch($document2);
+                // NOTE: Admin will sign and send this document manually
+                
+                // Create rent arrears document (Step 3) - in background, admin only
+                // Document is created but not signed yet, admin will handle signature and sending
+                $document3 = $this->documentService->createDocument(
+                    $booking,
+                    'rent_arrears',
+                    app()->getLocale(),
+                    [] // No signature yet, admin will handle
+                );
+                GenerateDocumentPdf::dispatch($document3);
+                // NOTE: Admin will sign and send this document manually
                 
                 // Clear session
                 session()->forget('booking_form_data');
                 
-                // Redirect to document signing steps (steps 2 and 3)
-                return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => 2]);
+                // Booking is complete after step 1 - redirect to completion page
+                return redirect()->route('booking.complete', ['booking' => $booking->id])
+                    ->with('success', 'Your booking request has been submitted successfully!');
                 
             } catch (\Exception $e) {
                 \Log::error('Booking creation failed: ' . $e->getMessage());

@@ -4,30 +4,17 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <!-- Progress Steps -->
+    <!-- Progress Steps - Only Step 1 visible to users -->
     <div class="mb-8">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-center">
             <div class="flex items-center">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full {{ $step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600' }}">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white">
                     1
                 </div>
-                <span class="ml-2 text-sm font-medium {{ $step >= 1 ? 'text-blue-600' : 'text-gray-600' }}">rental agreement</span>
-            </div>
-            <div class="flex-1 h-1 mx-4 {{ $step > 1 ? 'bg-blue-600' : 'bg-gray-200' }}"></div>
-            <div class="flex items-center">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full {{ $step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600' }}">
-                    2
-                </div>
-                <span class="ml-2 text-sm font-medium {{ $step >= 2 ? 'text-blue-600' : 'text-gray-600' }}">Booking Details</span>
-            </div>
-            <div class="flex-1 h-1 mx-4 {{ $step > 2 ? 'bg-blue-600' : 'bg-gray-200' }}"></div>
-            <div class="flex items-center">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full {{ $step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600' }}">
-                    3
-                </div>
-                <span class="ml-2 text-sm font-medium {{ $step >= 3 ? 'text-blue-600' : 'text-gray-600' }}">Confirmation</span>
+                <span class="ml-2 text-sm font-medium text-blue-600">rental agreement</span>
             </div>
         </div>
+        <p class="text-center text-sm text-gray-500 mt-2">Complete your booking request</p>
     </div>
     
     <!-- Room Preview -->
@@ -136,7 +123,8 @@
                 <div class="mb-6">
                     <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">Select Appartment</label>
                     <select name="room_id" id="room_id" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
+                            disabled>
                         <option value="">Select Appartment</option>
                         @foreach($allRooms ?? [] as $apartment)
                             <option value="{{ $apartment->id }}" {{ old('room_id', $room->id) == $apartment->id ? 'selected' : '' }}>
@@ -144,16 +132,32 @@
                             </option>
                         @endforeach
                     </select>
+                    <input type="hidden" name="room_id" value="{{ $room->id }}">
+                    <p class="mt-1 text-xs text-gray-500">This field cannot be changed as the apartment has already been selected.</p>
                 </div>
 
                 <!-- Select Date -->
                 <div class="mb-8">
                     <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+                    @php
+                        $dateDisplay = '';
+                        if (isset($formData['step2']['start_at'])) {
+                            $startDate = \Carbon\Carbon::parse($formData['step2']['start_at'])->format('Y-m-d');
+                            if (isset($formData['step2']['end_at']) && $formData['step2']['end_at']) {
+                                $endDate = \Carbon\Carbon::parse($formData['step2']['end_at'])->format('Y-m-d');
+                                $dateDisplay = $startDate . ' to ' . $endDate;
+                            } else {
+                                $dateDisplay = $startDate . ' (Long-term rental)';
+                            }
+                        }
+                    @endphp
                     <input type="text" id="booking_dates" name="booking_dates" 
-                           value="{{ old('booking_dates', isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('Y-m-d') . ' to ' . \Carbon\Carbon::parse($formData['step2']['end_at'])->format('Y-m-d') : '') }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
+                           value="{{ old('booking_dates', $dateDisplay) }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
+                           readonly disabled>
                     <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $formData['step2']['start_at'] ?? '') }}">
                     <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $formData['step2']['end_at'] ?? '') }}">
+                    <p class="mt-1 text-xs text-gray-500">This field cannot be changed as the date has already been selected.</p>
                 </div>
 
                 <!-- RENTAL AGREEMENT Section -->
@@ -180,9 +184,12 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="renter_name" class="block text-sm font-medium text-gray-700 mb-2">Surname, Name:(Required)</label>
-                                <input type="text" id="renter_name" 
-                                       value="{{ old('guest_first_name', $formData['step1']['guest_first_name'] ?? '') }} {{ old('guest_last_name', $formData['step1']['guest_last_name'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                                <input type="text" name="renter_name" id="renter_name" 
+                                       value="{{ old('renter_name', $formData['step2']['renter_name'] ?? '') }}" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                @error('renter_name')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">Address:(Required)</label>
@@ -214,15 +221,21 @@
                             </div>
                             <div>
                                 <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">Telephone:(Required)</label>
-                                <input type="tel" id="renter_phone" 
-                                       value="{{ old('phone', $formData['step1']['phone'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                                <input type="tel" name="renter_phone" id="renter_phone" 
+                                       value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? '') }}" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                @error('renter_phone')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label for="renter_email" class="block text-sm font-medium text-gray-700 mb-2">Email:(Required)</label>
-                                <input type="email" id="renter_email" 
-                                       value="{{ old('email', $formData['step1']['email'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                                <input type="email" name="renter_email" id="renter_email" 
+                                       value="{{ old('renter_email', $formData['step2']['renter_email'] ?? '') }}" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                @error('renter_email')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -358,14 +371,21 @@
                 </div>
                 
                 <div class="flex justify-end">
-                    <button type="submit" id="submit-btn" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                        Next
+                    <button type="submit" id="submit-btn" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        Complete Booking
                     </button>
                 </div>
             </form>
             
-        @elseif($step == 2)
-            <!-- Step 2: Booking Details -->
+        @else
+            <!-- Steps 2 and 3 are admin-only and not visible to regular users -->
+            <div class="text-center py-12">
+                <p class="text-gray-500 text-lg">This step is not available. Please contact support if you need assistance.</p>
+            </div>
+        @endif
+        
+        @if(false)
+            <!-- Step 2: Booking Details (Admin Only) -->
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Booking Details</h2>
             
             <form action="{{ route('booking.form-step', ['room' => $room->id, 'step' => 2]) }}" method="POST">
@@ -448,8 +468,9 @@
                     </button>
                 </div>
             </form>
+        @endif
             
-        @elseif($step == 3)
+        @if(false && $step == 3)
             <!-- Step 3: Confirmation & Signature -->
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Review & Confirm</h2>
             
@@ -510,6 +531,14 @@
                 </div>
             </form>
         @endif
+        
+        @if(false)
+            <!-- Step 2: Booking Details (Admin Only) - Hidden from users -->
+        @endif
+        
+        @if(false && $step == 3)
+            <!-- Step 3: Confirmation & Signature (Admin Only) - Hidden from users -->
+        @endif
     </div>
 </div>
 
@@ -524,72 +553,62 @@
     // Room data for updates (passed from controller)
     const roomsData = @json($roomsData ?? []);
     
-    // Initialize Flatpickr for date selection
-    const bookingDates = document.getElementById('booking_dates');
-    if (bookingDates) {
-        const fp = flatpickr(bookingDates, {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            minDate: "today",
-            onChange: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length === 2) {
-                    const start = selectedDates[0];
-                    const end = selectedDates[1];
-                    
-                    const startDate = start.getFullYear() + '-' + 
-                        String(start.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(start.getDate()).padStart(2, '0');
-                    const endDate = end.getFullYear() + '-' + 
-                        String(end.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(end.getDate()).padStart(2, '0');
-                    
-                    document.getElementById('start_at').value = startDate;
-                    document.getElementById('end_at').value = endDate;
-                    
-                    // Update tenancy from date
-                    const tenancyFrom = document.getElementById('tenancy-from');
-                    if (tenancyFrom) {
-                        const formattedDate = String(start.getDate()).padStart(2, '0') + '.' + 
-                            String(start.getMonth() + 1).padStart(2, '0') + '.' + 
-                            start.getFullYear();
-                        tenancyFrom.textContent = formattedDate;
-                    }
-                }
-            }
-        });
+    // Date field is disabled/readonly - no need to initialize Flatpickr
+    // But we still need to update the tenancy from date if dates are pre-filled
+    const startAtInput = document.getElementById('start_at');
+    if (startAtInput && startAtInput.value) {
+        const startDate = new Date(startAtInput.value);
+        const tenancyFrom = document.getElementById('tenancy-from');
+        if (tenancyFrom) {
+            const formattedDate = String(startDate.getDate()).padStart(2, '0') + '.' + 
+                String(startDate.getMonth() + 1).padStart(2, '0') + '.' + 
+                startDate.getFullYear();
+            tenancyFrom.textContent = formattedDate;
+        }
     }
     
-    // Handle apartment selection change
+    // Apartment selection is disabled - no need for change handler
+    // But initialize the display with the selected room
     const roomSelect = document.getElementById('room_id');
     if (roomSelect) {
-        roomSelect.addEventListener('change', function() {
-            const selectedRoomId = this.value;
-            const selectedRoom = roomsData.find(r => r.id == selectedRoomId);
+        const selectedRoomId = roomSelect.value;
+        const selectedRoom = roomsData.find(r => r.id == selectedRoomId);
+        
+        if (selectedRoom) {
+            const selectedRoomNameEl = document.getElementById('selected-room-name');
+            const roomAddressEl = document.getElementById('room-address');
+            const rentPerNightEl = document.getElementById('rent-per-night');
             
-            if (selectedRoom) {
-                document.getElementById('selected-room-name').textContent = selectedRoom.name;
-                document.getElementById('room-address').value = selectedRoom.address;
-                document.getElementById('rent-per-night').textContent = '€' + parseFloat(selectedRoom.price).toFixed(2);
-            }
-        });
+            if (selectedRoomNameEl) selectedRoomNameEl.textContent = selectedRoom.name;
+            if (roomAddressEl) roomAddressEl.value = selectedRoom.address;
+            if (rentPerNightEl) rentPerNightEl.textContent = '€' + parseFloat(selectedRoom.price).toFixed(2);
+        }
     }
     
-    // Update renter name when first/last name changes
+    // Update renter full name in signature section only (not the input field)
     const firstNameInput = document.getElementById('guest_first_name');
     const lastNameInput = document.getElementById('guest_last_name');
-    const renterNameInput = document.getElementById('renter_name');
     const renterFullName = document.getElementById('renter-full-name');
     
-    function updateRenterName() {
-        const firstName = firstNameInput.value || '';
-        const lastName = lastNameInput.value || '';
+    function updateRenterFullName() {
+        const firstName = firstNameInput ? firstNameInput.value || '' : '';
+        const lastName = lastNameInput ? lastNameInput.value || '' : '';
         const fullName = (firstName + ' ' + lastName).trim();
-        if (renterNameInput) renterNameInput.value = fullName;
         if (renterFullName) renterFullName.textContent = fullName;
     }
     
-    if (firstNameInput) firstNameInput.addEventListener('input', updateRenterName);
-    if (lastNameInput) lastNameInput.addEventListener('input', updateRenterName);
+    // Only update the signature section name, not the renter input fields
+    if (firstNameInput) {
+        firstNameInput.addEventListener('input', updateRenterFullName);
+        firstNameInput.addEventListener('change', updateRenterFullName);
+    }
+    if (lastNameInput) {
+        lastNameInput.addEventListener('input', updateRenterFullName);
+        lastNameInput.addEventListener('change', updateRenterFullName);
+    }
+    
+    // Initialize signature section name on page load
+    updateRenterFullName();
     
     // Initialize Signature Pad
     const canvas = document.getElementById('signature-pad');

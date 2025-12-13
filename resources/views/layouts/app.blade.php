@@ -24,7 +24,9 @@
 </head>
 <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100">
-        @include('layouts.navigation')
+        @unless(request()->routeIs('booking.form') || request()->routeIs('booking.form-step'))
+            @include('layouts.navigation')
+        @endunless
 
         <!-- Page Heading -->
         @if (isset($header))

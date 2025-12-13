@@ -40,12 +40,37 @@
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                     {{ __('booking_flow.select_apartment') }}
                 </h1>
-                <p class="text-xl text-gray-600">{{ __('booking_flow.select_apartment_description') }}</p>
+                <div class="mb-4">
+                    <p class="text-xl text-gray-600 mb-2">{{ __('booking_flow.select_apartment_description') }}</p>
+                    <div class="flex items-center justify-center gap-4 text-lg text-gray-700">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span class="font-semibold">{{ $location->name }}</span>
+                        </div>
+                        <span class="text-gray-400">•</span>
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            <span class="font-semibold">{{ $house->name }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Search Filter Section -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Search by Date</h2>
+                <div class="mb-4 pb-4 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Search by Date</h2>
+                    <p class="text-sm text-gray-600">
+                        <span class="font-medium">{{ $location->name }}</span> 
+                        <span class="mx-2">→</span> 
+                        <span class="font-medium">{{ $house->name }}</span>
+                    </p>
+                </div>
                 <form method="GET" action="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" class="flex flex-col md:flex-row gap-4 items-end">
                     <div class="flex-1">
                         <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_in_date') }}</label>
@@ -57,13 +82,15 @@
                                placeholder="Select check-in date">
                     </div>
                     <div class="flex-1">
-                        <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_out_date') }}</label>
+                        <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ __('booking.check_out_date') }} <span class="text-gray-500 text-xs font-normal">(Optional - for long-term rentals)</span>
+                        </label>
                         <input type="text" 
                                name="check_out" 
                                id="check_out" 
                                value="{{ $checkOut }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="Select check-out date">
+                               placeholder="Select check-out date (optional)">
                     </div>
                     <div class="flex gap-2">
                         <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors font-semibold">
@@ -80,7 +107,7 @@
             </div>
             
             <!-- Rooms Grid -->
-            @if($checkIn && $checkOut)
+            @if($checkIn)
                 @if($filteredRooms->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach($filteredRooms as $room)
@@ -135,7 +162,7 @@
                 @else
                 <div class="text-center py-12 bg-white rounded-lg shadow-md">
                     <p class="text-gray-500 text-lg mb-4">
-                        No rooms available for the selected dates.
+                        No rooms available for the selected date{{ $checkOut ? 's' : '' }}.
                     </p>
                     <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                        class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -149,9 +176,9 @@
                     <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Select Dates to Search</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Select Check-in Date to Search</h3>
                     <p class="text-gray-600 mb-6">
-                        Please select check-in and check-out dates to see available rooms.
+                        Please select a check-in date to see available rooms. Check-out date is optional for long-term rentals.
                     </p>
                 </div>
             </div>
@@ -193,10 +220,11 @@
             }),
         });
         
-        // Initialize Flatpickr for check-out
+        // Initialize Flatpickr for check-out (optional)
         const checkOut = flatpickr("#check_out", {
             minDate: "today",
             dateFormat: "Y-m-d",
+            allowInput: true,
             disable: blockedDates.map(function(range) {
                 return {
                     from: range[0],
