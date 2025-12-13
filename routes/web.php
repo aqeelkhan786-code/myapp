@@ -101,6 +101,11 @@ Route::post('/booking/{booking}/payment', [BookingController::class, 'processPay
 Route::post('/booking/payment-intent', [BookingController::class, 'createPaymentIntent'])->name('booking.payment-intent');
 Route::get('/booking/{booking}/complete', [BookingController::class, 'complete'])->name('booking.complete');
 
+// Booking Lookup (for customers to view their bookings)
+Route::get('/booking/lookup', [BookingController::class, 'lookup'])->name('booking.lookup');
+Route::post('/booking/find', [BookingController::class, 'findBookings'])->name('booking.find');
+Route::get('/booking/{booking}/view', [BookingController::class, 'view'])->name('booking.view');
+
 // iCal Export
 Route::get('/ical/{room}/{token}.ics', [BookingController::class, 'icalExport'])->name('ical.export');
 

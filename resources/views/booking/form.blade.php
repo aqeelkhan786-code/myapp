@@ -41,6 +41,23 @@
             <!-- Step 1: Rental Agreement Form -->
             <h2 class="text-2xl font-bold text-gray-900 mb-6">rental agreement</h2>
             
+            @if(session('success'))
+                <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                    {{ session('success') }}
+                </div>
+            @endif
+            
+            @if($errors->any())
+                <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                    <strong>Please fix the following errors:</strong>
+                    <ul class="list-disc list-inside mt-2">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            
             <form action="{{ route('booking.form-step', ['room' => $room->id, 'step' => 1]) }}" method="POST" id="step1-form">
                 @csrf
                 
@@ -689,8 +706,16 @@
                 // Process payment for short-term bookings
                 e.preventDefault();
                 const submitBtn = document.getElementById('submit-btn');
+                const originalText = submitBtn.textContent;
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Processing Payment...';
+                
+                // Hide any previous error messages
+                const paymentMessage = document.getElementById('payment-message');
+                if (paymentMessage) {
+                    paymentMessage.classList.add('hidden');
+                    paymentMessage.textContent = '';
+                }
                 
                 try {
                     // Confirm payment with Stripe
@@ -704,9 +729,11 @@
                     
                     if (submitError) {
                         submitBtn.disabled = false;
-                        submitBtn.textContent = 'Complete Booking';
-                        document.getElementById('payment-message').textContent = submitError.message;
-                        document.getElementById('payment-message').classList.remove('hidden');
+                        submitBtn.textContent = originalText;
+                        if (paymentMessage) {
+                            paymentMessage.textContent = submitError.message;
+                            paymentMessage.classList.remove('hidden');
+                        }
                         return false;
                     }
                     
@@ -718,9 +745,11 @@
                         const {error: retrieveError, paymentIntent: retrievedIntent} = await stripe.retrievePaymentIntent(clientSecret);
                         if (retrieveError) {
                             submitBtn.disabled = false;
-                            submitBtn.textContent = 'Complete Booking';
-                            document.getElementById('payment-message').textContent = 'Failed to verify payment. Please try again.';
-                            document.getElementById('payment-message').classList.remove('hidden');
+                            submitBtn.textContent = originalText;
+                            if (paymentMessage) {
+                                paymentMessage.textContent = 'Failed to verify payment. Please try again.';
+                                paymentMessage.classList.remove('hidden');
+                            }
                             return false;
                         }
                         finalPaymentIntent = retrievedIntent;
@@ -732,20 +761,39 @@
                         if (paymentMethodIdInput) {
                             paymentMethodIdInput.value = finalPaymentIntent.id || window.paymentIntentId;
                         }
-                        // Submit the form
+                        
+                        // Update button to show processing
+                        submitBtn.textContent = 'Creating Booking...';
+                        submitBtn.disabled = true;
+                        
+                        // Prevent double submission
+                        if (form.dataset.submitting === 'true') {
+                            return false;
+                        }
+                        form.dataset.submitting = 'true';
+                        
+                        // Submit the form - this will trigger a POST request
+                        // The server will process and redirect
                         form.submit();
                     } else {
                         submitBtn.disabled = false;
-                        submitBtn.textContent = 'Complete Booking';
-                        document.getElementById('payment-message').textContent = 'Payment was not successful. Status: ' + (finalPaymentIntent ? finalPaymentIntent.status : 'unknown');
-                        document.getElementById('payment-message').classList.remove('hidden');
+                        submitBtn.textContent = originalText;
+                        if (paymentMessage) {
+                            paymentMessage.textContent = 'Payment was not successful. Status: ' + (finalPaymentIntent ? finalPaymentIntent.status : 'unknown');
+                            paymentMessage.classList.remove('hidden');
+                        }
                     }
                 } catch (error) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Complete Booking';
-                    document.getElementById('payment-message').textContent = 'Payment processing error: ' + error.message;
-                    document.getElementById('payment-message').classList.remove('hidden');
+                    submitBtn.textContent = originalText;
+                    if (paymentMessage) {
+                        paymentMessage.textContent = 'Payment processing error: ' + error.message;
+                        paymentMessage.classList.remove('hidden');
+                    }
                 }
+                @else
+                // For long-term bookings, allow normal form submission
+                // No payment processing needed
                 @endif
             });
         }

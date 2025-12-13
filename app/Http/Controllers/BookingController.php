@@ -441,6 +441,45 @@ class BookingController extends Controller
     }
 
     /**
+     * Show booking lookup page
+     */
+    public function lookup()
+    {
+        return view('booking.lookup');
+    }
+
+    /**
+     * Find bookings by email
+     */
+    public function findBookings(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->email;
+        $bookings = Booking::where('email', $email)
+            ->with('room', 'documents')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($bookings->isEmpty()) {
+            return back()->withErrors(['email' => 'No bookings found for this email address.'])->withInput();
+        }
+
+        return view('booking.my-bookings', compact('bookings', 'email'));
+    }
+
+    /**
+     * View a specific booking
+     */
+    public function view(Booking $booking)
+    {
+        $booking->load('room', 'documents', 'paymentLogs');
+        return view('booking.view', compact('booking'));
+    }
+
+    /**
      * Export iCal feed for a room
      */
     public function icalExport(Room $room, string $token)
@@ -761,12 +800,19 @@ class BookingController extends Controller
                 session()->forget('booking_form_data');
                 
                 // Booking is complete after step 1 - redirect to completion page
-                return redirect()->route('booking.complete', ['booking' => $booking->id])
+                // Use 303 redirect to ensure proper redirect after POST
+                return redirect()->route('booking.complete', ['booking' => $booking->id], 303)
                     ->with('success', 'Your booking request has been submitted successfully!');
                 
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                \Log::error('Booking validation failed: ' . $e->getMessage());
+                return back()->withErrors($e->errors())->withInput();
             } catch (\Exception $e) {
-                \Log::error('Booking creation failed: ' . $e->getMessage());
-                return back()->withErrors(['error' => 'An error occurred. Please try again.'])->withInput();
+                \Log::error('Booking creation failed: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return back()->withErrors(['error' => 'An error occurred: ' . $e->getMessage()])->withInput();
             }
             
         } elseif ($step === 2) {

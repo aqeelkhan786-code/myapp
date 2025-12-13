@@ -43,7 +43,17 @@
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">Check-out:</span>
-                    <span class="font-semibold">{{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}</span>
+                    <span class="font-semibold">
+                        @if($booking->end_at)
+                            {{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                        @else
+                            <span class="text-gray-500">Long-term rental</span>
+                        @endif
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Booking Reference:</span>
+                    <span class="font-semibold">#{{ $booking->id }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">Total Amount:</span>
@@ -53,6 +63,23 @@
         </div>
         
         <p class="text-sm text-gray-500 mb-6">A confirmation email has been sent to {{ $booking->email }}</p>
+        
+        <div class="bg-blue-50 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">View Your Booking Later</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                Save your booking reference <strong>#{{ $booking->id }}</strong> or use your email address to view this booking anytime.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{{ route('booking.view', $booking) }}" 
+                   class="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center">
+                    <i class="fa-solid fa-eye mr-2"></i> View Booking Details
+                </a>
+                <a href="{{ route('booking.lookup') }}" 
+                   class="inline-block bg-white text-blue-600 border-2 border-blue-600 py-2 px-4 rounded-md hover:bg-blue-50 transition-colors text-center">
+                    <i class="fa-solid fa-search mr-2"></i> Find My Bookings
+                </a>
+            </div>
+        </div>
         
         @if($booking->documents->count() > 0)
         <div class="bg-blue-50 rounded-lg p-6 mb-6 text-left">
