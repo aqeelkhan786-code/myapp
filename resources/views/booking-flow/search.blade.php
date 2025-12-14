@@ -79,27 +79,27 @@
                                id="check_in" 
                                value="{{ $checkIn }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="Select check-in date">
+                               placeholder="{{ __('booking_flow.select_checkin_placeholder') }}">
                     </div>
                     <div class="flex-1">
                         <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ __('booking.check_out_date') }} <span class="text-gray-500 text-xs font-normal">(Optional - for long-term rentals)</span>
+                            {{ __('booking.check_out_date') }} <span class="text-gray-500 text-xs font-normal">{{ __('booking_flow.optional_long_term') }}</span>
                         </label>
                         <input type="text" 
                                name="check_out" 
                                id="check_out" 
                                value="{{ $checkOut }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="Select check-out date (optional)">
+                               placeholder="{{ __('booking_flow.select_checkout_placeholder') }}">
                     </div>
                     <div class="flex gap-2">
                         <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors font-semibold">
-                            Search
+                            {{ __('booking_flow.search') }}
                         </button>
                         @if($checkIn || $checkOut)
                         <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                            class="bg-gray-200 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors">
-                            Clear
+                            {{ __('booking_flow.clear') }}
                         </a>
                         @endif
                     </div>
@@ -143,10 +143,10 @@
                                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
-                                    <span class="text-sm">{{ $room->capacity }} guests</span>
+                                    <span class="text-sm">{{ $room->capacity }} {{ __('booking.guests') }}</span>
                                 </div>
                                 <div class="text-lg font-bold text-blue-600">
-                                    €{{ number_format($room->base_price, 2) }}/night
+                                    €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
                                 </div>
                             </div>
                             <div class="mt-4 flex items-center text-blue-600 font-semibold">
@@ -162,11 +162,11 @@
                 @else
                 <div class="text-center py-12 bg-white rounded-lg shadow-md">
                     <p class="text-gray-500 text-lg mb-4">
-                        No rooms available for the selected date{{ $checkOut ? 's' : '' }}.
+                        {{ $checkOut ? __('booking_flow.no_rooms_available_dates') : __('booking_flow.no_rooms_available_date') }}.
                     </p>
                     <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                        class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        Clear Filters
+                        {{ __('booking_flow.clear_filters') }}
                     </a>
                 </div>
                 @endif
@@ -176,9 +176,9 @@
                     <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Select Check-in Date to Search</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ __('booking_flow.select_checkin_search') }}</h3>
                     <p class="text-gray-600 mb-6">
-                        Please select a check-in date to see available rooms. Check-out date is optional for long-term rentals.
+                        {{ __('booking_flow.select_checkin_description') }}
                     </p>
                 </div>
             </div>

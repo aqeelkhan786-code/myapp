@@ -19,6 +19,12 @@
                     <x-nav-link :href="route('admin.bookings.index')" :active="request()->routeIs('admin.bookings.*')">
                         {{ __('common.Manage Bookings') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.properties.index')" :active="request()->routeIs('admin.properties.*')">
+                        {{ __('common.Manage Properties') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('admin.houses.index')" :active="request()->routeIs('admin.houses.*')">
+                        {{ __('common.Manage Houses') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('admin.rooms.index')" :active="request()->routeIs('admin.rooms.*')">
                         {{ __('common.Manage Rooms') }}
                     </x-nav-link>
@@ -126,6 +132,15 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.bookings.index')" :active="request()->routeIs('admin.bookings.*')">
                 {{ __('common.Manage Bookings') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.properties.index')" :active="request()->routeIs('admin.properties.*')">
+                {{ __('common.Manage Properties') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.houses.index')" :active="request()->routeIs('admin.houses.*')">
+                {{ __('common.Manage Houses') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.rooms.index')" :active="request()->routeIs('admin.rooms.*')">
+                {{ __('common.Manage Rooms') }}
             </x-responsive-nav-link>
             @endauth
             <x-responsive-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">

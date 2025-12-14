@@ -35,6 +35,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('bookings/calendar/view', [\App\Http\Controllers\Admin\BookingController::class, 'calendar'])->name('bookings.calendar');
         Route::post('bookings/{booking}/documents/{document}/regenerate', [\App\Http\Controllers\Admin\BookingController::class, 'regenerateDocument'])->name('bookings.documents.regenerate');
         Route::post('bookings/{booking}/mark-paid', [\App\Http\Controllers\Admin\BookingController::class, 'markAsPaid'])->name('bookings.mark-paid');
+        Route::resource('properties', \App\Http\Controllers\Admin\PropertyController::class);
+        Route::resource('houses', \App\Http\Controllers\Admin\HouseController::class);
         Route::resource('rooms', \App\Http\Controllers\Admin\RoomController::class);
         Route::post('ical/sync', [\App\Http\Controllers\Admin\IcalController::class, 'sync'])
             ->middleware('throttle:ical-sync')

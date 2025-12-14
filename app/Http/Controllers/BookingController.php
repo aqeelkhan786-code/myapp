@@ -329,7 +329,7 @@ class BookingController extends Controller
             return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => $step + 1]);
         }
 
-        return redirect()->route('booking.complete', ['booking' => $booking->id])->with('success', 'Booking completed successfully!');
+        return redirect()->route('booking.complete', ['booking' => $booking->id])->with('success', __('booking.booking_completed_successfully'));
     }
 
     /**
@@ -422,7 +422,7 @@ class BookingController extends Controller
             if ($paymentIntent->status === 'succeeded') {
                 $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
                 return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => 2])
-                    ->with('success', 'Payment processed successfully!');
+                    ->with('success', __('booking.payment_processed_successfully'));
             }
 
             return back()->withErrors(['payment' => 'Payment could not be processed.']);
@@ -802,7 +802,7 @@ class BookingController extends Controller
                 // Booking is complete after step 1 - redirect to completion page
                 // Use 303 redirect to ensure proper redirect after POST
                 return redirect()->route('booking.complete', ['booking' => $booking->id], 303)
-                    ->with('success', 'Your booking request has been submitted successfully!');
+                    ->with('success', __('booking.booking_submitted_successfully'));
                 
             } catch (\Illuminate\Validation\ValidationException $e) {
                 \Log::error('Booking validation failed: ' . $e->getMessage());

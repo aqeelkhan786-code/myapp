@@ -42,7 +42,7 @@
     <header class="bg-white border-b border-gray-200 py-4 px-6">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <a href="{{ route('booking-flow.home') }}" class="text-gray-700 hover:text-gray-900">
-                <span class="font-semibold">Home</span>
+                <span class="font-semibold">{{ __('booking_flow.home') }}</span>
             </a>
             <button class="text-gray-700 hover:text-gray-900">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,69 +57,68 @@
             <!-- Main Title -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                    Wohnen in {{ $location->name }}
+                    {{ __('booking_flow.living_in') }} {{ $location->name }}
                 </h1>
             </div>
 
             <!-- Description Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Beschreibung:</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ __('booking_flow.description') }}</h2>
                 <div class="prose prose-lg max-w-none">
                     <p class="text-gray-700 leading-relaxed mb-6">
-                        <strong>Furnished Rooms in Brandenburg – Haus {{ $location->name }}</strong>
+                        <strong>{{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
                     </p>
                     <p class="text-gray-700 leading-relaxed mb-6">
-                        At Haus {{ $location->name }}, we offer {{ $rooms->count() }} furnished rooms for rent – ideal for construction workers,<br>
-                        business travelers, or commuters.
+                        {!! str_replace([':location', ':count'], [$location->name, $rooms->count()], __('booking_flow.at_haus_offer')) !!}
                     </p>
                 </div>
                 
-                <!-- Verfügbarkeit prüfen Button -->
+                <!-- Check Availability Button -->
                 <div class="text-center mb-12">
                     <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                        class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                        Verfügbarkeit prüfen
+                        {{ __('booking_flow.check_availability') }}
                     </a>
                 </div>
             </div>
 
             <!-- Room Amenities Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Ausstattung der Zimmer:</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking_flow.room_amenities') }}</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div class="amenity-item">
-                        <span class="text-gray-700">WLAN – kostenlos und zuverlässig</span>
+                        <span class="text-gray-700">{{ __('booking_flow.wifi_free') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Voll ausgestattete Küche – zur gemeinschaftlichen Nutzung</span>
+                        <span class="text-gray-700">{{ __('booking_flow.fully_equipped_kitchen') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Bequeme Betten – erholsamer Schlaf garantiert</span>
+                        <span class="text-gray-700">{{ __('booking_flow.comfortable_beds') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">TV in jedem Zimmer</span>
+                        <span class="text-gray-700">{{ __('booking_flow.tv_every_room') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Gemeinschaftsbereiche – für entspannte Abende</span>
+                        <span class="text-gray-700">{{ __('booking_flow.common_areas') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Parkmöglichkeiten – direkt am Haus oder in der Nähe</span>
+                        <span class="text-gray-700">{{ __('booking_flow.parking') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten und öffentliche Verkehrsmittel</span>
+                        <span class="text-gray-700">{{ __('booking_flow.central_location') }}</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">Flexible Mietdauer – kurz- und langfristige Aufenthalte möglich</span>
+                        <span class="text-gray-700">{{ __('booking_flow.flexible_rental') }}</span>
                     </div>
                 </div>
 
                 <!-- Interested? Book Now Section -->
                 <div class="bg-gray-50 rounded-lg p-6 mb-8">
-                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>Interessiert? Dann klicken sie hier auf Jetzt Buchen</strong></p>
+                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>{{ __('booking_flow.interested_book_now') }}</strong></p>
                     <div class="text-center">
                         <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
                            class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                            Verfügbarkeit prüfen
+                            {{ __('booking_flow.check_availability') }}
                         </a>
                     </div>
                 </div>
@@ -162,10 +161,10 @@
                 <div class="inline-block bg-yellow-50 border border-yellow-200 rounded-lg p-6">
                     <div class="text-3xl font-bold text-yellow-600 mb-2">4.65</div>
                     <div class="text-lg font-semibold text-gray-900 mb-2">
-                        <strong>Gastfavorit</strong>
+                        <strong>{{ __('booking_flow.guest_favorite') }}</strong>
                     </div>
                     <p class="text-sm text-gray-600">
-                        Eines der beliebtesten Häuser basierend auf Bewertungen, Rezensionen und Zuverlässigkeit
+                        {{ __('booking_flow.guest_favorite_description') }}
                     </p>
                 </div>
             </div>
@@ -176,11 +175,11 @@
     <footer class="bg-gray-100 border-t border-gray-200 py-8 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center text-gray-600 text-sm">
-                <p>Copyright 2025 | Ma Room – Zimmervermietung in Deutschland | All Right Reserved</p>
+                <p>{{ __('booking_flow.copyright') }}</p>
                 <div class="mt-4 space-x-4">
-                    <a href="#" class="hover:text-gray-900">Impressum</a>
+                    <a href="#" class="hover:text-gray-900">{{ __('booking_flow.imprint') }}</a>
                     <span>|</span>
-                    <a href="#" class="hover:text-gray-900">Datenschutzerklärung</a>
+                    <a href="#" class="hover:text-gray-900">{{ __('booking_flow.privacy_policy') }}</a>
                 </div>
             </div>
         </div>

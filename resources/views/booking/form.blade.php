@@ -169,7 +169,7 @@
                                 $endDate = \Carbon\Carbon::parse($endAt)->format('Y-m-d');
                                 $dateDisplay = $startDate . ' to ' . $endDate;
                             } else {
-                                $dateDisplay = $startDate . ' (Long-term rental)';
+                                $dateDisplay = $startDate . ' (' . __('booking.long_term_rental') . ')';
                             }
                         }
                     @endphp
@@ -396,14 +396,14 @@
                 <!-- Payment Section for Short-term Bookings -->
                 <div class="mb-8 border-t pt-8">
                     <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p class="text-sm text-yellow-800 font-semibold mb-2">Payment Required for Short-term Booking</p>
-                        <p class="text-sm text-yellow-700">Total Amount: <strong>€{{ number_format($totalAmount, 2) }}</strong></p>
-                        <p class="text-xs text-yellow-600 mt-1">Payment will be processed securely via Stripe</p>
+                        <p class="text-sm text-yellow-800 font-semibold mb-2">{{ __('booking.payment_required_short_term') }}</p>
+                        <p class="text-sm text-yellow-700">{{ __('booking.total_amount') }}: <strong>€{{ number_format($totalAmount, 2) }}</strong></p>
+                        <p class="text-xs text-yellow-600 mt-1">{{ __('booking.payment_processed_stripe') }}</p>
                     </div>
                     
                     <!-- Stripe Payment Element -->
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Information *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.payment_information') }} *</label>
                         <div id="payment-element" class="p-4 border border-gray-300 rounded-md bg-white">
                             <!-- Stripe Elements will create form elements here -->
                         </div>
@@ -414,15 +414,15 @@
                 @elseif($isShortTerm && !config('services.stripe.key'))
                 <div class="mb-8 border-t pt-8">
                     <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-                        <p class="text-sm text-red-800 font-semibold mb-2">Payment Processing Not Configured</p>
-                        <p class="text-sm text-red-700">Please contact support to complete your booking.</p>
+                        <p class="text-sm text-red-800 font-semibold mb-2">{{ __('booking.payment_processing_not_configured') }}</p>
+                        <p class="text-sm text-red-700">{{ __('booking.contact_support_complete_booking') }}</p>
                     </div>
                 </div>
                 @endif
                 
                 <div class="flex justify-end">
                     <button type="submit" id="submit-btn" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                        Complete Booking
+                        {{ __('booking.complete_booking') }}
                     </button>
                 </div>
             </form>
@@ -763,7 +763,7 @@
                         }
                         
                         // Update button to show processing
-                        submitBtn.textContent = 'Creating Booking...';
+                        submitBtn.textContent = '{{ __('booking.creating_booking') }}';
                         submitBtn.disabled = true;
                         
                         // Prevent double submission
