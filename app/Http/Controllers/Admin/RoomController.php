@@ -95,7 +95,14 @@ class RoomController extends Controller
         $maxSortOrder = $room->images()->max('sort_order') ?? 0;
         $uploaded = 0;
         
+        // Ensure directory exists
+        Storage::disk('public')->makeDirectory('room-images');
+        
         foreach ($request->file('images') as $image) {
+            // Generate unique filename
+            $filename = uniqid() . '.' . $image->getClientOriginalExtension();
+            $path = 'room-images/' . $filename;
+            
             // Resize image to max 1920x1080 while maintaining aspect ratio
             // Use GD driver if Imagick is not available
             try {
@@ -115,26 +122,25 @@ class RoomController extends Controller
                     $img->scaleDown($maxWidth, $maxHeight);
                 }
                 
-                // Generate unique filename
-                $filename = uniqid() . '.' . $image->getClientOriginalExtension();
-                $path = 'room-images/' . $filename;
-                
-                // Save resized image
-                $img->save(storage_path('app/public/' . $path), quality: 85);
+                // Save resized image using Storage facade for consistency
+                $img->save(Storage::disk('public')->path($path), quality: 85);
             } catch (\Exception $e) {
                 // Fallback: save original image if resize fails
                 \Log::warning('Image resize failed, saving original', ['error' => $e->getMessage()]);
-                $filename = uniqid() . '.' . $image->getClientOriginalExtension();
                 $path = $image->storeAs('room-images', $filename, 'public');
             }
             
-            $maxSortOrder++;
-            $room->images()->create([
-                'path' => $path,
-                'sort_order' => $maxSortOrder,
-            ]);
-            
-            $uploaded++;
+            // Verify file exists before saving to database
+            if (Storage::disk('public')->exists($path)) {
+                $maxSortOrder++;
+                $room->images()->create([
+                    'path' => $path,
+                    'sort_order' => $maxSortOrder,
+                ]);
+                $uploaded++;
+            } else {
+                \Log::error('Image file not found after upload', ['path' => $path]);
+            }
         }
 
         $message = $uploaded === 1 ? 'Image uploaded successfully.' : "{$uploaded} images uploaded successfully.";

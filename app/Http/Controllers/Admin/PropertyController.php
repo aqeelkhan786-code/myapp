@@ -109,3 +109,4 @@ class PropertyController extends Controller
             ->with('success', __('admin.property_deleted_successfully'));
     }
 }
+

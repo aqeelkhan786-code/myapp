@@ -113,3 +113,17 @@ Route::get('/ical/{room}/{token}.ics', [BookingController::class, 'icalExport'])
 
 // Document Download
 Route::get('/documents/{documentId}/download', [BookingController::class, 'downloadDocument'])->name('documents.download');
+
+// Storage Image Route (fallback if symlink doesn't work)
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    $file = file_get_contents($filePath);
+    $type = mime_content_type($filePath);
+    
+    return response($file, 200)->header('Content-Type', $type);
+})->where('path', '.*')->name('storage.serve');

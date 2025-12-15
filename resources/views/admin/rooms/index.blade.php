@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('title', __('admin.manage_rooms'))
 
 @section('content')
@@ -36,7 +40,19 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             @if($room->images->count() > 0)
-                            <img src="{{ asset('storage/' . $room->images->first()->path) }}" alt="{{ $room->name }}" class="h-10 w-10 rounded-lg object-cover mr-3">
+                            @php
+                                $firstImage = $room->images->first();
+                                // Use storage route which works regardless of symlink
+                                $imageUrl = route('storage.serve', ['path' => $firstImage->path]);
+                            @endphp
+                            <img src="{{ $imageUrl }}" 
+                                 alt="{{ $room->name }}" 
+                                 class="h-10 w-10 rounded-lg object-cover mr-3"
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'%3E%3Crect width=\'40\' height=\'40\' fill=\'%23e5e7eb\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%239ca3af\' font-size=\'10\'%3ENo Image%3C/text%3E%3C/svg%3E';">
+                            @else
+                            <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
+                                <span class="text-xs text-gray-400">No Image</span>
+                            </div>
                             @endif
                             <div>
                                 <div class="text-sm font-medium text-gray-900">{{ $room->name }}</div>

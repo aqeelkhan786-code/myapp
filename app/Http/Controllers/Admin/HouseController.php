@@ -204,3 +204,4 @@ class HouseController extends Controller
             ->with('success', __('admin.house_deleted_successfully'));
     }
 }
+
