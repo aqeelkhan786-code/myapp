@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Room')
+@section('title', __('admin.edit_room'))
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Room: {{ $room->name }}</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ __('admin.edit_room') }}: {{ $room->name }}</h1>
 
     <form action="{{ route('admin.rooms.update', $room) }}" method="POST" class="bg-white shadow-md rounded-lg p-6">
         @csrf
@@ -12,7 +12,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-                <label for="property_id" class="block text-sm font-medium text-gray-700 mb-2">Property *</label>
+                <label for="property_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.property') }} *</label>
                 <select name="property_id" id="property_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @foreach($properties as $property)
                         <option value="{{ $property->id }}" {{ old('property_id', $room->property_id) == $property->id ? 'selected' : '' }}>
@@ -26,9 +26,9 @@
             </div>
 
             <div>
-                <label for="location_id" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <label for="location_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.location') }}</label>
                 <select name="location_id" id="location_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Location (Optional)</option>
+                    <option value="">{{ __('admin.select_location_optional') }}</option>
                     @foreach($locations as $location)
                         <option value="{{ $location->id }}" 
                                 {{ old('location_id', $room->house && $room->house->location_id ? $room->house->location_id : '') == $location->id ? 'selected' : '' }}>
@@ -42,9 +42,9 @@
             </div>
 
             <div>
-                <label for="house_id" class="block text-sm font-medium text-gray-700 mb-2">House</label>
+                <label for="house_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.house') }}</label>
                 <select name="house_id" id="house_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select House (Optional)</option>
+                    <option value="">{{ __('admin.select_house_optional') }}</option>
                     @foreach($houses as $house)
                         <option value="{{ $house->id }}" 
                                 data-location-id="{{ $house->location_id }}"
@@ -56,11 +56,11 @@
                 @error('house_id')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
-                <p class="mt-1 text-xs text-gray-500">Select a location first to filter houses</p>
+                <p class="mt-1 text-xs text-gray-500">{{ __('admin.select_location_filter_houses') }}</p>
             </div>
 
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Room Name *</label>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.room_name') }} *</label>
                 <input type="text" name="name" id="name" value="{{ old('name', $room->name) }}" required
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('name')
@@ -69,7 +69,7 @@
             </div>
 
             <div>
-                <label for="capacity" class="block text-sm font-medium text-gray-700 mb-2">Capacity *</label>
+                <label for="capacity" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.capacity') }} *</label>
                 <input type="number" name="capacity" id="capacity" value="{{ old('capacity', $room->capacity) }}" required min="1"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('capacity')
@@ -78,7 +78,7 @@
             </div>
 
             <div>
-                <label for="base_price" class="block text-sm font-medium text-gray-700 mb-2">Base Price (€) *</label>
+                <label for="base_price" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.base_price') }} (€) *</label>
                 <input type="number" name="base_price" id="base_price" value="{{ old('base_price', $room->base_price) }}" required step="0.01" min="0"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('base_price')
@@ -93,13 +93,13 @@
                        {{ old('short_term_allowed', $room->short_term_allowed) ? 'checked' : '' }}
                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <label for="short_term_allowed" class="ml-2 block text-sm text-gray-900">
-                    Allow short-term bookings (≤30 days)
+                    {{ __('admin.allow_short_term_bookings') }}
                 </label>
             </div>
         </div>
 
         <div class="mb-6">
-            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.description') }}</label>
             <textarea name="description" id="description" rows="4"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('description', $room->description) }}</textarea>
             @error('description')
@@ -109,10 +109,10 @@
 
         <div class="flex justify-end gap-4">
             <a href="{{ route('admin.rooms.index') }}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors">
-                Cancel
+                {{ __('admin.cancel') }}
             </a>
             <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                Update Room
+                {{ __('admin.update_room') }}
             </button>
         </div>
     </form>
@@ -130,7 +130,7 @@
             const selectedLocationId = this.value;
             
             // Clear house selection
-            houseSelect.innerHTML = '<option value="">Select House (Optional)</option>';
+            houseSelect.innerHTML = '<option value="">{{ __('admin.select_house_optional') }}</option>';
             
             if (selectedLocationId) {
                 // Filter houses by location

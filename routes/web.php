@@ -15,7 +15,7 @@ use App\Http\Controllers\BookingController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('booking-flow.home');
 });
 
 require __DIR__.'/auth.php';
