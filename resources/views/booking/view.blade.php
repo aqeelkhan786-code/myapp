@@ -39,11 +39,11 @@
                             <p class="font-semibold text-gray-900">#{{ $booking->id }}</p>
                         </div>
                         <div>
-                            <span class="text-sm text-gray-600">Check-in Date:</span>
+                            <span class="text-sm text-gray-600">{{ __('booking.check_in_date') }}:</span>
                             <p class="font-semibold text-gray-900">{{ \Carbon\Carbon::parse($booking->start_at)->format('F d, Y') }}</p>
                         </div>
                         <div>
-                            <span class="text-sm text-gray-600">Check-out Date:</span>
+                            <span class="text-sm text-gray-600">{{ __('booking.check_out_date') }}:</span>
                             <p class="font-semibold text-gray-900">
                                 @if($booking->end_at)
                                     {{ \Carbon\Carbon::parse($booking->end_at)->format('F d, Y') }}

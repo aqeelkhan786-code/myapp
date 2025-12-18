@@ -43,9 +43,9 @@
             
             <p><strong>Booking Details:</strong></p>
             <ul>
-                <li>Room: {{ $booking->room->name }}</li>
-                <li>Check-in: {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}</li>
-                <li>Check-out: {{ \Carbon\Carbon::parse($booking->end_at)->format('d.m.Y') }}</li>
+                <li>{{ __('booking.room') }}: {{ $booking->room->name }}</li>
+                <li>{{ __('booking.check_in') }}: {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}</li>
+                <li>{{ __('booking.check_out') }}: {{ \Carbon\Carbon::parse($booking->end_at)->format('d.m.Y') }}</li>
             </ul>
             
             <p>Best regards,<br>MaRoom Booking System</p>

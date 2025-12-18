@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('bookings/{booking}/documents/{document}/regenerate', [\App\Http\Controllers\Admin\BookingController::class, 'regenerateDocument'])->name('bookings.documents.regenerate');
         Route::post('bookings/{booking}/mark-paid', [\App\Http\Controllers\Admin\BookingController::class, 'markAsPaid'])->name('bookings.mark-paid');
         Route::resource('properties', \App\Http\Controllers\Admin\PropertyController::class);
+        Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class);
         Route::resource('houses', \App\Http\Controllers\Admin\HouseController::class);
         Route::resource('rooms', \App\Http\Controllers\Admin\RoomController::class);
         Route::post('ical/sync', [\App\Http\Controllers\Admin\IcalController::class, 'sync'])
@@ -54,17 +55,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
         Route::post('settings/general', [\App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('settings.general');
         Route::post('settings/payment', [\App\Http\Controllers\Admin\SettingsController::class, 'updatePayment'])->name('settings.payment');
+        Route::post('settings/landlord', [\App\Http\Controllers\Admin\SettingsController::class, 'updateLandlord'])->name('settings.landlord');
         Route::post('settings/email', [\App\Http\Controllers\Admin\SettingsController::class, 'updateEmailTemplate'])->name('settings.email');
     });
 });
 
-// Language switching route
-Route::post('/set-locale', function (\Illuminate\Http\Request $request) {
+// Language switching route (supports both GET and POST)
+Route::match(['get', 'post'], '/set-locale', function (\Illuminate\Http\Request $request) {
     $request->validate([
         'locale' => 'required|string|in:en,de',
     ]);
     
+    // Mark that user has explicitly set a language preference
     session(['locale' => $request->locale]);
+    session(['locale_user_set' => true]);
     app()->setLocale($request->locale);
     
     // Redirect to specified page or back

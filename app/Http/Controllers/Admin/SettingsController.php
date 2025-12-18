@@ -58,6 +58,50 @@ class SettingsController extends Controller
     }
 
     /**
+     * Update landlord information
+     */
+    public function updateLandlord(Request $request)
+    {
+        $request->validate([
+            'landlord_name' => 'required|string|max:255',
+            'landlord_address' => 'nullable|string|max:255',
+            'landlord_postal_code' => 'nullable|string|max:20',
+            'landlord_city' => 'nullable|string|max:100',
+            'landlord_phone' => 'nullable|string|max:50',
+            'landlord_email' => 'nullable|email|max:255',
+        ]);
+
+        $envPath = base_path('.env');
+        $env = file_get_contents($envPath);
+        
+        $fields = [
+            'LANDLORD_NAME' => $request->landlord_name,
+            'LANDLORD_ADDRESS' => $request->landlord_address ?? '',
+            'LANDLORD_POSTAL_CODE' => $request->landlord_postal_code ?? '',
+            'LANDLORD_CITY' => $request->landlord_city ?? '',
+            'LANDLORD_PHONE' => $request->landlord_phone ?? '',
+            'LANDLORD_EMAIL' => $request->landlord_email ?? '',
+        ];
+
+        foreach ($fields as $key => $value) {
+            if (preg_match('/^' . $key . '=.*/m', $env)) {
+                $env = preg_replace('/^' . $key . '=.*/m', $key . '=' . $value, $env);
+            } else {
+                $env .= "\n" . $key . "=" . $value;
+            }
+        }
+        
+        file_put_contents($envPath, $env);
+        
+        // Clear config cache
+        if (file_exists(base_path('bootstrap/cache/config.php'))) {
+            unlink(base_path('bootstrap/cache/config.php'));
+        }
+        
+        return back()->with('success', __('settings.landlord_settings_updated') ?? 'Landlord information updated successfully.');
+    }
+
+    /**
      * Update payment settings
      */
     public function updatePayment(Request $request)

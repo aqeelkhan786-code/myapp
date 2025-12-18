@@ -15,6 +15,8 @@
     <!-- External Libraries -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- German locale for Flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
     
     <style>
         .room-card {
@@ -59,12 +61,35 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Rental Information Section -->
+                <div class="mt-8 max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="space-y-6">
+                            <!-- Langzeitmiete Section -->
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 mb-3">Langzeitmiete</h3>
+                                <p class="text-gray-700 leading-relaxed">
+                                    Bei einer Langzeitmiete erfolgt die Anmietung mit Mietvertrag und einer Mindestmietdauer von 1 Monat. Die Miete ist per Überweisung zu zahlen. Nach Zahlungseingang wird der Mietvertrag erstellt und ausgehändigt. Ein Check-out-Datum ist bei Langzeitmieten nicht erforderlich und kann offenbleiben, da die Mietdauer flexibel verlängert werden kann.
+                                </p>
+                            </div>
+                            
+                            <!-- Kurzzeitmiete Section -->
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 mb-3">Kurzzeitmiete</h3>
+                                <p class="text-gray-700 leading-relaxed">
+                                    Die Kurzzeitmiete wird direkt bei Buchung bezahlt.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Search Filter Section -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-8">
                 <div class="mb-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">Search by Date</h2>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">{{ __('booking_flow.search_by_date') }}</h2>
                     <p class="text-sm text-gray-600">
                         <span class="font-medium">{{ $location->name }}</span> 
                         <span class="mx-2">→</span> 
@@ -143,10 +168,16 @@
                                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
-                                    <span class="text-sm">{{ $room->capacity }} {{ __('booking.guests') }}</span>
+                                    <span class="text-sm">{{ $room->capacity ?? 1 }} {{ __('booking.guests') }}</span>
                                 </div>
                                 <div class="text-lg font-bold text-blue-600">
-                                    €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
+                                    @if(empty($checkOut))
+                                        {{-- Long-term rental - show monthly price --}}
+                                        €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') ?? 'Monat' }}
+                                    @else
+                                        {{-- Short-term rental - show nightly price --}}
+                                        €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
+                                    @endif
                                 </div>
                             </div>
                             <div class="mt-4 flex items-center text-blue-600 font-semibold">
@@ -201,10 +232,16 @@
         // Get blocked dates from bookings (passed from controller)
         const blockedDates = @json($blockedDates ?? []);
         
+        // Set locale based on app locale
+        const appLocale = "{{ app()->getLocale() }}";
+        const flatpickrLocale = appLocale === 'de' ? flatpickr.l10ns.de : flatpickr.l10ns.en;
+        
         // Initialize Flatpickr for check-in
         const checkIn = flatpickr("#check_in", {
             minDate: "today",
             dateFormat: "Y-m-d",
+            locale: flatpickrLocale,
+            placeholder: "{{ __('booking_flow.select_checkin_placeholder') }}",
             onChange: function(selectedDates, dateStr, instance) {
                 if (selectedDates.length > 0) {
                     const nextDay = new Date(selectedDates[0]);
@@ -224,6 +261,8 @@
         const checkOut = flatpickr("#check_out", {
             minDate: "today",
             dateFormat: "Y-m-d",
+            locale: flatpickrLocale,
+            placeholder: "{{ __('booking_flow.select_checkout_placeholder') }}",
             allowInput: true,
             disable: blockedDates.map(function(range) {
                 return {

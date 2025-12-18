@@ -63,6 +63,7 @@
     <div class="signature-section">
         <div class="signature-box">
             <p><strong>Vermieter</strong></p>
+            <p>{{ config('landlord.name', 'Martin Assies') }}</p>
             @if(isset($landlordSignature))
                 <img src="{{ $landlordSignature }}" class="signature-image" alt="Vermieter Unterschrift">
             @endif

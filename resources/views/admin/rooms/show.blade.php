@@ -43,8 +43,12 @@
                         <dd class="mt-1 text-sm text-gray-900">{{ $room->capacity }} {{ __('admin.guests') }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('admin.base_price') }}</dt>
+                        <dt class="text-sm font-medium text-gray-500">{{ __('admin.base_price') }} (Short-term per night)</dt>
                         <dd class="mt-1 text-sm text-gray-900">€{{ number_format($room->base_price, 2) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Monthly Price (Long-term per month)</dt>
+                        <dd class="mt-1 text-sm text-gray-900">€{{ number_format($room->monthly_price ?? 700, 2) }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">{{ __('admin.short_term_allowed') }}</dt>

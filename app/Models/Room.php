@@ -19,6 +19,7 @@ class Room extends Model
         'slug',
         'capacity',
         'base_price',
+        'monthly_price',
         'short_term_allowed',
         'description',
     ];
@@ -26,6 +27,7 @@ class Room extends Model
     protected $casts = [
         'short_term_allowed' => 'boolean',
         'base_price' => 'decimal:2',
+        'monthly_price' => 'decimal:2',
     ];
 
     public function property(): BelongsTo

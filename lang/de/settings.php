@@ -30,6 +30,15 @@ return [
     'settings_updated' => 'Einstellungen aktualisiert. Bitte löschen Sie den Konfigurations-Cache: php artisan config:clear',
     'payment_settings_updated' => 'Zahlungseinstellungen aktualisiert. Bitte löschen Sie den Konfigurations-Cache: php artisan config:clear',
     'email_template_updated' => 'E-Mail-Vorlage erfolgreich aktualisiert.',
+    'landlord_settings' => 'Vermieterinformationen',
+    'landlord_name' => 'Name',
+    'landlord_email' => 'E-Mail',
+    'landlord_address' => 'Adresse',
+    'landlord_phone' => 'Telefon',
+    'landlord_postal_code' => 'Postleitzahl',
+    'landlord_city' => 'Stadt',
+    'save_landlord_settings' => 'Vermieterinformationen speichern',
+    'landlord_settings_updated' => 'Vermieterinformationen erfolgreich aktualisiert.',
 ];
 
 

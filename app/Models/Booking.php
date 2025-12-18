@@ -64,4 +64,17 @@ class Booking extends Model
     {
         return "{$this->guest_first_name} {$this->guest_last_name}";
     }
+
+    /**
+     * Convert booking language to locale code
+     * "Deutsch" -> "de", "Englisch" -> "en"
+     */
+    public function getLocaleFromLanguage(): string
+    {
+        return match(strtolower($this->language ?? '')) {
+            'deutsch' => 'de',
+            'englisch' => 'en',
+            default => 'en', // Default to English
+        };
+    }
 }

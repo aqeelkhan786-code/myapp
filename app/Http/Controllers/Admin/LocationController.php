@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\House;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
-class HouseController extends Controller
+class LocationController extends Controller
 {
     public function __construct()
     {
@@ -17,40 +16,49 @@ class HouseController extends Controller
     }
 
     /**
-     * Display a listing of houses
+     * Display a listing of locations
      */
     public function index()
     {
-        $houses = House::with(['location', 'rooms'])->withCount('rooms')->get();
-        return view('admin.houses.index', compact('houses'));
+        $locations = Location::withCount('houses')->orderBy('sort_order')->get();
+        return view('admin.locations.index', compact('locations'));
     }
 
     /**
-     * Show the form for creating a new house
+     * Show the form for creating a new location
      */
     public function create()
     {
-        $locations = Location::orderBy('sort_order')->get();
-        return view('admin.houses.create', compact('locations'));
+        return view('admin.locations.create');
     }
 
     /**
-     * Store a newly created house
+     * Store a newly created location
      */
     public function store(Request $request)
     {
         $request->validate([
-            'location_id' => 'required|exists:locations,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:5120', // 5MB max
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
+        $slug = Str::slug($request->name);
+        $originalSlug = $slug;
+        $counter = 1;
+        
+        // Ensure slug is unique
+        while (Location::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
         $data = [
-            'location_id' => $request->location_id,
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'description' => $request->description,
+            'sort_order' => $request->sort_order ?? 0,
         ];
 
         // Handle image upload
@@ -77,7 +85,7 @@ class HouseController extends Controller
                 
                 // Generate unique filename
                 $filename = uniqid() . '.' . $image->getClientOriginalExtension();
-                $path = 'house-images/' . $filename;
+                $path = 'location-images/' . $filename;
                 
                 // Save resized image
                 $img->save(storage_path('app/public/' . $path), quality: 85);
@@ -86,59 +94,68 @@ class HouseController extends Controller
                 // Fallback: save original image if resize fails
                 \Log::warning('Image resize failed, saving original', ['error' => $e->getMessage()]);
                 $filename = uniqid() . '.' . $image->getClientOriginalExtension();
-                $path = $image->storeAs('house-images', $filename, 'public');
+                $path = $image->storeAs('location-images', $filename, 'public');
                 $data['image'] = $path;
             }
         }
 
-        House::create($data);
+        Location::create($data);
 
-        return redirect()->route('admin.houses.index')
-            ->with('success', __('admin.house_created_successfully'));
+        return redirect()->route('admin.locations.index')
+            ->with('success', __('admin.location_created_successfully'));
     }
 
     /**
-     * Display the specified house
+     * Display the specified location
      */
-    public function show(House $house)
+    public function show(Location $location)
     {
-        $house->load(['location', 'rooms']);
-        return view('admin.houses.show', compact('house'));
+        $location->load('houses');
+        return view('admin.locations.show', compact('location'));
     }
 
     /**
-     * Show the form for editing the specified house
+     * Show the form for editing the specified location
      */
-    public function edit(House $house)
+    public function edit(Location $location)
     {
-        $locations = Location::orderBy('sort_order')->get();
-        return view('admin.houses.edit', compact('house', 'locations'));
+        return view('admin.locations.edit', compact('location'));
     }
 
     /**
-     * Update the specified house
+     * Update the specified location
      */
-    public function update(Request $request, House $house)
+    public function update(Request $request, Location $location)
     {
         $request->validate([
-            'location_id' => 'required|exists:locations,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:5120', // 5MB max
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
+        $slug = Str::slug($request->name);
+        $originalSlug = $slug;
+        $counter = 1;
+        
+        // Ensure slug is unique (excluding current location)
+        while (Location::where('slug', $slug)->where('id', '!=', $location->id)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
         $data = [
-            'location_id' => $request->location_id,
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
             'description' => $request->description,
+            'sort_order' => $request->sort_order ?? 0,
         ];
 
         // Handle image upload
         if ($request->hasFile('image')) {
             // Delete old image if exists
-            if ($house->image && Storage::disk('public')->exists($house->image)) {
-                Storage::disk('public')->delete($house->image);
+            if ($location->image && Storage::disk('public')->exists($location->image)) {
+                Storage::disk('public')->delete($location->image);
             }
 
             $image = $request->file('image');
@@ -163,7 +180,7 @@ class HouseController extends Controller
                 
                 // Generate unique filename
                 $filename = uniqid() . '.' . $image->getClientOriginalExtension();
-                $path = 'house-images/' . $filename;
+                $path = 'location-images/' . $filename;
                 
                 // Save resized image
                 $img->save(storage_path('app/public/' . $path), quality: 85);
@@ -172,43 +189,36 @@ class HouseController extends Controller
                 // Fallback: save original image if resize fails
                 \Log::warning('Image resize failed, saving original', ['error' => $e->getMessage()]);
                 $filename = uniqid() . '.' . $image->getClientOriginalExtension();
-                $path = $image->storeAs('house-images', $filename, 'public');
+                $path = $image->storeAs('location-images', $filename, 'public');
                 $data['image'] = $path;
             }
         }
 
-        $house->update($data);
+        $location->update($data);
 
-        return redirect()->route('admin.houses.index')
-            ->with('success', __('admin.house_updated_successfully'));
+        return redirect()->route('admin.locations.index')
+            ->with('success', __('admin.location_updated_successfully'));
     }
 
     /**
-     * Remove the specified house
+     * Remove the specified location
      */
-    public function destroy(House $house)
+    public function destroy(Location $location)
     {
-        // Check if house has rooms
-        if ($house->rooms()->count() > 0) {
-            return redirect()->route('admin.houses.index')
-                ->withErrors(['error' => __('admin.cannot_delete_house_with_rooms')]);
+        // Check if location has houses
+        if ($location->houses()->count() > 0) {
+            return redirect()->route('admin.locations.index')
+                ->withErrors(['error' => __('admin.cannot_delete_location_with_houses')]);
         }
 
         // Delete image if exists
-        if ($house->image && Storage::disk('public')->exists($house->image)) {
-            Storage::disk('public')->delete($house->image);
+        if ($location->image && Storage::disk('public')->exists($location->image)) {
+            Storage::disk('public')->delete($location->image);
         }
 
-        $house->delete();
-        return redirect()->route('admin.houses.index')
-            ->with('success', __('admin.house_deleted_successfully'));
+        $location->delete();
+        return redirect()->route('admin.locations.index')
+            ->with('success', __('admin.location_deleted_successfully'));
     }
 }
-
-
-
-
-
-
-
 

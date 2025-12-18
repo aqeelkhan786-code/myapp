@@ -30,6 +30,15 @@ return [
     'settings_updated' => 'Settings updated. Please clear config cache: php artisan config:clear',
     'payment_settings_updated' => 'Payment settings updated. Please clear config cache: php artisan config:clear',
     'email_template_updated' => 'Email template updated successfully.',
+    'landlord_settings' => 'Landlord Information',
+    'landlord_name' => 'Name',
+    'landlord_email' => 'Email',
+    'landlord_address' => 'Address',
+    'landlord_phone' => 'Phone',
+    'landlord_postal_code' => 'Postal Code',
+    'landlord_city' => 'City',
+    'save_landlord_settings' => 'Save Landlord Information',
+    'landlord_settings_updated' => 'Landlord information updated successfully.',
 ];
 
 

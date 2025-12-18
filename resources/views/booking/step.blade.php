@@ -77,7 +77,7 @@
                 <div class="mb-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="guest_first_name" class="block text-sm font-medium text-gray-700 mb-2">First name(Required)</label>
+                            <label for="guest_first_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.first_name_required') }}</label>
                             <input type="text" name="guest_first_name" id="guest_first_name" 
                                    value="{{ old('guest_first_name', $booking->guest_first_name) }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -86,7 +86,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">Last name(Required)</label>
+                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.last_name_required') }}</label>
                             <input type="text" name="guest_last_name" id="guest_last_name" 
                                    value="{{ old('guest_last_name', $booking->guest_last_name) }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -95,7 +95,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">Job(Required)</label>
+                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.job_required') }}</label>
                             <input type="text" name="job" id="job" 
                                    value="{{ old('job', $booking->job) }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -104,10 +104,10 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="language" class="block text-sm font-medium text-gray-700 mb-2">Sprache(Required)</label>
+                            <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.language') }}({{ __('common.required') ?? 'Erforderlich' }})</label>
                             <select name="language" id="language" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">Select Language</option>
+                                <option value="">{{ __('booking.select_language') }}</option>
                                 <option value="Deutsch" {{ old('language', $booking->language) == 'Deutsch' ? 'selected' : '' }}>Deutsch</option>
                                 <option value="Englisch" {{ old('language', $booking->language) == 'Englisch' ? 'selected' : '' }}>Englisch</option>
                             </select>
@@ -116,10 +116,10 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">Kommunikation(Required)</label>
+                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.communication') }}({{ __('common.required') ?? 'Erforderlich' }})</label>
                             <select name="communication_preference" id="communication_preference" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">Select Communication</option>
+                                <option value="">{{ __('booking.select_communication') }}</option>
                                 <option value="Mail" {{ old('communication_preference', $booking->communication_preference) == 'Mail' ? 'selected' : '' }}>Mail</option>
                                 <option value="Whatsapp" {{ old('communication_preference', $booking->communication_preference) == 'Whatsapp' ? 'selected' : '' }}>Whatsapp</option>
                             </select>
@@ -128,7 +128,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Handynummer(Required)</label>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') ?? 'Handynummer' }}({{ __('common.required') ?? 'Erforderlich' }})</label>
                             <input type="tel" name="phone" id="phone" 
                                    value="{{ old('phone', $booking->phone) }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -137,7 +137,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">E-Mail-Adresse(Required)</label>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.email') ?? 'E-Mail-Adresse' }}({{ __('common.required') ?? 'Erforderlich' }})</label>
                             <input type="email" name="email" id="email" 
                                    value="{{ old('email', $booking->email) }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -150,10 +150,10 @@
 
                 <!-- Select Appartment -->
                 <div class="mb-6">
-                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">Select Appartment</label>
+                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_apartment') }}</label>
                     <select name="room_id" id="room_id" 
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Select Appartment</option>
+                        <option value="">{{ __('booking.select_apartment') }}</option>
                         @foreach($rooms ?? [] as $room)
                             <option value="{{ $room->id }}" {{ old('room_id', $booking->room_id) == $room->id ? 'selected' : '' }}>
                                 {{ $room->name }}
@@ -164,9 +164,9 @@
 
                 <!-- Select Date -->
                 <div class="mb-8">
-                    <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+                    <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_date') ?? 'Datum auswählen' }}</label>
                     <input type="text" id="booking_dates" name="booking_dates" 
-                           value="{{ old('booking_dates', \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d') . ' to ' . \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')) }}" 
+                           value="{{ old('booking_dates', \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d') . ' ' . __('booking.to') . ' ' . \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')) }}" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
                     <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d')) }}">
                     <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')) }}">

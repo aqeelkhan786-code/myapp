@@ -43,8 +43,20 @@
     </div>
     
     <div class="section">
-        <p><strong>Vermieter:</strong> [Vermieter Name]<br>
-        [Vermieter Adresse]</p>
+        <p><strong>Vermieter:</strong> {{ config('landlord.name', 'Martin Assies') }}<br>
+        @if(config('landlord.address'))
+            {{ config('landlord.address') }}<br>
+        @endif
+        @if(config('landlord.postal_code') || config('landlord.city'))
+            {{ config('landlord.postal_code') }} {{ config('landlord.city') }}<br>
+        @endif
+        @if(config('landlord.phone'))
+            Telefon: {{ config('landlord.phone') }}<br>
+        @endif
+        @if(config('landlord.email'))
+            E-Mail: {{ config('landlord.email') }}
+        @endif
+        </p>
     </div>
     
     <div class="section">
@@ -75,6 +87,7 @@
     <div class="signature-section">
         <div class="signature-box">
             <p><strong>Vermieter</strong></p>
+            <p>{{ config('landlord.name', 'Martin Assies') }}</p>
             @if(isset($landlordSignature))
                 <img src="{{ $landlordSignature }}" class="signature-image" alt="Vermieter Unterschrift">
             @endif

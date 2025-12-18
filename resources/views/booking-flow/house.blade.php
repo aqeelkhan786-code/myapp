@@ -65,68 +65,73 @@
             <div class="mb-12 max-w-4xl mx-auto">
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ __('booking_flow.description') }}</h2>
                 <div class="prose prose-lg max-w-none">
-                    <p class="text-gray-700 leading-relaxed mb-6">
-                        <strong>{{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        <strong>🏠 {{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
                     </p>
                     <p class="text-gray-700 leading-relaxed mb-6">
-                        {!! str_replace([':location', ':count'], [$location->name, $rooms->count()], __('booking_flow.at_haus_offer')) !!}
+                        Im Haus {{ $location->name }} bieten wir {{ $rooms->count() }} moderne, möblierte Zimmer zur Miete an – ideal für 👷 Bauarbeiter, ✈️ Geschäftsreisende und 🚗 Pendler.
                     </p>
-                </div>
-                
-                <!-- Check Availability Button -->
-                <div class="text-center mb-12">
-                    <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
-                       class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                        {{ __('booking_flow.check_availability') }}
-                    </a>
                 </div>
             </div>
 
             <!-- Room Amenities Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking_flow.room_amenities') }}</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ Ausstattung & Komfort</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.wifi_free') }}</span>
+                        <span class="text-gray-700">📶 Kostenloses WLAN – stabil und zuverlässig</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.fully_equipped_kitchen') }}</span>
+                        <span class="text-gray-700">🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.comfortable_beds') }}</span>
+                        <span class="text-gray-700">🛏️ Bequeme Betten – für einen erholsamen Schlaf</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.tv_every_room') }}</span>
+                        <span class="text-gray-700">📺 TV in jedem Zimmer</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.common_areas') }}</span>
+                        <span class="text-gray-700">🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.parking') }}</span>
+                        <span class="text-gray-700">🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.central_location') }}</span>
+                        <span class="text-gray-700">📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV</span>
                     </div>
                     <div class="amenity-item">
-                        <span class="text-gray-700">{{ __('booking_flow.flexible_rental') }}</span>
+                        <span class="text-gray-700">📅 Flexible Mietdauer – kurz- oder langfristig möglich</span>
                     </div>
                 </div>
 
-                <!-- Interested? Book Now Section -->
-                <div class="bg-gray-50 rounded-lg p-6 mb-8">
-                    <p class="text-lg font-semibold text-gray-900 mb-4"><strong>{{ __('booking_flow.interested_book_now') }}</strong></p>
-                    <div class="text-center">
-                        <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
-                           class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                            {{ __('booking_flow.check_availability') }}
-                        </a>
+                @if(strtolower($location->name) === 'fürstenwalde')
+                <!-- Fürstenwalde Specific Content -->
+                <div class="mb-8 space-y-4">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <p class="text-gray-700 leading-relaxed">
+                            <strong>🌊 Spree & Wasserlage:</strong> Fürstenwalde liegt direkt an der Spree – perfekt für Spaziergänge am Wasser, kleine Auszeiten im Grünen und entspannte Feierabende.
+                        </p>
+                    </div>
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                        <p class="text-gray-700 leading-relaxed">
+                            <strong>🌲 Viel Natur drumherum:</strong> Mit Seen, Wäldern und Ausflugszielen in der Umgebung (z. B. Richtung Scharmützelsee) ist man schnell raus aus dem Alltag und mitten in der Erholung.
+                        </p>
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- Location Name -->
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-bold text-gray-900">{{ $location->name }}</h2>
+            </div>
+
+            <!-- Button Above Pictures -->
+            <div class="text-center mb-8">
+                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                   class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                    {{ __('booking_flow.view_available_rooms') }}
+                </a>
             </div>
 
             <!-- Rooms Grid -->
@@ -154,6 +159,14 @@
                     </div>
                 </div>
                 @endforeach
+            </div>
+
+            <!-- Button Below Pictures -->
+            <div class="text-center mb-12">
+                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                   class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
+                    {{ __('booking_flow.view_available_rooms') }}
+                </a>
             </div>
 
             <!-- Guest Favorite Badge -->

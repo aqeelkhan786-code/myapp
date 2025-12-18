@@ -56,5 +56,6 @@ return [
     'select_checkin_description' => 'Please select a check-in date to see available rooms. Check-out date is optional for long-term rentals.',
     'select_checkout_placeholder' => 'Select check-out date (optional)',
     'select_checkin_placeholder' => 'Select check-in date',
+    'search_by_date' => 'Search by Date',
 ];
 

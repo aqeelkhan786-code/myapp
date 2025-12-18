@@ -54,6 +54,7 @@ class RoomController extends Controller
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'base_price' => 'required|numeric|min:0',
+            'monthly_price' => 'nullable|numeric|min:0',
             'short_term_allowed' => 'boolean',
             'description' => 'nullable|string',
         ]);
@@ -63,8 +64,9 @@ class RoomController extends Controller
             'house_id' => $request->house_id,
             'name' => $request->name,
             'slug' => Str::slug($request->name),
-            'capacity' => $request->capacity,
+            'capacity' => $request->capacity ?? 1,
             'base_price' => $request->base_price,
+            'monthly_price' => $request->monthly_price ?? 700.00,
             'short_term_allowed' => $request->has('short_term_allowed'),
             'description' => $request->description,
         ]);
@@ -203,6 +205,7 @@ class RoomController extends Controller
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'base_price' => 'required|numeric|min:0',
+            'monthly_price' => 'nullable|numeric|min:0',
             'short_term_allowed' => 'boolean',
             'description' => 'nullable|string',
         ]);
@@ -212,8 +215,9 @@ class RoomController extends Controller
             'house_id' => $request->house_id,
             'name' => $request->name,
             'slug' => Str::slug($request->name),
-            'capacity' => $request->capacity,
+            'capacity' => $request->capacity ?? 1,
             'base_price' => $request->base_price,
+            'monthly_price' => $request->monthly_price ?? 700.00,
             'short_term_allowed' => $request->has('short_term_allowed'),
             'description' => $request->description,
         ]);

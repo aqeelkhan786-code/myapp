@@ -4,6 +4,7 @@ return [
     'Dashboard' => 'Dashboard',
     'Manage Bookings' => 'Manage Bookings',
     'Manage Properties' => 'Manage Properties',
+    'Manage Locations' => 'Manage Locations',
     'Manage Houses' => 'Manage Houses',
     'Manage Rooms' => 'Manage Rooms',
     'Settings' => 'Settings',
@@ -11,6 +12,8 @@ return [
     'Profile' => 'Profile',
     'Log Out' => 'Log Out',
 ];
+
+
 
 
 

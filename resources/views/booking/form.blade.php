@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Booking Form - Step ' . $step)
+@section('title', __('booking.booking_form') . ' - ' . __('booking.step') . ' ' . $step)
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -11,27 +11,58 @@
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white">
                     1
                 </div>
-                <span class="ml-2 text-sm font-medium text-blue-600">rental agreement</span>
+                <span class="ml-2 text-sm font-medium text-blue-600">{{ __('booking.rental_agreement_title') }}</span>
             </div>
         </div>
-        <p class="text-center text-sm text-gray-500 mt-2">Complete your booking request</p>
+        <p class="text-center text-sm text-gray-500 mt-2">{{ __('booking.complete_booking_request') }}</p>
     </div>
     
     <!-- Room Preview -->
-    <div class="mb-8 bg-white rounded-lg shadow-md overflow-hidden p-6">
-        <div class="flex items-center gap-4">
-            @if($room->images && $room->images->count() > 0)
-                <img src="{{ asset('storage/' . $room->images->first()->path) }}" 
-                     alt="{{ $room->name }}" 
-                     class="w-24 h-24 object-cover rounded-lg">
-            @else
-                <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop" 
-                     alt="{{ $room->name }}" 
-                     class="w-24 h-24 object-cover rounded-lg">
-            @endif
-            <div>
-                <h3 class="text-lg font-semibold">{{ $room->name }}</h3>
-                <p class="text-gray-600">€{{ number_format($room->base_price, 2) }} per night</p>
+    <div class="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+            <!-- Room Images Carousel -->
+            <div class="relative">
+                <div class="swiper room-preview-swiper h-64 md:h-full min-h-[300px]">
+                    <div class="swiper-wrapper">
+                        @if($room->images && $room->images->count() > 0)
+                            @foreach($room->images as $image)
+                            <div class="swiper-slide">
+                                <img src="{{ asset('storage/' . $image->path) }}" 
+                                     alt="{{ $room->name }}" 
+                                     class="w-full h-full object-cover">
+                            </div>
+                            @endforeach
+                        @else
+                            <div class="swiper-slide">
+                                <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop" 
+                                     alt="{{ $room->name }}" 
+                                     class="w-full h-full object-cover">
+                            </div>
+                        @endif
+                    </div>
+                    @if($room->images && $room->images->count() > 1)
+                    <div class="swiper-pagination"></div>
+                    <div class="swiper-button-next"></div>
+                    <div class="swiper-button-prev"></div>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Room Info -->
+            <div class="p-6 flex flex-col justify-center">
+                <h3 class="text-2xl font-semibold mb-2">{{ $room->name }}</h3>
+                @php
+                    $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
+                    $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
+                @endphp
+                @if($isLongTerm)
+                    <p class="text-xl text-gray-600">€{{ number_format($room->monthly_price ?? 700, 2) }} {{ __('booking.month') ?? '/Monat' }}</p>
+                @else
+                    <p class="text-xl text-gray-600">€{{ number_format($room->base_price, 2) }} {{ __('booking.per_night') }}</p>
+                @endif
+                @if($room->description)
+                    <p class="text-gray-600 mt-4">{{ Str::limit($room->description, 150) }}</p>
+                @endif
             </div>
         </div>
     </div>
@@ -39,7 +70,7 @@
     <div class="bg-white rounded-lg shadow-md p-8">
         @if($step == 1)
             <!-- Step 1: Rental Agreement Form -->
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">rental agreement</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.rental_agreement_title') }}</h2>
             
             @if(session('success'))
                 <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
@@ -49,7 +80,7 @@
             
             @if($errors->any())
                 <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                    <strong>Please fix the following errors:</strong>
+                    <strong>{{ __('booking.please_fix_errors') }}</strong>
                     <ul class="list-disc list-inside mt-2">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -65,7 +96,7 @@
                 <div class="mb-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="guest_first_name" class="block text-sm font-medium text-gray-700 mb-2">First name(Required)</label>
+                            <label for="guest_first_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.first_name_required') }}</label>
                             <input type="text" name="guest_first_name" id="guest_first_name" 
                                    value="{{ old('guest_first_name', $formData['step1']['guest_first_name'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -74,7 +105,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">Last name(Required)</label>
+                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.last_name_required') }}</label>
                             <input type="text" name="guest_last_name" id="guest_last_name" 
                                    value="{{ old('guest_last_name', $formData['step1']['guest_last_name'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -83,7 +114,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">Job(Required)</label>
+                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.job_required') }}</label>
                             <input type="text" name="job" id="job" 
                                    value="{{ old('job', $formData['step1']['job'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -92,10 +123,10 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="language" class="block text-sm font-medium text-gray-700 mb-2">Sprache(Required)</label>
+                            <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.language') ?? 'Sprache' }} {{ __('common.required') ?? '*' }}</label>
                             <select name="language" id="language" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">Select Language</option>
+                                <option value="">{{ __('booking.select_language') }}</option>
                                 <option value="Deutsch" {{ old('language', $formData['step1']['language'] ?? '') == 'Deutsch' ? 'selected' : '' }}>Deutsch</option>
                                 <option value="Englisch" {{ old('language', $formData['step1']['language'] ?? '') == 'Englisch' ? 'selected' : '' }}>Englisch</option>
                             </select>
@@ -104,10 +135,10 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">Kommunikation(Required)</label>
+                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.communication') ?? 'Kommunikation' }} {{ __('common.required') ?? '*' }}</label>
                             <select name="communication_preference" id="communication_preference" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">Select Communication</option>
+                                <option value="">{{ __('booking.select_communication') }}</option>
                                 <option value="Mail" {{ old('communication_preference', $formData['step1']['communication_preference'] ?? '') == 'Mail' ? 'selected' : '' }}>Mail</option>
                                 <option value="Whatsapp" {{ old('communication_preference', $formData['step1']['communication_preference'] ?? '') == 'Whatsapp' ? 'selected' : '' }}>Whatsapp</option>
                             </select>
@@ -116,7 +147,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Handynummer(Required)</label>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') ?? 'Handynummer' }} {{ __('common.required') ?? '*' }}</label>
                             <input type="tel" name="phone" id="phone" 
                                    value="{{ old('phone', $formData['step1']['phone'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -125,7 +156,7 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">E-Mail-Adresse(Required)</label>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.email') ?? 'E-Mail-Adresse' }} {{ __('common.required') ?? '*' }}</label>
                             <input type="email" name="email" id="email" 
                                    value="{{ old('email', $formData['step1']['email'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -138,11 +169,11 @@
 
                 <!-- Select Appartment -->
                 <div class="mb-6">
-                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">Select Appartment</label>
+                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_apartment') }}</label>
                     <select name="room_id" id="room_id" 
                             class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
                             disabled>
-                        <option value="">Select Appartment</option>
+                        <option value="">{{ __('booking.select_apartment') }}</option>
                         @foreach($allRooms ?? [] as $apartment)
                             <option value="{{ $apartment->id }}" {{ old('room_id', $room->id) == $apartment->id ? 'selected' : '' }}>
                                 {{ $apartment->name }}
@@ -150,12 +181,12 @@
                         @endforeach
                     </select>
                     <input type="hidden" name="room_id" value="{{ $room->id }}">
-                    <p class="mt-1 text-xs text-gray-500">This field cannot be changed as the apartment has already been selected.</p>
+                    <p class="mt-1 text-xs text-gray-500">{{ __('booking.apartment_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da die Wohnung bereits ausgewählt wurde.' }}</p>
                 </div>
 
                 <!-- Select Date -->
                 <div class="mb-8">
-                    <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+                    <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_date') ?? 'Datum auswählen' }}</label>
                     @php
                         $dateDisplay = '';
                         // Get dates from formData or request parameters
@@ -167,7 +198,7 @@
                             // Check if end_at exists and is not empty/null
                             if (!empty($endAt) && $endAt !== null && trim($endAt) !== '') {
                                 $endDate = \Carbon\Carbon::parse($endAt)->format('Y-m-d');
-                                $dateDisplay = $startDate . ' to ' . $endDate;
+                                $dateDisplay = $startDate . ' ' . __('booking.to') . ' ' . $endDate;
                             } else {
                                 $dateDisplay = $startDate . ' (' . __('booking.long_term_rental') . ')';
                             }
@@ -179,59 +210,47 @@
                            readonly disabled>
                     <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $formData['step2']['start_at'] ?? '') }}">
                     <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $formData['step2']['end_at'] ?? '') }}">
-                    <p class="mt-1 text-xs text-gray-500">This field cannot be changed as the date has already been selected.</p>
+                    <p class="mt-1 text-xs text-gray-500">{{ __('booking.date_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da das Datum bereits ausgewählt wurde.' }}</p>
                 </div>
 
                 <!-- RENTAL AGREEMENT Section -->
                 <div class="mb-8 border-t pt-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">RENTAL AGREEMENT</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ strtoupper(__('booking.rental_agreement_title')) }}</h2>
                     
                     <!-- Landlord Section (Hidden/Prefilled) -->
                     <div class="mb-6 p-4 bg-gray-50 rounded-md">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Landlord</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.landlord') }}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <div class="space-y-2 text-sm">
-                            <p><strong>Surname, Name:</strong> <span class="text-gray-600">Martin Assies</span></p>
-                            <p><strong>Address:</strong> <span class="text-gray-600">[Landlord Address]</span></p>
-                            <p><strong>Postcode, city:</strong> <span class="text-gray-600">[Postcode, City]</span></p>
-                            <p><strong>Telephone:</strong> <span class="text-gray-600">[Phone]</span></p>
-                            <p><strong>E-Mail:</strong> <span class="text-gray-600">[Email]</span></p>
+                            <p><strong>{{ __('booking.surname_name') ?? 'Nachname, Name' }}:</strong> <span class="text-gray-600">{{ config('landlord.name', 'Martin Assies') }}</span></p>
+                            <p><strong>{{ __('booking.address') }}:</strong> <span class="text-gray-600">{{ config('landlord.address') ?: '[' . __('booking.landlord_address') ?? 'Vermieteradresse' . ']' }}</span></p>
+                            <p><strong>{{ __('booking.postcode_city') ?? 'Postleitzahl, Stadt' }}:</strong> <span class="text-gray-600">
+                                @if(config('landlord.postal_code') || config('landlord.city'))
+                                    {{ config('landlord.postal_code') }} {{ config('landlord.city') }}
+                                @else
+                                    [{{ __('booking.postcode_city_placeholder') ?? 'Postleitzahl, Stadt' }}]
+                                @endif
+                            </span></p>
+                            <p><strong>{{ __('booking.telephone') ?? 'Telefon' }}:</strong> <span class="text-gray-600">{{ config('landlord.phone') ?: '[' . __('booking.phone') . ']' }}</span></p>
+                            <p><strong>{{ __('booking.email') }}:</strong> <span class="text-gray-600">{{ config('landlord.email') ?: '[' . __('booking.email') . ']' }}</span></p>
                         </div>
                     </div>
 
                     <!-- Renter Section -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Renter</h3>
-                        <p class="text-sm text-gray-600 mb-4"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.renter') }}</h3>
+                        <p class="text-sm text-gray-600 mb-4"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="renter_name" class="block text-sm font-medium text-gray-700 mb-2">Surname, Name:(Required)</label>
-                                <input type="text" name="renter_name" id="renter_name" 
-                                       value="{{ old('renter_name', $formData['step2']['renter_name'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                @error('renter_name')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">Address:(Required)</label>
-                                <input type="text" name="renter_address" id="renter_address" 
-                                       value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                @error('renter_address')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">Postcode, city(Required)</label>
+                                <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postcode_city_required') }}</label>
                                 <div class="grid grid-cols-2 gap-2">
                                     <input type="text" name="renter_postal_code" id="renter_postal_code" 
                                            value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
-                                           placeholder="Postcode"
+                                           placeholder="{{ __('booking.postal_code') ?? 'Postleitzahl' }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                     <input type="text" name="renter_city" id="renter_city" 
                                            value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
-                                           placeholder="City"
+                                           placeholder="{{ __('booking.city') ?? 'Stadt' }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                 </div>
                                 @error('renter_postal_code')
@@ -242,20 +261,11 @@
                                 @enderror
                             </div>
                             <div>
-                                <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">Telephone:(Required)</label>
+                                <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.telephone_required') }}</label>
                                 <input type="tel" name="renter_phone" id="renter_phone" 
                                        value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? '') }}" 
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                                 @error('renter_phone')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="renter_email" class="block text-sm font-medium text-gray-700 mb-2">Email:(Required)</label>
-                                <input type="email" name="renter_email" id="renter_email" 
-                                       value="{{ old('renter_email', $formData['step2']['renter_email'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                @error('renter_email')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -264,106 +274,100 @@
 
                     <!-- Rental property -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Rental property:</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_property') }}:</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2"><strong id="selected-room-name">{{ $room->name ?? 'N/A' }}</strong></p>
-                        <p class="text-sm text-gray-600 mb-4">Including shared use of: Kitchen, Bathroom, Furniture</p>
+                        <p class="text-sm text-gray-600 mb-4">{{ __('booking.including_shared_use') }}</p>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Address:(Required)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
                             <input type="text" id="room-address" value="{{ $room->property->address ?? 'N/A' }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
                         <p class="text-sm text-gray-600 mt-4">
-                            For the duration of the rental period, the tenant is given:<br>
-                            1 Pin-Code for the front door<br>
-                            0 apartment key<br>
-                            1 room key
+                            {!! __('booking.keys_info') !!}
                         </p>
                         <p class="text-sm text-gray-600 mt-2">
-                            The subtenant is prohibited from making house keys. If one or more keys are lost, the landlord is entitled to replace the affected locks at the expense of the subtenant.
+                            {{ __('booking.keys_prohibition') }}
                         </p>
                     </div>
 
                     <!-- Rental Period -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Rental Period</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_period') }}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
-                            <strong>Tenancy from</strong> <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Select Date]' }}</span>
+                            <strong>{{ __('booking.tenancy_from') }}</strong> <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Datum auswählen]' }}</span>
                         </p>
-                        <p class="text-sm text-gray-700 mb-2">For 1 year</p>
+                        <p class="text-sm text-gray-700 mb-2">{{ __('booking.for_one_year') }}</p>
                         <p class="text-sm text-gray-600">
-                            The notice period is 1 month. Renter and landlord can terminate the rental agreement with one month's notice to the end of a calendar month. Termination must be made in writing (WhatsApp or email) and submitted to the other contracting party by the last day of the previous month at the latest..
+                            {{ __('booking.notice_period_text') }}
                         </p>
                     </div>
 
                     <!-- Rental Fee -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Rental Fee</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_fee') }}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
+                        @php
+                            $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
+                            $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
+                        @endphp
                         <p class="text-sm text-gray-700 mb-2">
-                            The rent is <strong id="rent-per-night">€{{ number_format($room->base_price ?? 0, 2) }}</strong> per Night
+                            {{ __('booking.rent_is') }} <strong id="rent-per-night">€{{ number_format($isLongTerm ? ($room->monthly_price ?? 700) : ($room->base_price ?? 0), 2) }}</strong> {{ $isLongTerm ? (__('booking.month') ?? '/Monat') : __('booking.per_night_text') }}
                         </p>
                         <p class="text-sm text-gray-600">
-                            The following additional costs are included in the rent: heating, hot water, water, waste water, electricity, gas, internet, cleaning of common areas, bed linen, towels.<br>
-                            As a result of rising gas and energy prices, the total rent may increase. An increase in rent will be announced 1 month in advance.
+                            {!! __('booking.additional_costs') !!}
                         </p>
                     </div>
 
                     <!-- Payment of the rent -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment of the rent</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.payment_of_rent') }}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-600">
-                            The rent is to be transferred monthly in advance, not later than the 1st of the month, to the following account:<br>
-                            Recipient: Martin Assies<br>
-                            Bank: N26 Bank<br>
-                            IBAN: DE24 1001 1001 2623 5950 48<br>
-                            BIC: NTSBDEB1XXX
+                            {!! __('booking.rent_transfer_info') !!}
                         </p>
                     </div>
 
                     <!-- Deposit -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Deposit</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.deposit') }}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
-                            The deposit is: <strong>780€</strong>
+                            {{ __('booking.deposit_is') }} <strong>780€</strong>
                         </p>
                         <p class="text-sm text-gray-600">
-                            Recipient: Martin Assies<br>
-                            IBAN: DE24 1001 1001 2623 5950 48<br>
-                            BIC: NTSBDEB1XXX
+                            {!! __('booking.deposit_transfer_info') !!}
                         </p>
                     </div>
 
                     <!-- Renter's Rights, Obligations and Liability -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Renter's Rights, Obligations and Liability</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.renters_rights') }}</h3>
                         <ul class="text-sm text-gray-600 space-y-2 list-disc list-inside">
-                            <li>For the duration of the rental stay, each tenant is obliged to keep the apartment clean and tidy. This applies in particular to the bathroom and kitchen.</li>
-                            <li>The tenant undertakes to take care of the items provided (living space and furniture) and to leave them in the same condition in which they were received.</li>
-                            <li>The house rules must be observed. Garbage cans are located in the yard, waste separation must be ensured.</li>
-                            <li>Damage to the rental property must be reported to the landlord immediately. The subtenant is liable for damage resulting from a late notification.</li>
-                            <li>There is an absolute smoking ban in the entire apartment and in the stairwell.</li>
-                            <li>Accommodating other people is prohibited. Longer visits must be agreed with the landlord.</li>
-                            <li>The landlord or a person authorized by him is permitted to enter the rented rooms 2 times a month in order to determine whether the rented rooms are in a contractual condition.</li>
-                            <li>The following quiet times must be observed: No noise is permitted between midday and 2 p.m. and at night between 10 p.m. and 6 a.m.</li>
-                            <li>Floors must be kept dry and treated properly so that no damage occurs.</li>
-                            <li>Failure to comply with the rules may result in immediate termination. With his signature, the subtenant declares that he agrees with the content of this rental agreement.</li>
+                            <li>{{ __('booking.renter_obligations.clean_apartment') }}</li>
+                            <li>{{ __('booking.renter_obligations.care_items') }}</li>
+                            <li>{{ __('booking.renter_obligations.house_rules') }}</li>
+                            <li>{{ __('booking.renter_obligations.report_damage') }}</li>
+                            <li>{{ __('booking.renter_obligations.no_smoking') }}</li>
+                            <li>{{ __('booking.renter_obligations.no_accommodating') }}</li>
+                            <li>{{ __('booking.renter_obligations.landlord_access') }}</li>
+                            <li>{{ __('booking.renter_obligations.quiet_times') }}</li>
+                            <li>{{ __('booking.renter_obligations.floors_dry') }}</li>
+                            <li>{{ __('booking.renter_obligations.termination') }}</li>
                         </ul>
                     </div>
 
                     <!-- Signatures -->
                     <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h4 class="text-md font-semibold text-gray-900 mb-2">Landlord</h4>
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">{{ __('booking.landlord') }}</h4>
                             <div class="border-t border-gray-300 pt-4">
-                                <p class="text-sm text-gray-600">Martin Assies</p>
+                                <p class="text-sm text-gray-600">{{ config('landlord.name', 'Martin Assies') }}</p>
                             </div>
                         </div>
                         <div>
-                            <h4 class="text-md font-semibold text-gray-900 mb-2">Renter:</h4>
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">{{ __('booking.renter') }}:</h4>
                             <div class="border-t border-gray-300 pt-4">
                                 <p class="text-sm text-gray-600" id="renter-full-name">{{ old('guest_first_name', $formData['step1']['guest_first_name'] ?? '') }} {{ old('guest_last_name', $formData['step1']['guest_last_name'] ?? '') }}</p>
                             </div>
@@ -372,12 +376,12 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Place, date:</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.place_date') }}:</label>
                             <input type="text" value="{{ \Carbon\Carbon::now()->format('d.m.Y') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Place, date:(Required)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.place_date') }}: {{ __('common.required') ?? '*' }}</label>
                             <input type="text" value="{{ \Carbon\Carbon::now()->format('d.m.Y') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
@@ -385,7 +389,7 @@
 
                     <!-- Signature Pad -->
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Signature:(Required)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.signature_required') }}</label>
                         <canvas id="signature-pad" class="border border-gray-300 rounded-md" width="600" height="200"></canvas>
                         <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">Clear Signature</button>
                         <input type="hidden" name="signature" id="signature-data">
@@ -442,9 +446,9 @@
                 @csrf
                 
                 <div class="mb-6">
-                    <label for="dates" class="block text-sm font-medium text-gray-700 mb-2">Select Dates *</label>
+                    <label for="dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_date') ?? 'Datum auswählen' }} *</label>
                     <input type="text" id="dates" name="dates" 
-                           value="{{ old('dates', isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('Y-m-d') . ' to ' . \Carbon\Carbon::parse($formData['step2']['end_at'])->format('Y-m-d') : '') }}" 
+                           value="{{ old('dates', isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('Y-m-d') . ' ' . __('booking.to') . ' ' . \Carbon\Carbon::parse($formData['step2']['end_at'])->format('Y-m-d') : '') }}" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" readonly required>
                     <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $formData['step2']['start_at'] ?? '') }}">
                     <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $formData['step2']['end_at'] ?? '') }}">
@@ -479,7 +483,7 @@
                         @enderror
                     </div>
                     <div class="md:col-span-2">
-                        <label for="renter_city" class="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                        <label for="renter_city" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.city') ?? 'Stadt' }} *</label>
                         <input type="text" name="renter_city" id="renter_city" 
                                value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
@@ -493,14 +497,28 @@
                     @if(isset($formData['step2']['start_at']))
                         @php
                             $start = \Carbon\Carbon::parse($formData['step2']['start_at']);
-                            $end = \Carbon\Carbon::parse($formData['step2']['end_at']);
-                            $nights = $start->diffInDays($end);
-                            $total = $nights * $room->base_price;
+                            $endAt = $formData['step2']['end_at'] ?? null;
+                            $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
+                            
+                            if ($isLongTerm) {
+                                $total = $room->monthly_price ?? 700.00;
+                            } else {
+                                $end = \Carbon\Carbon::parse($endAt);
+                                $nights = $start->diffInDays($end);
+                                if ($nights > 30) {
+                                    $months = ceil($nights / 30);
+                                    $total = ($room->monthly_price ?? 700.00) * $months;
+                                } else {
+                                    $total = $nights * $room->base_price;
+                                }
+                            }
                         @endphp
+                        @if(!$isLongTerm)
                         <div class="flex justify-between mb-2">
                             <span>Nights:</span>
-                            <span>{{ $nights }}</span>
+                            <span>{{ $nights ?? 0 }}</span>
                         </div>
+                        @endif
                         <div class="flex justify-between font-bold text-lg">
                             <span>Total:</span>
                             <span>€{{ number_format($total, 2) }}</span>
@@ -529,15 +547,15 @@
                 <h3 class="font-semibold mb-3">Booking Summary</h3>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Room:</span>
+                        <span class="text-gray-600">{{ __('booking.room') }}:</span>
                         <span class="font-semibold">{{ $room->name }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Check-in:</span>
+                        <span class="text-gray-600">{{ __('booking.check_in') }}:</span>
                         <span class="font-semibold">{{ \Carbon\Carbon::parse($formData['step2']['start_at'])->format('M d, Y') }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Check-out:</span>
+                        <span class="text-gray-600">{{ __('booking.check_out') }}:</span>
                         <span class="font-semibold">{{ \Carbon\Carbon::parse($formData['step2']['end_at'])->format('M d, Y') }}</span>
                     </div>
                     @php
@@ -968,6 +986,30 @@
     });
 </script>
 @endif
+
+@push('scripts')
+<script>
+    // Initialize Swiper for room preview
+    @if($room->images && $room->images->count() > 1)
+    const roomPreviewSwiper = new Swiper('.room-preview-swiper', {
+        slidesPerView: 1,
+        spaceBetween: 0,
+        loop: true,
+        pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+        },
+        navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+        },
+        autoplay: {
+            delay: 5000,
+            disableOnInteraction: false,
+        },
+    });
+    @endif
+</script>
 @endpush
 @endsection
 

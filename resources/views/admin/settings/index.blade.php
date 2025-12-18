@@ -21,10 +21,10 @@
                 <div>
                     <label for="locale" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.language') }}</label>
                     <select name="locale" id="locale" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="en" {{ (config('app.locale') ?: 'en') === 'en' ? 'selected' : '' }}>{{ __('settings.english') }}</option>
-                        <option value="de" {{ config('app.locale') === 'de' ? 'selected' : '' }}>{{ __('settings.german') }}</option>
+                        <option value="en" {{ (config('app.locale') ?: 'de') === 'en' ? 'selected' : '' }}>{{ __('settings.english') }}</option>
+                        <option value="de" {{ (config('app.locale') ?: 'de') === 'de' ? 'selected' : '' }}>{{ __('settings.german') }}</option>
                     </select>
-                    <p class="mt-1 text-sm text-gray-500">{{ __('settings.current') }}: {{ config('app.locale') ?: 'en' }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('settings.current') }}: {{ config('app.locale') ?: 'de' }}</p>
                 </div>
                 <div>
                     <label for="timezone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.timezone') }}</label>
@@ -39,6 +39,56 @@
             </div>
             <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
                 {{ __('settings.save_general_settings') }}
+            </button>
+        </form>
+    </div>
+
+    <!-- Landlord Information Settings -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('settings.landlord_settings') ?? 'Vermieterinformationen' }}</h2>
+        <form action="{{ route('admin.settings.landlord') }}" method="POST">
+            @csrf
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="landlord_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_name') ?? 'Name' }} *</label>
+                    <input type="text" name="landlord_name" id="landlord_name" 
+                           value="{{ config('landlord.name') }}"
+                           required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="landlord_email" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_email') ?? 'E-Mail' }}</label>
+                    <input type="email" name="landlord_email" id="landlord_email" 
+                           value="{{ config('landlord.email') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="landlord_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_address') ?? 'Adresse' }}</label>
+                    <input type="text" name="landlord_address" id="landlord_address" 
+                           value="{{ config('landlord.address') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="landlord_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_phone') ?? 'Telefon' }}</label>
+                    <input type="text" name="landlord_phone" id="landlord_phone" 
+                           value="{{ config('landlord.phone') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="landlord_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_postal_code') ?? 'Postleitzahl' }}</label>
+                    <input type="text" name="landlord_postal_code" id="landlord_postal_code" 
+                           value="{{ config('landlord.postal_code') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="landlord_city" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.landlord_city') ?? 'Stadt' }}</label>
+                    <input type="text" name="landlord_city" id="landlord_city" 
+                           value="{{ config('landlord.city') }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                {{ __('settings.save_landlord_settings') ?? 'Vermieterinformationen speichern' }}
             </button>
         </form>
     </div>
@@ -96,10 +146,10 @@
 Your booking has been confirmed!
 
 Booking Details:
-- Room: @{{ $booking->room->name }}
-- Check-in: @{{ $booking->start_at->format('M d, Y') }}
-- Check-out: @{{ $booking->end_at->format('M d, Y') }}
-- Total Amount: €@{{ number_format($booking->total_amount, 2) }}
+- {{ __('admin.room') ?? __('booking.room') }}: @{{ $booking->room->name }}
+- {{ __('admin.check_in_date') }}: @{{ $booking->start_at->format('M d, Y') }}
+- {{ __('admin.check_out_date') }}: @{{ $booking->end_at->format('M d, Y') }}
+- {{ __('booking.total_amount') }}: €@{{ number_format($booking->total_amount, 2) }}
 
 Thank you for your booking!
 
@@ -156,8 +206,8 @@ Best regards,
                     <p class="font-medium text-gray-900">{{ __('settings.english') }}</p>
                     <p class="text-sm text-gray-500">{{ __('settings.default_language') }}</p>
                 </div>
-                <span class="px-3 py-1 text-sm font-semibold rounded-full {{ (config('app.locale') ?: 'en') === 'en' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                    {{ (config('app.locale') ?: 'en') === 'en' ? __('settings.active') : __('settings.available') }}
+                <span class="px-3 py-1 text-sm font-semibold rounded-full {{ (config('app.locale') ?: 'de') === 'en' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                    {{ (config('app.locale') ?: 'de') === 'en' ? __('settings.active') : __('settings.available') }}
                 </span>
             </div>
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

@@ -13,7 +13,7 @@ return [
     'main_house' => 'Hauptgebäude',
     'view_apartments' => 'Wohnungen anzeigen',
     'view_apartments_description' => 'Verfügbare Wohnungen erkunden',
-    'select_apartment' => 'Wohnung auswählen',
+    'select_apartment' => 'Verfügbare Zimmer',
     'select_apartment_description' => 'Wählen Sie Ihre perfekte Wohnung',
     'no_apartments' => 'Keine Wohnungen verfügbar',
     'back_to_home' => 'Zurück zur Startseite',
@@ -31,6 +31,7 @@ return [
     'furnished_rooms_brandenburg' => 'Möblierte Zimmer in Brandenburg – Haus',
     'at_haus_offer' => 'Im Haus :location bieten wir :count möblierte Zimmer zur Miete an – ideal für Bauarbeiter, Geschäftsreisende oder Pendler.',
     'check_availability' => 'Verfügbarkeit prüfen',
+    'view_available_rooms' => 'Verfügbare Zimmer anzeigen',
     'room_amenities' => 'Ausstattung der Zimmer:',
     'wifi_free' => 'WLAN – kostenlos und zuverlässig',
     'fully_equipped_kitchen' => 'Voll ausgestattete Küche – zur gemeinschaftlichen Nutzung',
@@ -56,5 +57,6 @@ return [
     'select_checkin_description' => 'Bitte wählen Sie ein Check-in Datum aus, um verfügbare Zimmer zu sehen. Das Check-out Datum ist optional für Langzeitmieten.',
     'select_checkout_placeholder' => 'Check-out Datum auswählen (optional)',
     'select_checkin_placeholder' => 'Check-in Datum auswählen',
+    'search_by_date' => 'Nach Datum suchen',
 ];
 

@@ -22,6 +22,9 @@
                     <x-nav-link :href="route('admin.properties.index')" :active="request()->routeIs('admin.properties.*')">
                         {{ __('common.Manage Properties') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.locations.index')" :active="request()->routeIs('admin.locations.*')">
+                        {{ __('common.Manage Locations') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('admin.houses.index')" :active="request()->routeIs('admin.houses.*')">
                         {{ __('common.Manage Houses') }}
                     </x-nav-link>
@@ -135,6 +138,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.properties.index')" :active="request()->routeIs('admin.properties.*')">
                 {{ __('common.Manage Properties') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.locations.index')" :active="request()->routeIs('admin.locations.*')">
+                {{ __('common.Manage Locations') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.houses.index')" :active="request()->routeIs('admin.houses.*')">
                 {{ __('common.Manage Houses') }}

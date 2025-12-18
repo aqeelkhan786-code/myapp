@@ -65,9 +65,23 @@ class BookingService
     /**
      * Calculate total amount for a booking
      */
-    public function calculateTotal(Room $room, Carbon $startAt, Carbon $endAt): float
+    public function calculateTotal(Room $room, Carbon $startAt, ?Carbon $endAt = null): float
     {
+        // Long-term rental: no end date or end date is more than 30 days away
+        if (!$endAt) {
+            // Long-term rental - return monthly price
+            return $room->monthly_price ?? 700.00;
+        }
+        
         $nights = $startAt->diffInDays($endAt);
+        
+        // If more than 30 nights, it's considered long-term, use monthly price
+        if ($nights > 30) {
+            $months = ceil($nights / 30);
+            return ($room->monthly_price ?? 700.00) * $months;
+        }
+        
+        // Short-term rental - use nightly price
         return $room->base_price * $nights;
     }
 }

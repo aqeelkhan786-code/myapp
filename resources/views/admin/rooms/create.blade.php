@@ -69,7 +69,7 @@
 
             <div>
                 <label for="capacity" class="block text-sm font-medium text-gray-700 mb-2">Capacity *</label>
-                <input type="number" name="capacity" id="capacity" value="{{ old('capacity') }}" required min="1"
+                <input type="number" name="capacity" id="capacity" value="{{ old('capacity', 1) }}" required min="1"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('capacity')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -77,12 +77,22 @@
             </div>
 
             <div>
-                <label for="base_price" class="block text-sm font-medium text-gray-700 mb-2">Base Price (€) *</label>
+                <label for="base_price" class="block text-sm font-medium text-gray-700 mb-2">Base Price (€) - Short-term (per night) *</label>
                 <input type="number" name="base_price" id="base_price" value="{{ old('base_price') }}" required step="0.01" min="0"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 @error('base_price')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
+            </div>
+
+            <div>
+                <label for="monthly_price" class="block text-sm font-medium text-gray-700 mb-2">Monthly Price (€) - Long-term (per month)</label>
+                <input type="number" name="monthly_price" id="monthly_price" value="{{ old('monthly_price', 700) }}" step="0.01" min="0"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @error('monthly_price')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="mt-1 text-xs text-gray-500">Default: 700€ per month</p>
             </div>
         </div>
 
