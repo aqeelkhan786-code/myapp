@@ -12,6 +12,7 @@ return [
     'no_rooms_selected_dates' => 'No rooms available for the selected dates. Please try different dates.',
     'no_rooms_available' => 'No rooms available at the moment.',
     'capacity' => 'Capacity',
+    'guest' => 'guest',
     'guests' => 'guests',
     'night' => '/night',
     'view_details_book' => 'View Details & Book',
@@ -70,7 +71,14 @@ return [
     'payment_processing_not_configured' => 'Payment Processing Not Configured',
     'contact_support_complete_booking' => 'Please contact support to complete your booking.',
     'creating_booking' => 'Creating Booking...',
+    'signature_instruction' => 'Please sign above using your mouse or touch screen',
+    'please_provide_signature' => 'Please provide your signature',
+    'signature_pad_error' => 'Error initializing signature pad. Please refresh the page.',
+    'signature_pad_not_initialized' => 'Signature pad is not initialized. Please refresh the page.',
+    'signature_input_not_found' => 'Signature input field not found. Please refresh the page.',
+    'error_capturing_signature' => 'Error capturing signature. Please try again.',
 ];
+
 
 
 

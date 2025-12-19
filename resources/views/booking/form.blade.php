@@ -3,7 +3,7 @@
 @section('title', __('booking.booking_form') . ' - ' . __('booking.step') . ' ' . $step)
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-12">
     <!-- Progress Steps - Only Step 1 visible to users -->
     <div class="mb-8">
         <div class="flex items-center justify-center">
@@ -67,7 +67,7 @@
         </div>
     </div>
     
-    <div class="bg-white rounded-lg shadow-md p-8">
+    <div class="bg-white rounded-lg shadow-md p-8 pb-6">
         @if($step == 1)
             <!-- Step 1: Rental Agreement Form -->
             <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.rental_agreement_title') }}</h2>
@@ -167,6 +167,66 @@
                     </div>
                 </div>
 
+                @php
+                    // Determine if this is a short-term rental for showing address fields
+                    $startAtCheck = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
+                    $endAtCheck = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
+                    $isShortTermCheck = false;
+                    
+                    // Only short-term if end_at exists, is not empty, and nights <= 30
+                    if ($endAtCheck && trim($endAtCheck) !== '' && $startAtCheck && $room->short_term_allowed) {
+                        $startDateCheck = \Carbon\Carbon::parse($startAtCheck);
+                        $endDateCheck = \Carbon\Carbon::parse($endAtCheck);
+                        $nightsCheck = $startDateCheck->diffInDays($endDateCheck);
+                        $isShortTermCheck = $nightsCheck <= 30;
+                    }
+                @endphp
+
+                @if($isShortTermCheck)
+                <!-- Address Fields for Short-term Rentals (shown with personal info) -->
+                <div class="mb-8 border-t pt-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.address_information') }}</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address') }} {{ __('common.required') }}</label>
+                            <input type="text" name="renter_address" id="renter_address" 
+                                   value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_address')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postal_code') }} {{ __('common.required') }}</label>
+                            <input type="text" name="renter_postal_code" id="renter_postal_code" 
+                                   value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_postal_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="renter_city" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.city') }} {{ __('common.required') }}</label>
+                            <input type="text" name="renter_city" id="renter_city" 
+                                   value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_city')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') }} {{ __('common.required') }}</label>
+                            <input type="tel" name="renter_phone" id="renter_phone" 
+                                   value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? $formData['step1']['phone'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_phone')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Select Appartment -->
                 <div class="mb-6">
                     <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_apartment') }}</label>
@@ -213,9 +273,70 @@
                     <p class="mt-1 text-xs text-gray-500">{{ __('booking.date_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da das Datum bereits ausgewählt wurde.' }}</p>
                 </div>
 
-                <!-- RENTAL AGREEMENT Section -->
+                @php
+                    // Determine if this is a long-term rental
+                    // Always check request parameters first (they take precedence)
+                    $startAt = request()->query('check_in') ?? request()->get('check_in');
+                    $endAt = request()->query('check_out') ?? request()->get('check_out');
+                    
+                    // If not in request, check form data
+                    if (empty($startAt)) {
+                        $startAt = $formData['step2']['start_at'] ?? null;
+                    }
+                    if (empty($endAt)) {
+                        $endAt = $formData['step2']['end_at'] ?? null;
+                    }
+                    
+                    // Clean up empty strings and null values
+                    if (empty($endAt) || $endAt === '' || $endAt === null) {
+                        $endAt = null;
+                    } else {
+                        $endAt = trim($endAt);
+                        if ($endAt === '') {
+                            $endAt = null;
+                        }
+                    }
+                    
+                    // If end_at is null or empty, it's definitely long-term
+                    $isLongTermRental = ($endAt === null || $endAt === '');
+                    
+                    // If end_at exists and is not empty, check if it's short-term or long-term
+                    if (!$isLongTermRental && $endAt && $room->short_term_allowed && $startAt) {
+                        try {
+                            $startDate = \Carbon\Carbon::parse($startAt);
+                            $endDate = \Carbon\Carbon::parse($endAt);
+                            $nights = $startDate->diffInDays($endDate);
+                            // If more than 30 nights, it's long-term; otherwise short-term
+                            $isLongTermRental = $nights > 30;
+                        } catch (\Exception $e) {
+                            // If parsing fails, treat as long-term
+                            $isLongTermRental = true;
+                        }
+                    }
+                    
+                    // Ensure that if check_out is not provided in URL, it's always long-term
+                    if (!request()->has('check_out') && !isset($formData['step2']['end_at'])) {
+                        $isLongTermRental = true;
+                    }
+                @endphp
+
+                {{-- Debug: Uncomment to check values
+                <!-- Debug: startAt={{ $startAt }}, endAt={{ $endAt ?? 'null' }}, isLongTermRental={{ $isLongTermRental ? 'true' : 'false' }} -->
+                --}}
+
+                @if($isLongTermRental)
+                <!-- RENTAL AGREEMENT Section - Only for Long-term Rentals -->
                 <div class="mb-8 border-t pt-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ strtoupper(__('booking.rental_agreement_title')) }}</h2>
+                    
+                    <!-- Important Notice -->
+                    <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">⚠️ Wichtiger Hinweis zur Buchung</h3>
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            Mit dem Absenden der Buchung schließen Sie einen Mietvertrag (Untermietvertrag) ab.<br>
+                            Der Vertrag ist verbindlich und wird digital unterschrieben bzw. mit Ihrer Unterschrift bestätigt.
+                        </p>
+                    </div>
                     
                     <!-- Landlord Section (Hidden/Prefilled) -->
                     <div class="mb-6 p-4 bg-gray-50 rounded-md">
@@ -241,6 +362,15 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.renter') }}</h3>
                         <p class="text-sm text-gray-600 mb-4"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
+                                <input type="text" name="renter_address" id="renter_address" 
+                                       value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                @error('renter_address')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
                             <div>
                                 <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postcode_city_required') }}</label>
                                 <div class="grid grid-cols-2 gap-2">
@@ -274,88 +404,170 @@
 
                     <!-- Rental property -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_property') }}:</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🏠 Mietobjekt</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2"><strong id="selected-room-name">{{ $room->name ?? 'N/A' }}</strong></p>
-                        <p class="text-sm text-gray-600 mb-4">{{ __('booking.including_shared_use') }}</p>
+                        <p class="text-sm text-gray-600 mb-4">Inklusive gemeinsamer Nutzung von: 🍳 Küche, 🚿 Badezimmer, 🪑 Möbel</p>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
-                            <input type="text" id="room-address" value="{{ $room->property->address ?? 'N/A' }}" 
+                            <input type="text" id="room-address" value="{{ $room->property->address ?? 'Sample Address' }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
-                        <p class="text-sm text-gray-600 mt-4">
-                            {!! __('booking.keys_info') !!}
-                        </p>
-                        <p class="text-sm text-gray-600 mt-2">
-                            {{ __('booking.keys_prohibition') }}
-                        </p>
+                        
+                        <!-- Keys & Access -->
+                        <div class="mt-6">
+                            <h4 class="text-md font-semibold text-gray-900 mb-3">🔑 Schlüssel & Zugang</h4>
+                            <p class="text-sm text-gray-700 mb-3">Für die Dauer der Mietzeit erhält der Mieter:</p>
+                            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4 mb-3">
+                                <li>1 Pin-Code für die Haustür</li>
+                                <li>1 Wohnungsschlüssel</li>
+                                <li>1 Zimmerschlüssel</li>
+                            </ul>
+                            <p class="text-sm text-gray-700 font-semibold mb-2">⚠️ Wichtig: Das Anfertigen von Schlüsseln ist untersagt.</p>
+                            <p class="text-sm text-gray-600">
+                                Bei Verlust eines oder mehrerer Schlüssel ist der Vermieter berechtigt, betroffene Schlösser auf Kosten des Mieters auszutauschen.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Rental Period -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_period') }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📅 Mietdauer</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
-                            <strong>{{ __('booking.tenancy_from') }}</strong> <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Datum auswählen]' }}</span>
+                            <strong>Mietbeginn:</strong> ab <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Datum auswählen]' }}</span>
                         </p>
-                        <p class="text-sm text-gray-700 mb-2">{{ __('booking.for_one_year') }}</p>
-                        <p class="text-sm text-gray-600">
-                            {{ __('booking.notice_period_text') }}
+                        @php
+                            $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
+                            $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
+                        @endphp
+                        <p class="text-sm text-gray-700 mb-4">
+                            <strong>Mietdauer:</strong> {{ $isLongTerm ? '1 Monat' : 'Variabel' }}
                         </p>
+                        
+                        <div class="mt-4">
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">📝 Kündigungsfrist</h4>
+                            <p class="text-sm text-gray-600 leading-relaxed">
+                                Mieter und Vermieter können den Mietvertrag mit einer Frist von 1 Monat zum Monatsende kündigen.<br>
+                                Die Kündigung muss schriftlich erfolgen (WhatsApp oder E-Mail) und spätestens am letzten Tag des Vormonats bei der anderen Partei eingehen.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Rental Fee -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.rental_fee') }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">💰 Miete</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         @php
                             $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
                             $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
                         @endphp
-                        <p class="text-sm text-gray-700 mb-2">
-                            {{ __('booking.rent_is') }} <strong id="rent-per-night">€{{ number_format($isLongTerm ? ($room->monthly_price ?? 700) : ($room->base_price ?? 0), 2) }}</strong> {{ $isLongTerm ? (__('booking.month') ?? '/Monat') : __('booking.per_night_text') }}
+                        <p class="text-sm text-gray-700 mb-4">
+                            Die Miete beträgt <strong id="rent-per-night">€{{ number_format($isLongTerm ? ($room->monthly_price ?? 700) : ($room->base_price ?? 0), 2) }}</strong> {{ $isLongTerm ? 'pro Monat' : __('booking.per_night_text') }}.
                         </p>
-                        <p class="text-sm text-gray-600">
-                            {!! __('booking.additional_costs') !!}
-                        </p>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">✅ In der Miete enthalten:</h4>
+                            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4">
+                                <li>🔥 Heizung, Warmwasser, Wasser, Abwasser</li>
+                                <li>⚡ Strom, Gas</li>
+                                <li>📶 Internet</li>
+                                <li>🧹 Reinigung der Gemeinschaftsräume</li>
+                                <li>🛏️ Bettwäsche, Handtücher</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                            <p class="text-sm text-gray-700">
+                                <strong>📢 Hinweis zur Anpassung:</strong><br>
+                                Aufgrund steigender Gas- und Energiepreise kann die Gesamtmiete steigen. Eine Erhöhung wird mindestens 1 Monat im Voraus angekündigt.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Payment of the rent -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.payment_of_rent') }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">💳 Zahlung der Miete</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
-                        <p class="text-sm text-gray-600">
-                            {!! __('booking.rent_transfer_info') !!}
+                        <p class="text-sm text-gray-700 mb-3">
+                            Die Miete ist monatlich im Voraus zu zahlen, spätestens bis zum 1. des Monats, per Überweisung an:
                         </p>
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <p class="text-sm text-gray-700"><strong>Empfänger:</strong> Martin Assies</p>
+                            <p class="text-sm text-gray-700"><strong>Bank:</strong> N26 Bank</p>
+                            <p class="text-sm text-gray-700"><strong>IBAN:</strong> DE24 1001 1001 2623 5950 48</p>
+                            <p class="text-sm text-gray-700"><strong>BIC:</strong> NTSBDEB1XXX</p>
+                        </div>
                     </div>
 
                     <!-- Deposit -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.deposit') }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔒 Kaution</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
-                        <p class="text-sm text-gray-700 mb-2">
-                            {{ __('booking.deposit_is') }} <strong>780€</strong>
+                        <p class="text-sm text-gray-700 mb-3">
+                            Die Kaution beträgt <strong>780 €</strong> und ist per Überweisung zu zahlen an:
                         </p>
-                        <p class="text-sm text-gray-600">
-                            {!! __('booking.deposit_transfer_info') !!}
-                        </p>
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <p class="text-sm text-gray-700"><strong>Empfänger:</strong> Martin Assies</p>
+                            <p class="text-sm text-gray-700"><strong>IBAN:</strong> DE24 1001 1001 2623 5950 48</p>
+                            <p class="text-sm text-gray-700"><strong>BIC:</strong> NTSBDEB1XXX</p>
+                        </div>
                     </div>
 
                     <!-- Renter's Rights, Obligations and Liability -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.renters_rights') }}</h3>
-                        <ul class="text-sm text-gray-600 space-y-2 list-disc list-inside">
-                            <li>{{ __('booking.renter_obligations.clean_apartment') }}</li>
-                            <li>{{ __('booking.renter_obligations.care_items') }}</li>
-                            <li>{{ __('booking.renter_obligations.house_rules') }}</li>
-                            <li>{{ __('booking.renter_obligations.report_damage') }}</li>
-                            <li>{{ __('booking.renter_obligations.no_smoking') }}</li>
-                            <li>{{ __('booking.renter_obligations.no_accommodating') }}</li>
-                            <li>{{ __('booking.renter_obligations.landlord_access') }}</li>
-                            <li>{{ __('booking.renter_obligations.quiet_times') }}</li>
-                            <li>{{ __('booking.renter_obligations.floors_dry') }}</li>
-                            <li>{{ __('booking.renter_obligations.termination') }}</li>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Rechte, Pflichten & Hausregeln</h3>
+                        <p class="text-sm text-gray-700 mb-4">Der Mieter verpflichtet sich insbesondere zu folgenden Punkten:</p>
+                        <ul class="text-sm text-gray-700 space-y-3 list-none">
+                            <li class="flex items-start">
+                                <span class="mr-2">🧹</span>
+                                <span><strong>Sauberkeit:</strong> Wohnung, Küche und Bad sind sauber und ordentlich zu halten.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🛡️</span>
+                                <span><strong>Sorgfalt:</strong> Möbel und Gegenstände sind pfleglich zu behandeln und im ursprünglichen Zustand zu hinterlassen.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🗑️</span>
+                                <span><strong>Hausordnung & Müll:</strong> Hausordnung beachten, Mülltrennung einhalten (Mülltonnen im Hof).</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">⚠️</span>
+                                <span><strong>Schäden melden:</strong> Schäden sind sofort zu melden. Bei verspäteter Meldung haftet der Mieter für Folgeschäden.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🚭</span>
+                                <span><strong>Rauchverbot:</strong> Im gesamten Apartment und Treppenhaus gilt absolutes Rauchverbot.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">👥</span>
+                                <span><strong>Keine weiteren Personen:</strong> Unterbringung anderer Personen ist untersagt; längere Besuche nur nach Absprache.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🔍</span>
+                                <span><strong>Zutritt Vermieter:</strong> Vermieter/Beauftragte dürfen die Räume bis zu 2× pro Monat zur Zustandsprüfung betreten.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🔇</span>
+                                <span><strong>Ruhezeiten:</strong> 12–14 Uhr sowie 22–6 Uhr ist Lärm untersagt.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">🏠</span>
+                                <span><strong>Bodenpflege:</strong> Böden trocken halten und sachgemäß behandeln, um Schäden zu vermeiden.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2">⚖️</span>
+                                <span><strong>Konsequenz bei Verstoß:</strong> Regelverstöße können zur sofortigen Kündigung führen.</span>
+                            </li>
                         </ul>
+                    </div>
+
+                    <!-- Confirmation -->
+                    <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">✅ Bestätigung</h3>
+                        <p class="text-sm text-gray-700">
+                            Mit Ihrer Unterschrift bestätigen Sie, dass Sie den Mietvertrag vollständig gelesen haben und mit allen Bedingungen einverstanden sind.
+                        </p>
                     </div>
 
                     <!-- Signatures -->
@@ -376,35 +588,82 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.place_date') }}:</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.landlord') }} - {{ __('booking.place_date') }}:</label>
                             <input type="text" value="{{ \Carbon\Carbon::now()->format('d.m.Y') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.place_date') }}: {{ __('common.required') ?? '*' }}</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.renter') }} - {{ __('booking.place_date') }}: {{ __('common.required') ?? '*' }}</label>
                             <input type="text" value="{{ \Carbon\Carbon::now()->format('d.m.Y') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
                         </div>
                     </div>
 
                     <!-- Signature Pad -->
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.signature_required') }}</label>
-                        <canvas id="signature-pad" class="border border-gray-300 rounded-md" width="600" height="200"></canvas>
-                        <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">Clear Signature</button>
+                        <div class="border border-gray-300 rounded-md bg-white" style="max-width: 600px; position: relative;">
+                            <canvas id="signature-pad" style="width: 100%; height: 200px; display: block; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-tap-highlight-color: transparent;"></canvas>
+                        </div>
+                        <button type="button" id="clear-signature" class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline">{{ __('booking.clear_signature') }}</button>
                         <input type="hidden" name="signature" id="signature-data">
+                        <p class="mt-1 text-xs text-gray-500">{{ __('booking.signature_instruction') }}</p>
                     </div>
                 </div>
-                
-                @if($isShortTerm && config('services.stripe.key'))
+                @else
+                <!-- Short-term Rental: Payment Section Only (No Rental Contract, Address already shown above) -->
+                @php
+                    // Recalculate isShortTerm here to ensure it matches the view logic
+                    // Use the same logic as above - check request parameters first
+                    $startAtForPayment = request()->query('check_in') ?? request()->get('check_in');
+                    $endAtForPayment = request()->query('check_out') ?? request()->get('check_out');
+                    
+                    // If not in request, check form data
+                    if (empty($startAtForPayment)) {
+                        $startAtForPayment = $formData['step2']['start_at'] ?? null;
+                    }
+                    if (empty($endAtForPayment)) {
+                        $endAtForPayment = $formData['step2']['end_at'] ?? null;
+                    }
+                    
+                    // Clean up empty strings
+                    if (empty($endAtForPayment) || $endAtForPayment === '' || $endAtForPayment === null) {
+                        $endAtForPayment = null;
+                    } else {
+                        $endAtForPayment = trim($endAtForPayment);
+                        if ($endAtForPayment === '') {
+                            $endAtForPayment = null;
+                        }
+                    }
+                    
+                    $isShortTermForPayment = false;
+                    
+                    // Only short-term if end_at exists, is not empty, and nights <= 30
+                    if ($endAtForPayment !== null && $startAtForPayment && $room->short_term_allowed) {
+                        try {
+                            $startDateForPayment = \Carbon\Carbon::parse($startAtForPayment);
+                            $endDateForPayment = \Carbon\Carbon::parse($endAtForPayment);
+                            $nightsForPayment = $startDateForPayment->diffInDays($endDateForPayment);
+                            $isShortTermForPayment = $nightsForPayment <= 30;
+                        } catch (\Exception $e) {
+                            $isShortTermForPayment = false;
+                        }
+                    }
+                @endphp
+                @if($isShortTermForPayment)
                 <!-- Payment Section for Short-term Bookings -->
                 <div class="mb-8 border-t pt-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.payment_information') ?? 'Zahlungsinformationen' }}</h2>
+                    
                     <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                         <p class="text-sm text-yellow-800 font-semibold mb-2">{{ __('booking.payment_required_short_term') }}</p>
                         <p class="text-sm text-yellow-700">{{ __('booking.total_amount') }}: <strong>€{{ number_format($totalAmount, 2) }}</strong></p>
+                        @if(config('services.stripe.key'))
                         <p class="text-xs text-yellow-600 mt-1">{{ __('booking.payment_processed_stripe') }}</p>
+                        @endif
                     </div>
                     
+                    @if(config('services.stripe.key'))
                     <!-- Stripe Payment Element -->
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.payment_information') }} *</label>
@@ -414,23 +673,22 @@
                         <div id="payment-message" class="mt-2 text-sm text-red-600 hidden"></div>
                         <input type="hidden" name="payment_method_id" id="payment_method_id">
                     </div>
-                </div>
-                @elseif($isShortTerm && !config('services.stripe.key'))
-                <div class="mb-8 border-t pt-8">
+                    @else
                     <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
                         <p class="text-sm text-red-800 font-semibold mb-2">{{ __('booking.payment_processing_not_configured') }}</p>
                         <p class="text-sm text-red-700">{{ __('booking.contact_support_complete_booking') }}</p>
                     </div>
+                    @endif
                 </div>
                 @endif
+                @endif
                 
-                <div class="flex justify-end">
+                <div class="flex justify-end mt-4 mb-2">
                     <button type="submit" id="submit-btn" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                         {{ __('booking.complete_booking') }}
                     </button>
                 </div>
             </form>
-            
         @else
             <!-- Steps 2 and 3 are admin-only and not visible to regular users -->
             <div class="text-center py-12">
@@ -581,7 +839,7 @@
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
                     <canvas id="signature-pad" class="border border-gray-300 rounded-md" width="600" height="200"></canvas>
-                    <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">Clear Signature</button>
+                    <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">{{ __('booking.clear_signature') }}</button>
                     <input type="hidden" name="signature" id="signature-data">
                     @error('signature')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -615,11 +873,18 @@
 <!-- Flatpickr for date selection -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<!-- SignaturePad is already loaded in layout, no need to load again -->
 
 <script>
     // Room data for updates (passed from controller)
-    const roomsData = @json($roomsData ?? []);
+    @php
+        try {
+            $roomsDataJson = json_encode($roomsData ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            $roomsDataJson = '[]';
+        }
+    @endphp
+    const roomsData = {!! $roomsDataJson !!};
     
     // Date field is disabled/readonly - no need to initialize Flatpickr
     // But we still need to update the tenancy from date if dates are pre-filled
@@ -678,49 +943,274 @@
     // Initialize signature section name on page load
     updateRenterFullName();
     
-    // Initialize Signature Pad
-    const canvas = document.getElementById('signature-pad');
-    if (canvas) {
-        const signaturePad = new SignaturePad(canvas, {
-            backgroundColor: 'rgb(255, 255, 255)',
-            penColor: 'rgb(0, 0, 0)'
-        });
+    @php
+        // Use the same logic as the main PHP block above
+        // Always check request parameters first (they take precedence)
+        $startAt = request()->query('check_in') ?? request()->get('check_in');
+        $endAt = request()->query('check_out') ?? request()->get('check_out');
         
+        // If not in request, check form data
+        if (empty($startAt)) {
+            $startAt = $formData['step2']['start_at'] ?? null;
+        }
+        if (empty($endAt)) {
+            $endAt = $formData['step2']['end_at'] ?? null;
+        }
+        
+        // Clean up empty strings and null values
+        if (empty($endAt) || $endAt === '' || $endAt === null) {
+            $endAt = null;
+        } else {
+            $endAt = trim($endAt);
+            if ($endAt === '') {
+                $endAt = null;
+            }
+        }
+        
+        // If end_at is null or empty, it's definitely long-term
+        $isLongTermRental = ($endAt === null || $endAt === '');
+        
+        // If end_at exists and is not empty, check if it's short-term or long-term
+        if (!$isLongTermRental && $endAt && $room->short_term_allowed && $startAt) {
+            try {
+                $startDate = \Carbon\Carbon::parse($startAt);
+                $endDate = \Carbon\Carbon::parse($endAt);
+                $nights = $startDate->diffInDays($endDate);
+                // If more than 30 nights, it's long-term; otherwise short-term
+                $isLongTermRental = $nights > 30;
+            } catch (\Exception $e) {
+                // If parsing fails, treat as long-term
+                $isLongTermRental = true;
+            }
+        }
+        
+        // Ensure that if check_out is not provided in URL, it's always long-term
+        if (!request()->has('check_out') && !isset($formData['step2']['end_at'])) {
+            $isLongTermRental = true;
+        }
+    @endphp
+    
+    @if($isLongTermRental)
+    // Initialize Signature Pad only for long-term rentals
+    // Make signaturePad available globally for form submission
+    let signaturePad = null;
+    
+    // Translation strings for JavaScript
+    const translations = {
+        pleaseProvideSignature: @json(__('booking.please_provide_signature')),
+        signaturePadError: @json(__('booking.signature_pad_error')),
+        signaturePadNotInitialized: @json(__('booking.signature_pad_not_initialized')),
+        signatureInputNotFound: @json(__('booking.signature_input_not_found')),
+        errorCapturingSignature: @json(__('booking.error_capturing_signature'))
+    };
+    
+    // Wait for both DOM and SignaturePad library to be ready
+    function waitForSignaturePad(callback, maxAttempts = 50) {
+        let attempts = 0;
+        const checkInterval = setInterval(function() {
+            attempts++;
+            if (typeof SignaturePad !== 'undefined') {
+                clearInterval(checkInterval);
+                callback();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                console.error('SignaturePad library failed to load after ' + maxAttempts + ' attempts');
+            }
+        }, 100);
+    }
+    
+    function initializeSignaturePad() {
+        const canvas = document.getElementById('signature-pad');
+        if (!canvas) {
+            console.error('Signature pad canvas not found');
+            return;
+        }
+        
+        // Set up canvas size properly before initializing SignaturePad
         function resizeCanvas() {
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
-            signaturePad.clear();
-        }
-        
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
-        
-        const clearBtn = document.getElementById('clear-signature');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function() {
+            const rect = canvas.getBoundingClientRect();
+            
+            // Ensure canvas has valid dimensions
+            if (rect.width === 0 || rect.height === 0) {
+                // Use fallback size
+                const fallbackWidth = 600;
+                const fallbackHeight = 200;
+                canvas.width = fallbackWidth * ratio;
+                canvas.height = fallbackHeight * ratio;
+                canvas.style.width = fallbackWidth + 'px';
+                canvas.style.height = fallbackHeight + 'px';
+            } else {
+                canvas.width = rect.width * ratio;
+                canvas.height = rect.height * ratio;
+            }
+            
+            const ctx = canvas.getContext("2d");
+            ctx.scale(ratio, ratio);
+            
+            // Only clear if SignaturePad is already initialized (on resize)
+            if (signaturePad) {
                 signaturePad.clear();
-            });
+            }
         }
         
-        // Handle form submission
-        const form = document.getElementById('step1-form');
-        if (form) {
-            form.addEventListener('submit', async function(e) {
-                if (signaturePad.isEmpty()) {
-                    e.preventDefault();
-                    alert('Please provide your signature');
-                    return false;
+        // Small delay to ensure canvas is fully rendered
+        setTimeout(function() {
+            // Initial resize before creating SignaturePad
+            resizeCanvas();
+            
+            // Initialize SignaturePad after canvas is properly sized
+            try {
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgb(255, 255, 255)',
+                    penColor: 'rgb(0, 0, 0)',
+                    minWidth: 1,
+                    maxWidth: 3,
+                    throttle: 16,
+                    velocityFilterWeight: 0.7
+                });
+                
+                console.log('SignaturePad initialized successfully');
+                
+                // Make signaturePad available globally for form submission
+                window.signaturePad = signaturePad;
+                
+                // Handle window resize - clear signature on resize
+                let resizeTimeout;
+                window.addEventListener("resize", function() {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(function() {
+                        resizeCanvas();
+                    }, 100);
+                });
+                
+                const clearBtn = document.getElementById('clear-signature');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function() {
+                        if (signaturePad) {
+                            signaturePad.clear();
+                        }
+                    });
                 }
                 
-                const signatureData = signaturePad.toDataURL();
+                // Ensure canvas is interactive
+                canvas.style.pointerEvents = 'auto';
+                canvas.setAttribute('tabindex', '0');
+                
+                // Add visual feedback
+                const container = canvas.parentElement;
+                if (container) {
+                    container.style.border = '2px solid #3b82f6';
+                }
+                
+                console.log('SignaturePad initialized successfully. Canvas dimensions:', canvas.width, 'x', canvas.height);
+                console.log('Canvas is ready for signature. Try drawing on it with mouse or touch.');
+                
+                // Test drawing capability
+                canvas.addEventListener('pointerdown', function(e) {
+                    console.log('Pointer down detected at:', e.clientX, e.clientY);
+                });
+            } catch (error) {
+                console.error('Error initializing SignaturePad:', error);
+                alert(translations.signaturePadError);
+            }
+        }, 100);
+    }
+    
+    // Wait for DOM to be ready, then wait for SignaturePad library
+    function startInitialization() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                waitForSignaturePad(initializeSignaturePad);
+            });
+        } else {
+            waitForSignaturePad(initializeSignaturePad);
+        }
+    }
+    
+    startInitialization();
+    @endif
+    
+    // Handle form submission
+    const form = document.getElementById('step1-form');
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            @if($isLongTermRental)
+            // Check signature only for long-term rentals
+            // Use window.signaturePad if available, otherwise try to get from scope
+            const currentSignaturePad = window.signaturePad || signaturePad;
+            
+            if (!currentSignaturePad) {
+                e.preventDefault();
+                alert(translations.signaturePadNotInitialized);
+                return false;
+            }
+            
+            if (currentSignaturePad.isEmpty()) {
+                e.preventDefault();
+                alert(translations.pleaseProvideSignature);
+                return false;
+            }
+            
+            // Capture signature data before form submission
+            try {
+                const signatureData = currentSignaturePad.toDataURL('image/png');
                 const signatureInput = document.getElementById('signature-data');
                 if (signatureInput) {
                     signatureInput.value = signatureData;
+                } else {
+                    e.preventDefault();
+                    alert(translations.signatureInputNotFound);
+                    return false;
                 }
-                
-                @if($isShortTerm && config('services.stripe.key'))
+            } catch (error) {
+                console.error('Error capturing signature:', error);
+                e.preventDefault();
+                alert(translations.errorCapturingSignature);
+                return false;
+            }
+            @endif
+            
+            @php
+            // Recalculate isShortTerm for form submission JavaScript
+            // Use the same logic as other sections
+            $startAtForSubmit = request()->query('check_in') ?? request()->get('check_in');
+            $endAtForSubmit = request()->query('check_out') ?? request()->get('check_out');
+            
+            // If not in request, check form data
+            if (empty($startAtForSubmit)) {
+                $startAtForSubmit = $formData['step2']['start_at'] ?? null;
+            }
+            if (empty($endAtForSubmit)) {
+                $endAtForSubmit = $formData['step2']['end_at'] ?? null;
+            }
+            
+            // Clean up empty strings
+            if (empty($endAtForSubmit) || $endAtForSubmit === '' || $endAtForSubmit === null) {
+                $endAtForSubmit = null;
+            } else {
+                $endAtForSubmit = trim($endAtForSubmit);
+                if ($endAtForSubmit === '') {
+                    $endAtForSubmit = null;
+                }
+            }
+            
+            $isShortTermForSubmit = false;
+            
+            // Only short-term if end_at exists, is not empty, and nights <= 30
+            if ($endAtForSubmit !== null && $startAtForSubmit && $room->short_term_allowed) {
+                try {
+                    $startDateForSubmit = \Carbon\Carbon::parse($startAtForSubmit);
+                    $endDateForSubmit = \Carbon\Carbon::parse($endAtForSubmit);
+                    $nightsForSubmit = $startDateForSubmit->diffInDays($endDateForSubmit);
+                    // Must be at least 1 night and <= 30 nights to be short-term
+                    $isShortTermForSubmit = $nightsForSubmit >= 1 && $nightsForSubmit <= 30;
+                } catch (\Exception $e) {
+                    $isShortTermForSubmit = false;
+                }
+            }
+            @endphp
+            @if($isShortTermForSubmit && config('services.stripe.key'))
                 // Process payment for short-term bookings
                 e.preventDefault();
                 const submitBtn = document.getElementById('submit-btn');
@@ -809,15 +1299,31 @@
                         paymentMessage.classList.remove('hidden');
                     }
                 }
-                @else
-                // For long-term bookings, allow normal form submission
-                // No payment processing needed
-                @endif
-            });
-        }
+            @else
+            // For long-term bookings or when payment is not required, allow normal form submission
+            // No payment processing needed
+            @endif
+        });
     }
     
-    @if($isShortTerm && config('services.stripe.key'))
+    @php
+        // Recalculate isShortTerm for Stripe initialization
+        $startAtForStripeInit = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
+        $endAtForStripeInit = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
+        $isShortTermForStripeInit = false;
+        
+        if ($endAtForStripeInit && trim($endAtForStripeInit) !== '' && $startAtForStripeInit && $room->short_term_allowed) {
+            try {
+                $startDateForStripeInit = \Carbon\Carbon::parse($startAtForStripeInit);
+                $endDateForStripeInit = \Carbon\Carbon::parse($endAtForStripeInit);
+                $nightsForStripeInit = $startDateForStripeInit->diffInDays($endDateForStripeInit);
+                $isShortTermForStripeInit = $nightsForStripeInit <= 30;
+            } catch (\Exception $e) {
+                $isShortTermForStripeInit = false;
+            }
+        }
+    @endphp
+    @if($isShortTermForStripeInit && config('services.stripe.key'))
     // Initialize Stripe Payment for short-term bookings
     <script src="https://js.stripe.com/v3/"></script>
     <script>
@@ -977,7 +1483,7 @@
     document.getElementById('step3-form').addEventListener('submit', function(e) {
         if (signaturePad.isEmpty()) {
             e.preventDefault();
-            alert('Please provide your signature');
+            alert(@json(__('booking.please_provide_signature')));
             return false;
         }
         
@@ -1012,4 +1518,3 @@
 </script>
 @endpush
 @endsection
-

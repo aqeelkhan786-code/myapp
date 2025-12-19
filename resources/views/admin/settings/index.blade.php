@@ -135,26 +135,43 @@
                     <div class="mb-3">
                         <label for="booking_subject" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.subject') }}</label>
                         <input type="text" name="subject" id="booking_subject" 
-                               value="Booking Confirmation - {{ config('app.name') }}"
+                               value="{{ app()->getLocale() === 'de' ? 'Buchungsbestätigung - ' : 'Booking Confirmation - ' }}{{ config('app.name') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="mb-3">
                         <label for="booking_body" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.body') }}</label>
                         <textarea name="body" id="booking_body" rows="10"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">Dear @{{ $booking->guest_first_name }},
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">@if(app()->getLocale() === 'de')
+Liebe/r @{{ $booking->guest_first_name }},
+
+Ihre Buchung wurde bestätigt!
+
+Buchungsdetails:
+- {{ __('admin.room') ?? __('booking.room') }}: @{{ $booking->room->name }}
+- {{ __('admin.check_in_date') }}: @{{ $booking->start_at->format('d.m.Y') }}
+- {{ __('admin.check_out_date') }}: @{{ $booking->end_at ? $booking->end_at->format('d.m.Y') : __('booking.long_term_rental') }}
+- {{ __('booking.total_amount') }}: €@{{ number_format($booking->total_amount, 2) }}
+
+Vielen Dank für Ihre Buchung!
+
+Mit freundlichen Grüßen,
+{{ config('app.name') }}
+@else
+Dear @{{ $booking->guest_first_name }},
 
 Your booking has been confirmed!
 
 Booking Details:
 - {{ __('admin.room') ?? __('booking.room') }}: @{{ $booking->room->name }}
 - {{ __('admin.check_in_date') }}: @{{ $booking->start_at->format('M d, Y') }}
-- {{ __('admin.check_out_date') }}: @{{ $booking->end_at->format('M d, Y') }}
+- {{ __('admin.check_out_date') }}: @{{ $booking->end_at ? $booking->end_at->format('M d, Y') : __('booking.long_term_rental') }}
 - {{ __('booking.total_amount') }}: €@{{ number_format($booking->total_amount, 2) }}
 
 Thank you for your booking!
 
 Best regards,
-{{ config('app.name') }}</textarea>
+{{ config('app.name') }}
+@endif</textarea>
                         <p class="mt-1 text-sm text-gray-500">{{ __('settings.use_blade_syntax') }}</p>
                     </div>
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
@@ -172,13 +189,25 @@ Best regards,
                     <div class="mb-3">
                         <label for="document_subject" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.subject') }}</label>
                         <input type="text" name="subject" id="document_subject" 
-                               value="Document Available - {{ config('app.name') }}"
+                               value="{{ app()->getLocale() === 'de' ? 'Dokument verfügbar - ' : 'Document Available - ' }}{{ config('app.name') }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="mb-3">
                         <label for="document_body" class="block text-sm font-medium text-gray-700 mb-2">{{ __('settings.body') }}</label>
                         <textarea name="body" id="document_body" rows="10"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">Dear @{{ $booking->guest_first_name }},
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">@if(app()->getLocale() === 'de')
+Liebe/r @{{ $booking->guest_first_name }},
+
+Ein Dokument wurde für Ihre Buchung erstellt.
+
+Dokumenttyp: @{{ $document->doc_type }}
+
+Sie können es von Ihrer Buchungsbestätigungsseite herunterladen.
+
+Mit freundlichen Grüßen,
+{{ config('app.name') }}
+@else
+Dear @{{ $booking->guest_first_name }},
 
 A document has been generated for your booking.
 
@@ -187,7 +216,8 @@ Document Type: @{{ $document->doc_type }}
 You can download it from your booking confirmation page.
 
 Best regards,
-{{ config('app.name') }}</textarea>
+{{ config('app.name') }}
+@endif</textarea>
                     </div>
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
                         {{ __('settings.save_template') }}

@@ -34,30 +34,42 @@ class DashboardController extends Controller
             ->orderBy('start_at', 'asc')
             ->get();
 
-        // Check for conflicts
+        // Check for conflicts (optimized to avoid N+1 queries)
         $conflicts = [];
         $allBookings = Booking::where('status', 'confirmed')
             ->where('start_at', '>=', $today->startOfDay()->utc())
             ->with(['room'])
             ->get();
 
-        foreach ($allBookings as $booking) {
-            $conflicting = Booking::where('id', '!=', $booking->id)
-                ->where('room_id', $booking->room_id)
-                ->where('status', 'confirmed')
-                ->where(function ($q) use ($booking) {
-                    $q->where(function ($q2) use ($booking) {
-                        $q2->where('start_at', '<', $booking->end_at)
-                           ->where('end_at', '>', $booking->start_at);
-                    });
-                })
-                ->first();
+        if ($allBookings->isNotEmpty()) {
+            // Get all booking IDs and room IDs
+            $bookingIds = $allBookings->pluck('id')->toArray();
+            $roomIds = $allBookings->pluck('room_id')->unique()->toArray();
 
-            if ($conflicting) {
-                $conflicts[] = [
-                    'booking1' => $booking,
-                    'booking2' => $conflicting,
-                ];
+            // Fetch all potential conflicting bookings in a single query
+            $potentialConflicts = Booking::where('status', 'confirmed')
+                ->where('start_at', '>=', $today->startOfDay()->utc())
+                ->whereIn('room_id', $roomIds)
+                ->with(['room'])
+                ->get()
+                ->groupBy('room_id');
+
+            // Check for conflicts efficiently
+            foreach ($allBookings as $booking) {
+                $roomBookings = $potentialConflicts->get($booking->room_id, collect());
+                
+                $conflicting = $roomBookings->first(function ($otherBooking) use ($booking) {
+                    return $otherBooking->id !== $booking->id
+                        && $otherBooking->start_at < $booking->end_at
+                        && $otherBooking->end_at > $booking->start_at;
+                });
+
+                if ($conflicting) {
+                    $conflicts[] = [
+                        'booking1' => $booking,
+                        'booking2' => $conflicting,
+                    ];
+                }
             }
         }
 

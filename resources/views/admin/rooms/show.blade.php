@@ -40,7 +40,7 @@
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">{{ __('admin.capacity') }}</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ $room->capacity }} {{ __('admin.guests') }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900">{{ $room->capacity }} {{ $room->capacity == 1 ? __('admin.guest') : __('admin.guests') }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">{{ __('admin.base_price') }} (Short-term per night)</dt>

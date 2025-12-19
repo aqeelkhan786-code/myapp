@@ -12,6 +12,7 @@ return [
     'no_rooms_selected_dates' => 'Keine Zimmer für die ausgewählten Daten verfügbar. Bitte versuchen Sie andere Daten.',
     'no_rooms_available' => 'Derzeit sind keine Zimmer verfügbar.',
     'capacity' => 'Kapazität',
+    'guest' => 'Gast',
     'guests' => 'Gäste',
     'night' => '/Nacht',
     'month' => '/Monat',
@@ -27,6 +28,7 @@ return [
     'email' => 'E-Mail',
     'phone' => 'Telefon',
     'address' => 'Adresse',
+    'address_information' => 'Adressinformationen',
     'city' => 'Stadt',
     'postal_code' => 'Postleitzahl',
     'notes' => 'Notizen',
@@ -71,7 +73,7 @@ return [
     'payment_processing_not_configured' => 'Zahlungsabwicklung nicht konfiguriert',
     'contact_support_complete_booking' => 'Bitte kontaktieren Sie den Support, um Ihre Buchung abzuschließen.',
     'creating_booking' => 'Buchung wird erstellt...',
-    'rental_agreement_title' => 'Mietvertrag',
+    'rental_agreement_title' => 'Buchung',
     'complete_booking_request' => 'Vervollständigen Sie Ihre Buchungsanfrage',
     'per_night' => 'pro Nacht',
     'first_name_required' => 'Vorname *',
@@ -132,6 +134,12 @@ return [
     'postcode_city' => 'Postleitzahl, Stadt',
     'postcode_city_placeholder' => 'Postleitzahl, Stadt',
     'telephone' => 'Telefon',
+    'signature_instruction' => 'Bitte unterschreiben Sie oben mit der Maus oder dem Touchscreen',
+    'please_provide_signature' => 'Bitte geben Sie Ihre Unterschrift an',
+    'signature_pad_error' => 'Fehler beim Initialisieren des Unterschriftenfelds. Bitte aktualisieren Sie die Seite.',
+    'signature_pad_not_initialized' => 'Das Unterschriftenfeld wurde nicht initialisiert. Bitte aktualisieren Sie die Seite.',
+    'signature_input_not_found' => 'Unterschriftenfeld nicht gefunden. Bitte aktualisieren Sie die Seite.',
+    'error_capturing_signature' => 'Fehler beim Erfassen der Unterschrift. Bitte versuchen Sie es erneut.',
 ];
 
 

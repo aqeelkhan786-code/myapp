@@ -560,13 +560,27 @@ class BookingController extends Controller
         // Pre-fill dates from query parameters if coming from search page
         if ($request->has('check_in') && empty($formData['step2'])) {
             $checkOut = $request->get('check_out');
+            // Only set end_at if check_out is provided and not empty
+            $endAtValue = (!empty($checkOut) && trim($checkOut) !== '') ? $checkOut : null;
             $formData['step2'] = [
                 'start_at' => $request->get('check_in'),
-                'end_at' => !empty($checkOut) ? $checkOut : null, // Optional for long-term rentals
+                'end_at' => $endAtValue, // null for long-term rentals
                 'renter_address' => '',
                 'renter_postal_code' => '',
                 'renter_city' => '',
             ];
+            session(['booking_form_data' => $formData]);
+        }
+        
+        // Also update formData if check_in/check_out are in request (to override any old session data)
+        if ($request->has('check_in')) {
+            $checkOut = $request->get('check_out');
+            $endAtValue = (!empty($checkOut) && trim($checkOut) !== '') ? $checkOut : null;
+            if (!isset($formData['step2'])) {
+                $formData['step2'] = [];
+            }
+            $formData['step2']['start_at'] = $request->get('check_in');
+            $formData['step2']['end_at'] = $endAtValue; // null for long-term rentals
             session(['booking_form_data' => $formData]);
         }
         
@@ -591,25 +605,29 @@ class BookingController extends Controller
             ->get(['start_at', 'end_at']);
         
         // Calculate if this will be a short-term booking for payment display
+        // Determine rental type from request parameters or form data
+        $checkIn = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
+        $checkOut = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
+        
         $isShortTerm = false;
         $totalAmount = 0;
-        if (isset($formData['step2']['start_at'])) {
-            $startAt = \Carbon\Carbon::parse($formData['step2']['start_at']);
-            $endAt = isset($formData['step2']['end_at']) && $formData['step2']['end_at'] 
-                ? \Carbon\Carbon::parse($formData['step2']['end_at']) 
-                : null;
+        
+        if ($checkIn) {
+            $startAt = \Carbon\Carbon::parse($checkIn);
+            $endAt = null;
+            
+            // Only parse end_at if it exists and is not empty
+            if ($checkOut && trim($checkOut) !== '') {
+                $endAt = \Carbon\Carbon::parse($checkOut);
+            }
             
             if ($endAt && $room->short_term_allowed) {
                 $nights = $startAt->diffInDays($endAt);
                 $isShortTerm = $nights <= 30;
-                if ($isShortTerm) {
-                    $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
-                } else {
-                    // Long-term rental (more than 30 nights)
-                    $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
-                }
+                $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
             } else if (!$endAt) {
                 // Long-term rental (no end date)
+                $isShortTerm = false;
                 $totalAmount = $this->bookingService->calculateTotal($room, $startAt, null);
             }
         }
@@ -639,7 +657,8 @@ class BookingController extends Controller
                 'renter_postal_code' => 'required|string|max:255',
                 'renter_city' => 'required|string|max:255',
                 'renter_phone' => 'required|string|max:255',
-                'signature' => 'required|string',
+                'renter_address' => 'required|string|max:255', // Required for both short-term and long-term
+                'signature' => 'nullable|string', // Only required for long-term rentals
                 'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
             ]);
             
@@ -649,6 +668,19 @@ class BookingController extends Controller
             
             // Check availability
             $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            
+            // Determine if this is a long-term rental
+            $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
+            $isLongTermRental = empty($endAt) || $endAt === null || trim($endAt) === '';
+            if ($endAt && $selectedRoom->short_term_allowed) {
+                $nights = $startAt->diffInDays($endAt);
+                $isLongTermRental = $nights > 30;
+            }
+            
+            // Validate signature for long-term rentals
+            if ($isLongTermRental && !$request->signature) {
+                return back()->withErrors(['signature' => 'Signature is required for long-term rentals.'])->withInput();
+            }
             
             if ($request->end_at) {
                 // Short-term rental with check-out date
@@ -695,8 +727,13 @@ class BookingController extends Controller
                 'renter_email' => $renterEmail,
             ];
             
+            // For short-term rentals, address is collected in step 1, so ensure it's set
+            if (!$isLongTermRental && !isset($formData['step2']['renter_address'])) {
+                $formData['step2']['renter_address'] = $request->renter_address ?? '';
+            }
+            
             $formData['step3'] = [
-                'signature' => $request->signature,
+                'signature' => $request->signature ?? null,
             ];
             
             // Step 1 includes everything, so create booking directly
@@ -735,17 +772,18 @@ class BookingController extends Controller
                 // Get locale from booking language
                 $locale = $booking->getLocaleFromLanguage();
                 
-                // Create rental agreement document (Step 1) - user signs this
-                // Document is created in background, admin will send it
-                $document1 = $this->documentService->createDocument(
-                    $booking,
-                    'rental_agreement',
-                    $locale,
-                    ['signature' => $formData['step3']['signature']]
-                );
-                $document1->update(['signed_at' => now()]);
-                GenerateDocumentPdf::dispatch($document1);
-                // NOTE: Admin will send this document manually, not automatically sent
+                // Create rental agreement document only for long-term rentals
+                if ($isLongTermRental && isset($formData['step3']['signature']) && $formData['step3']['signature']) {
+                    $document1 = $this->documentService->createDocument(
+                        $booking,
+                        'rental_agreement',
+                        $locale,
+                        ['signature' => $formData['step3']['signature']]
+                    );
+                    $document1->update(['signed_at' => now()]);
+                    GenerateDocumentPdf::dispatch($document1);
+                    // NOTE: Admin will send this document manually, not automatically sent
+                }
                 
                 // Create landlord confirmation document (Step 2) - in background, admin only
                 // Document is created but not signed yet, admin will handle signature and sending
@@ -941,24 +979,26 @@ class BookingController extends Controller
                 'renter_city' => $formData['step2']['renter_city'],
             ]);
             
-            // Create rental agreement document
-            // Use booking language instead of app locale
-            $locale = $booking->getLocaleFromLanguage();
-            $document = $this->documentService->createDocument(
-                $booking,
-                'rental_agreement',
-                $locale,
-                ['signature' => $formData['step3']['signature']]
-            );
-            
-            GenerateDocumentPdf::dispatch($document);
-            SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+            // Create rental agreement document only for long-term rentals
+            if (!$isShortTerm && isset($formData['step3']['signature']) && $formData['step3']['signature']) {
+                // Use booking language instead of app locale
+                $locale = $booking->getLocaleFromLanguage();
+                $document = $this->documentService->createDocument(
+                    $booking,
+                    'rental_agreement',
+                    $locale,
+                    ['signature' => $formData['step3']['signature']]
+                );
+                
+                GenerateDocumentPdf::dispatch($document);
+                SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+            }
             
             // Clear session
             session()->forget('booking_form_data');
             
-            // Redirect to document signing steps (steps 2 and 3)
-            return redirect()->route('booking.step', ['booking' => $booking->id, 'step' => 2]);
+            // Redirect to completion page
+            return redirect()->route('booking.complete', ['booking' => $booking->id]);
             
         } catch (\Exception $e) {
             \Log::error('Booking creation failed: ' . $e->getMessage());

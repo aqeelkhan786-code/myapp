@@ -90,7 +90,7 @@
                 <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ $room->name }}</h2>
                 <p class="text-gray-600 mb-4">{{ Str::limit($room->description, 100) }}</p>
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ __('booking.guests') }}</span>
+                    <span class="text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ $room->capacity == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                     <span class="text-lg font-bold text-gray-900">€{{ number_format($room->base_price, 2) }}{{ __('booking.night') }}</span>
                 </div>
                 <a href="{{ route('booking.show', $room) }}" class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">

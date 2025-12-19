@@ -138,6 +138,7 @@ return [
     'room_information' => 'Zimmerinformationen',
     'base_price' => 'Grundpreis',
     'short_term_allowed' => 'Kurzfristig erlaubt',
+    'guest' => 'Gast',
     'guests' => 'Gäste',
     'details' => 'Details',
     'calendar_sync' => 'Kalender & Synchronisierung',

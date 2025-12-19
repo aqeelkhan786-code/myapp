@@ -138,6 +138,7 @@ return [
     'room_information' => 'Room Information',
     'base_price' => 'Base Price',
     'short_term_allowed' => 'Short-term Allowed',
+    'guest' => 'guest',
     'guests' => 'guests',
     'details' => 'Details',
     'calendar_sync' => 'Calendar & Sync',

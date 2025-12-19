@@ -24,8 +24,37 @@
             </div>
         @endif
         
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ __('booking.booking_confirmed') }}</h1>
-        <p class="text-gray-600 mb-6">{{ __('booking.thank_you_booking') }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">✅ Buchungsbestätigung – Ihre Buchung war erfolgreich</h1>
+        <p class="text-gray-600 mb-6 text-lg">Vielen Dank! Ihre Buchung wurde erfolgreich übermittelt und reserviert.</p>
+        
+        @if(!$booking->is_short_term)
+        <!-- Deposit Payment Information for Long-term Rentals -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 mb-6 text-left">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">💳 Kaution überweisen</h2>
+            <p class="text-gray-700 mb-4">
+                Damit wir Ihre Buchung verbindlich abschließen können, bitten wir Sie, die Kaution zeitnah per Überweisung zu leisten:
+            </p>
+            <div class="bg-white p-4 rounded-md mb-4">
+                <p class="text-sm text-gray-700 mb-1"><strong>Empfänger:</strong> Martin Assies</p>
+                <p class="text-sm text-gray-700 mb-1"><strong>Bank:</strong> N26 Bank</p>
+                <p class="text-sm text-gray-700 mb-1"><strong>IBAN:</strong> DE24 1001 1001 2623 5950 48</p>
+                <p class="text-sm text-gray-700"><strong>BIC:</strong> NTSBDEB1XXX</p>
+                <p class="text-sm text-gray-600 mt-3">
+                    <strong>Verwendungszweck:</strong> {{ $booking->guest_full_name }} + {{ $booking->room->name }} + {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}
+                </p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-md">
+                <p class="text-sm text-gray-700 font-semibold mb-2">📬 Sobald die Kaution bei uns eingegangen ist, erhalten Sie von uns:</p>
+                <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4">
+                    <li>den Mietvertrag zur Unterzeichnung sowie</li>
+                    <li>die Check-in-Details (inkl. Zugang / PIN-Code und Schlüsselübergabeinformationen).</li>
+                </ul>
+            </div>
+            <p class="text-sm text-gray-600 mt-4">
+                💬 Bei Fragen melden Sie sich gerne jederzeit.
+            </p>
+        </div>
+        @endif
         
         <div class="bg-gray-50 rounded-lg p-6 mb-6 text-left">
             <div class="flex items-center mb-4">
