@@ -182,10 +182,10 @@ class BookingController extends Controller
     public function saveStep(Request $request, Booking $booking, int $step)
     {
         if ($step === 1) {
-            $request->validate([
+            // Build validation rules conditionally
+            $validationRules = [
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
-                'job' => 'required|string|max:255',
                 'language' => 'required|in:Deutsch,Englisch',
                 'communication_preference' => 'required|in:Mail,Whatsapp',
                 'email' => 'required|email|max:255',
@@ -198,12 +198,20 @@ class BookingController extends Controller
                 'end_at' => 'nullable|date',
                 'signature' => 'required|string',
                 'payment_method_id' => $booking->is_short_term ? 'required|string' : 'nullable',
-            ]);
+            ];
+            
+            // Job field is only required for long-term rentals
+            if (!$booking->is_short_term) {
+                $validationRules['job'] = 'required|string|max:255';
+            } else {
+                $validationRules['job'] = 'nullable|string|max:255';
+            }
+            
+            $request->validate($validationRules);
 
-            $booking->update($request->only([
+            $updateData = $request->only([
                 'guest_first_name',
                 'guest_last_name',
-                'job',
                 'language',
                 'communication_preference',
                 'email',
@@ -211,7 +219,14 @@ class BookingController extends Controller
                 'renter_address',
                 'renter_postal_code',
                 'renter_city',
-            ]));
+            ]);
+            
+            // Only include job if provided (required for long-term, optional for short-term)
+            if ($request->has('job')) {
+                $updateData['job'] = $request->job;
+            }
+            
+            $booking->update($updateData);
 
             // Update room if changed
             if ($request->room_id && $request->room_id != $booking->room_id) {
@@ -643,10 +658,25 @@ class BookingController extends Controller
         $formData = session('booking_form_data', []);
         
         if ($step === 1) {
-            $request->validate([
+            // Update room if changed (shouldn't happen as it's disabled, but keep for safety)
+            $selectedRoomId = $request->room_id ?: $room->id;
+            $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
+            
+            // Check availability
+            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            
+            // Determine if this is a long-term rental (needed for validation)
+            $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
+            $isLongTermRental = empty($endAt) || $endAt === null || trim($endAt) === '';
+            if ($endAt && $selectedRoom->short_term_allowed) {
+                $nights = $startAt->diffInDays($endAt);
+                $isLongTermRental = $nights > 30;
+            }
+            
+            // Build validation rules conditionally
+            $validationRules = [
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
-                'job' => 'required|string|max:255',
                 'language' => 'required|in:Deutsch,Englisch',
                 'communication_preference' => 'required|in:Mail,Whatsapp',
                 'email' => 'required|email|max:255',
@@ -660,22 +690,16 @@ class BookingController extends Controller
                 'renter_address' => 'required|string|max:255', // Required for both short-term and long-term
                 'signature' => 'nullable|string', // Only required for long-term rentals
                 'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
-            ]);
+            ];
             
-            // Update room if changed (shouldn't happen as it's disabled, but keep for safety)
-            $selectedRoomId = $request->room_id ?: $room->id;
-            $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
-            
-            // Check availability
-            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
-            
-            // Determine if this is a long-term rental
-            $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
-            $isLongTermRental = empty($endAt) || $endAt === null || trim($endAt) === '';
-            if ($endAt && $selectedRoom->short_term_allowed) {
-                $nights = $startAt->diffInDays($endAt);
-                $isLongTermRental = $nights > 30;
+            // Job field is only required for long-term rentals
+            if ($isLongTermRental) {
+                $validationRules['job'] = 'required|string|max:255';
+            } else {
+                $validationRules['job'] = 'nullable|string|max:255';
             }
+            
+            $request->validate($validationRules);
             
             // Validate signature for long-term rentals
             if ($isLongTermRental && !$request->signature) {
@@ -704,12 +728,16 @@ class BookingController extends Controller
             $formData['step1'] = $request->only([
                 'guest_first_name',
                 'guest_last_name',
-                'job',
                 'language',
                 'communication_preference',
                 'email',
                 'phone',
             ]);
+            
+            // Only include job if provided (required for long-term, optional for short-term)
+            if ($request->has('job')) {
+                $formData['step1']['job'] = $request->job;
+            }
             
             // Use guest name and email from step1
             $renterName = trim(($formData['step1']['guest_first_name'] ?? '') . ' ' . ($formData['step1']['guest_last_name'] ?? ''));

@@ -43,9 +43,51 @@
 
         @if($house->image)
         <div class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.image') }}</h2>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.main_image') }}</h2>
             <img src="{{ asset('storage/' . $house->image) }}" alt="{{ $house->name }}" class="w-full h-auto rounded-lg object-cover">
         </div>
+        @endif
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6 mt-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">{{ __('admin.images') }}</h2>
+            <form action="{{ route('admin.houses.images.upload', $house) }}" method="POST" enctype="multipart/form-data" class="inline" id="image-upload-form">
+                @csrf
+                <input type="file" name="images[]" id="image-upload" accept="image/*" multiple class="hidden" onchange="document.getElementById('image-upload-form').submit()">
+                <label for="image-upload" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer text-sm">
+                    {{ __('admin.upload_images_bulk') }}
+                </label>
+            </form>
+        </div>
+        
+        @if($house->images->count() > 0)
+        <div id="image-gallery" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            @foreach($house->images->sortBy('sort_order') as $image)
+            <div class="relative group" data-image-id="{{ $image->id }}">
+                <img src="{{ asset('storage/' . $image->path) }}" alt="{{ $house->name }}" 
+                     class="w-full h-32 object-cover rounded-lg cursor-move" draggable="true">
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <form action="{{ route('admin.houses.images.delete', ['house' => $house, 'image' => $image->id]) }}" 
+                          method="POST" class="inline" onsubmit="return confirm('{{ __('admin.delete_this_image') }}')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="bg-red-600 text-white p-1 rounded hover:bg-red-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+                <div class="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                    {{ __('admin.order') }} {{ $image->sort_order }}
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <p class="mt-4 text-sm text-gray-500">{{ __('admin.drag_images_reorder') }}</p>
+        @else
+        <p class="text-sm text-gray-500">{{ __('admin.no_images_uploaded') }}</p>
         @endif
     </div>
 
@@ -95,7 +137,82 @@
         @endif
     </div>
 </div>
+
+@if($house->images->count() > 0)
+<script>
+// Image drag and drop sorting
+let draggedElement = null;
+const gallery = document.getElementById('image-gallery');
+
+if (gallery) {
+    gallery.addEventListener('dragstart', function(e) {
+        draggedElement = e.target.closest('[data-image-id]');
+        e.target.style.opacity = '0.5';
+    });
+
+    gallery.addEventListener('dragend', function(e) {
+        e.target.style.opacity = '1';
+    });
+
+    gallery.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(gallery, e.clientX);
+        const dragging = draggedElement;
+        if (afterElement == null) {
+            gallery.appendChild(dragging);
+        } else {
+            gallery.insertBefore(dragging, afterElement);
+        }
+    });
+
+    gallery.addEventListener('drop', async function(e) {
+        e.preventDefault();
+        const imageIds = Array.from(gallery.querySelectorAll('[data-image-id]')).map(el => el.dataset.imageId);
+        
+        try {
+            const response = await fetch('{{ route('admin.houses.images.order', $house) }}', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ images: imageIds })
+            });
+            
+            if (response.ok) {
+                // Update order numbers
+                gallery.querySelectorAll('[data-image-id]').forEach((el, index) => {
+                    const orderBadge = el.querySelector('.absolute.bottom-2');
+                    if (orderBadge) {
+                        orderBadge.textContent = '{{ __('admin.order') }} ' + (index + 1);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error updating order:', error);
+        }
+    });
+
+    function getDragAfterElement(container, x) {
+        const draggableElements = [...container.querySelectorAll('[data-image-id]:not(.dragging)')];
+        
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
+            
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+}
+</script>
+@endif
 @endsection
+
+
 
 
 

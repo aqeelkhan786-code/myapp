@@ -40,7 +40,7 @@ class LocationController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|max:5120', // 5MB max
+            'image' => 'nullable|image|max:10240', // 10MB max
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
@@ -130,7 +130,7 @@ class LocationController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|max:5120', // 5MB max
+            'image' => 'nullable|image|max:10240', // 10MB max
             'sort_order' => 'nullable|integer|min:0',
         ]);
 

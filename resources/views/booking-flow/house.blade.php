@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Living in {{ $location->name }} - {{ config('app.name', 'Laravel') }}</title>
     
+    <!-- Favicon - Logo -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -16,12 +19,13 @@
         body {
             font-family: 'Figtree', sans-serif;
         }
-        .room-card {
+        .house-gallery-item {
             transition: all 0.3s ease;
+            cursor: pointer;
         }
-        .room-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        .house-gallery-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
         .amenity-item {
             display: flex;
@@ -34,6 +38,81 @@
             font-weight: bold;
             font-size: 1.5rem;
             margin-right: 0.75rem;
+        }
+        /* Modal Styles */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            overflow: auto;
+        }
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            margin: auto;
+        }
+        .modal-image {
+            width: 100%;
+            height: auto;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .close-modal:hover {
+            color: #ccc;
+        }
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            z-index: 1001;
+        }
+        .modal-nav:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .modal-nav.prev {
+            left: 20px;
+        }
+        .modal-nav.next {
+            right: 20px;
+        }
+        .modal-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -69,7 +148,7 @@
                         <strong>🏠 {{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
                     </p>
                     <p class="text-gray-700 leading-relaxed mb-6">
-                        Im Haus {{ $location->name }} bieten wir {{ $rooms->count() }} moderne, möblierte Zimmer zur Miete an – ideal für 👷 Bauarbeiter, ✈️ Geschäftsreisende und 🚗 Pendler.
+                        In {{ $location->name }} bieten wir {{ $houses->count() }} {{ $houses->count() === 1 ? 'Haus' : 'Häuser' }} mit modernen, möblierten Zimmern zur Miete an – ideal für 👷 Bauarbeiter, ✈️ Geschäftsreisende und 🚗 Pendler.
                     </p>
                 </div>
             </div>
@@ -127,46 +206,65 @@
             </div>
 
             <!-- Button Above Pictures -->
+            @if($firstHouseWithRooms)
             <div class="text-center mb-8">
-                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $firstHouseWithRooms->id]) }}" 
                    class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
                     {{ __('booking_flow.view_available_rooms') }}
                 </a>
             </div>
+            @endif
 
-            <!-- Rooms Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                @foreach($rooms as $room)
-                <div class="room-card bg-white rounded-lg overflow-hidden shadow-md">
-                    <!-- Room Image -->
-                    <div class="h-48 bg-gray-200 relative overflow-hidden">
-                        @if($room->images && $room->images->count() > 0)
-                            <img src="{{ asset('storage/' . $room->images->first()->path) }}" 
-                                 alt="{{ $room->name }}" 
-                                 class="w-full h-full object-cover"
-                                 loading="lazy">
-                        @else
-                            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop" 
-                                 alt="{{ $room->name }}" 
-                                 class="w-full h-full object-cover"
-                                 loading="lazy">
-                        @endif
-                    </div>
-                    
-                    <!-- Room Name -->
-                    <div class="p-4 text-center">
-                        <h3 class="text-xl font-bold text-gray-900">{{ $room->name }}</h3>
-                    </div>
-                </div>
+            <!-- Houses Gallery Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
+                @foreach($houses as $house)
+                    @if($house->images && $house->images->count() > 0)
+                        @foreach($house->images as $image)
+                            <div class="house-gallery-item bg-white rounded-lg overflow-hidden shadow-md" 
+                                 onclick="openImageModal({{ $house->id }}, {{ $image->id }})">
+                                <div class="h-48 bg-gray-200 relative overflow-hidden">
+                                    <img src="{{ asset('storage/' . $image->path) }}" 
+                                         alt="{{ $house->name }}" 
+                                         class="w-full h-full object-cover"
+                                         loading="lazy">
+                                </div>
+                            </div>
+                        @endforeach
+                    @elseif($house->image)
+                        <div class="house-gallery-item bg-white rounded-lg overflow-hidden shadow-md" 
+                             onclick="openImageModal({{ $house->id }}, 'single')">
+                            <div class="h-48 bg-gray-200 relative overflow-hidden">
+                                <img src="{{ asset('storage/' . $house->image) }}" 
+                                     alt="{{ $house->name }}" 
+                                     class="w-full h-full object-cover"
+                                     loading="lazy">
+                            </div>
+                        </div>
+                    @endif
                 @endforeach
             </div>
 
-            <!-- Button Below Pictures -->
+            <!-- Book Button -->
+            @if($firstHouseWithRooms)
             <div class="text-center mb-12">
-                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
+                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $firstHouseWithRooms->id]) }}" 
                    class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
                     {{ __('booking_flow.view_available_rooms') }}
                 </a>
+            </div>
+            @endif
+
+            <!-- Image Modal -->
+            <div id="imageModal" class="image-modal">
+                <span class="close-modal" onclick="closeImageModal()">&times;</span>
+                <span class="modal-nav prev" onclick="changeImage(-1)">&#10094;</span>
+                <span class="modal-nav next" onclick="changeImage(1)">&#10095;</span>
+                <div class="modal-content">
+                    <img id="modalImage" class="modal-image" src="" alt="House Image">
+                    <div class="modal-counter">
+                        <span id="imageCounter"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Guest Favorite Badge -->
@@ -197,5 +295,70 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // Store all house images data
+        const houseImages = @json($houseImagesData);
+
+        let currentImageIndex = 0;
+
+        function openImageModal(houseId, imageId) {
+            // Find the index of the clicked image
+            const index = houseImages.findIndex(img => 
+                img.house_id === houseId && (img.id === imageId || (imageId === 'single' && img.id === 'single'))
+            );
+            
+            if (index !== -1) {
+                currentImageIndex = index;
+                updateModalImage();
+                document.getElementById('imageModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function changeImage(direction) {
+            currentImageIndex += direction;
+            
+            if (currentImageIndex < 0) {
+                currentImageIndex = houseImages.length - 1;
+            } else if (currentImageIndex >= houseImages.length) {
+                currentImageIndex = 0;
+            }
+            
+            updateModalImage();
+        }
+
+        function updateModalImage() {
+            if (houseImages.length === 0) return;
+            
+            const image = houseImages[currentImageIndex];
+            document.getElementById('modalImage').src = image.path;
+            document.getElementById('modalImage').alt = image.house_name;
+            document.getElementById('imageCounter').textContent = `${currentImageIndex + 1} / ${houseImages.length}`;
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageModal();
+            } else if (e.key === 'ArrowLeft') {
+                changeImage(-1);
+            } else if (e.key === 'ArrowRight') {
+                changeImage(1);
+            }
+        });
+
+        // Close modal when clicking outside the image
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImageModal();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -91,7 +91,7 @@ class RoomController extends Controller
     {
         $request->validate([
             'images' => 'required|array',
-            'images.*' => 'image|max:5120', // 5MB max per image
+            'images.*' => 'image|max:10240', // 10MB max per image
         ]);
 
         $maxSortOrder = $room->images()->max('sort_order') ?? 0;

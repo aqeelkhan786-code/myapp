@@ -28,27 +28,46 @@ class BookingFlowController extends Controller
     }
 
     /**
-     * Show house page for a location with rooms directly
+     * Show houses page for a location
      */
     public function house(Location $location)
     {
-        $house = $location->houses()->first(); // One house per location
-        if (!$house) {
-            abort(404, 'House not found for this location');
+        // Get all houses for this location with images and room counts
+        $houses = $location->houses()->with(['images', 'rooms'])->withCount('rooms')->get();
+        
+        if ($houses->isEmpty()) {
+            abort(404, 'No houses found for this location');
         }
         
-        // Get rooms assigned to this house
-        $rooms = $house->rooms()->with('images')->get();
+        // Get first house with rooms for the book button
+        $firstHouseWithRooms = $houses->first(function($house) {
+            return $house->rooms->isNotEmpty();
+        });
         
-        // If no rooms are assigned to the house, get all available rooms as fallback
-        if ($rooms->isEmpty()) {
-            $rooms = Room::with('images')->get();
-        }
+        // Prepare house images data for JavaScript
+        $houseImagesData = $houses->flatMap(function($house) {
+            $images = [];
+            if ($house->images && $house->images->count() > 0) {
+                foreach ($house->images as $img) {
+                    $images[] = [
+                        'id' => $img->id,
+                        'path' => asset('storage/' . $img->path),
+                        'house_id' => $house->id,
+                        'house_name' => $house->name
+                    ];
+                }
+            } elseif ($house->image) {
+                $images[] = [
+                    'id' => 'single',
+                    'path' => asset('storage/' . $house->image),
+                    'house_id' => $house->id,
+                    'house_name' => $house->name
+                ];
+            }
+            return $images;
+        })->values();
         
-        // Get first available room for booking button
-        $availableRoom = $rooms->isNotEmpty() ? $rooms->first() : null;
-        
-        return view('booking-flow.house', compact('location', 'house', 'rooms', 'availableRoom'));
+        return view('booking-flow.house', compact('location', 'houses', 'firstHouseWithRooms', 'houseImagesData'));
     }
 
     /**

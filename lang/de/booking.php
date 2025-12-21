@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'select_apartment' => 'Wählen Sie Ihre Wohnung',
+    'select_apartment' => 'Ihre Wohnung',
+    'apartment' => 'Ihre Wohnung',
     'check_in_date' => 'Check-in Datum',
     'check_out_date' => 'Check-out Datum',
     'filter_available_rooms' => 'Verfügbare Zimmer filtern',
@@ -140,6 +141,9 @@ return [
     'signature_pad_not_initialized' => 'Das Unterschriftenfeld wurde nicht initialisiert. Bitte aktualisieren Sie die Seite.',
     'signature_input_not_found' => 'Unterschriftenfeld nicht gefunden. Bitte aktualisieren Sie die Seite.',
     'error_capturing_signature' => 'Fehler beim Erfassen der Unterschrift. Bitte versuchen Sie es erneut.',
+    'date' => 'Datum',
+    'rental_period' => 'Mietdauer',
+    'rental_duration_long_term' => 'Mietdauer: Die Mietdauer beträgt 12 Monate. Das Mietverhältnis kann auch vor Ablauf des ersten Mietjahres unter Einhaltung der gesetzlichen Kündigungsfristen monatlich gekündigt werden.',
 ];
 
 

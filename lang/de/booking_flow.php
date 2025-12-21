@@ -58,5 +58,9 @@ return [
     'select_checkout_placeholder' => 'Check-out Datum auswählen (optional)',
     'select_checkin_placeholder' => 'Check-in Datum auswählen',
     'search_by_date' => 'Nach Datum suchen',
+    'long_term_rental' => 'Langzeitmiete',
+    'long_term_rental_description' => 'Bei einer Langzeitmiete erfolgt die Anmietung mit Mietvertrag und einer Mindestmietdauer von 1 Monat. Die Miete ist per Überweisung zu zahlen. Nach Zahlungseingang wird der Mietvertrag erstellt und ausgehändigt. Ein Check-out-Datum ist bei Langzeitmieten nicht erforderlich und kann offenbleiben, da die Mietdauer flexibel verlängert werden kann.',
+    'short_term_rental' => 'Kurzzeitmiete',
+    'short_term_rental_description' => 'Die Kurzzeitmiete wird direkt bei Buchung bezahlt.',
 ];
 

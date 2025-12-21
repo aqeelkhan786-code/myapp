@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ __('booking_flow.select_apartment') }} - {{ config('app.name', 'Laravel') }}</title>
     
+    <!-- Favicon - Logo -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -68,17 +71,17 @@
                         <div class="space-y-6">
                             <!-- Langzeitmiete Section -->
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-3">Langzeitmiete</h3>
+                                <h3 class="text-xl font-bold text-gray-900 mb-3">{{ __('booking_flow.long_term_rental') }}</h3>
                                 <p class="text-gray-700 leading-relaxed">
-                                    Bei einer Langzeitmiete erfolgt die Anmietung mit Mietvertrag und einer Mindestmietdauer von 1 Monat. Die Miete ist per Überweisung zu zahlen. Nach Zahlungseingang wird der Mietvertrag erstellt und ausgehändigt. Ein Check-out-Datum ist bei Langzeitmieten nicht erforderlich und kann offenbleiben, da die Mietdauer flexibel verlängert werden kann.
+                                    {{ __('booking_flow.long_term_rental_description') }}
                                 </p>
                             </div>
                             
                             <!-- Kurzzeitmiete Section -->
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900 mb-3">Kurzzeitmiete</h3>
+                                <h3 class="text-xl font-bold text-gray-900 mb-3">{{ __('booking_flow.short_term_rental') }}</h3>
                                 <p class="text-gray-700 leading-relaxed">
-                                    Die Kurzzeitmiete wird direkt bei Buchung bezahlt.
+                                    {{ __('booking_flow.short_term_rental_description') }}
                                 </p>
                             </div>
                         </div>
@@ -173,7 +176,7 @@
                                 <div class="text-lg font-bold text-blue-600">
                                     @if(empty($checkOut))
                                         {{-- Long-term rental - show monthly price --}}
-                                        €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') ?? 'Monat' }}
+                                        €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}
                                     @else
                                         {{-- Short-term rental - show nightly price --}}
                                         €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}

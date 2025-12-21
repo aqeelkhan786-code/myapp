@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'select_apartment' => 'Select Your Apartment',
+    'select_apartment' => 'Your Apartment',
+    'apartment' => 'Your Apartment',
     'check_in_date' => 'Check-in Date',
     'check_out_date' => 'Check-out Date',
     'filter_available_rooms' => 'Filter Available Rooms',
@@ -15,6 +16,7 @@ return [
     'guest' => 'guest',
     'guests' => 'guests',
     'night' => '/night',
+    'month' => '/month',
     'view_details_book' => 'View Details & Book',
     'rental_agreement' => 'Rental Agreement',
     'wohnungsgeberbescheinigung' => 'Wohnungsgeberbescheinigung',
@@ -77,6 +79,9 @@ return [
     'signature_pad_not_initialized' => 'Signature pad is not initialized. Please refresh the page.',
     'signature_input_not_found' => 'Signature input field not found. Please refresh the page.',
     'error_capturing_signature' => 'Error capturing signature. Please try again.',
+    'date' => 'Date',
+    'rental_period' => 'Rental Period',
+    'rental_duration_long_term' => 'Rental Duration: The rental period is 12 months. The rental relationship can also be terminated monthly before the end of the first rental year, subject to compliance with the statutory notice periods.',
 ];
 
 

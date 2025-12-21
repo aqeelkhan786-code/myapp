@@ -57,5 +57,9 @@ return [
     'select_checkout_placeholder' => 'Select check-out date (optional)',
     'select_checkin_placeholder' => 'Select check-in date',
     'search_by_date' => 'Search by Date',
+    'long_term_rental' => 'Long-term Rental',
+    'long_term_rental_description' => 'With a long-term rental, the rental is made with a rental agreement and a minimum rental period of 1 month. The rent is to be paid by bank transfer. After payment is received, the rental agreement will be created and issued. A check-out date is not required for long-term rentals and can remain open, as the rental period can be flexibly extended.',
+    'short_term_rental' => 'Short-term Rental',
+    'short_term_rental_description' => 'The short-term rental is paid directly when booking.',
 ];
 

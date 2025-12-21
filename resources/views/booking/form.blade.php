@@ -113,6 +113,21 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                        @php
+                            // Determine if this is a short-term rental for hiding job field
+                            $startAtForJob = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
+                            $endAtForJob = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
+                            $isShortTermForJob = false;
+                            
+                            // Only short-term if end_at exists, is not empty, and nights <= 30
+                            if ($endAtForJob && trim($endAtForJob) !== '' && $startAtForJob && $room->short_term_allowed) {
+                                $startDateForJob = \Carbon\Carbon::parse($startAtForJob);
+                                $endDateForJob = \Carbon\Carbon::parse($endAtForJob);
+                                $nightsForJob = $startDateForJob->diffInDays($endDateForJob);
+                                $isShortTermForJob = $nightsForJob <= 30;
+                            }
+                        @endphp
+                        @if(!$isShortTermForJob)
                         <div>
                             <label for="job" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.job_required') }}</label>
                             <input type="text" name="job" id="job" 
@@ -122,6 +137,7 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                        @endif
                         <div>
                             <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.language') ?? 'Sprache' }} {{ __('common.required') ?? '*' }}</label>
                             <select name="language" id="language" 
@@ -227,13 +243,13 @@
                 </div>
                 @endif
 
-                <!-- Select Appartment -->
+                <!-- Apartment -->
                 <div class="mb-6">
-                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_apartment') }}</label>
+                    <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.apartment') ?? __('booking.select_apartment') }}</label>
                     <select name="room_id" id="room_id" 
                             class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
                             disabled>
-                        <option value="">{{ __('booking.select_apartment') }}</option>
+                        <option value="">{{ __('booking.apartment') ?? __('booking.select_apartment') }}</option>
                         @foreach($allRooms ?? [] as $apartment)
                             <option value="{{ $apartment->id }}" {{ old('room_id', $room->id) == $apartment->id ? 'selected' : '' }}>
                                 {{ $apartment->name }}
@@ -244,30 +260,58 @@
                     <p class="mt-1 text-xs text-gray-500">{{ __('booking.apartment_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da die Wohnung bereits ausgewählt wurde.' }}</p>
                 </div>
 
-                <!-- Select Date -->
+                <!-- Date / Rental Period -->
                 <div class="mb-8">
-                    <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_date') ?? 'Datum auswählen' }}</label>
                     @php
-                        $dateDisplay = '';
                         // Get dates from formData or request parameters
                         $startAt = $formData['step2']['start_at'] ?? request()->get('check_in');
                         $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
                         
+                        // Determine if this is a long-term rental
+                        $isLongTermForDisplay = empty($endAt) || $endAt === null || trim($endAt) === '';
+                        if (!$isLongTermForDisplay && $room->short_term_allowed && $startAt) {
+                            try {
+                                $startDateCheck = \Carbon\Carbon::parse($startAt);
+                                $endDateCheck = \Carbon\Carbon::parse($endAt);
+                                $nightsCheck = $startDateCheck->diffInDays($endDateCheck);
+                                $isLongTermForDisplay = $nightsCheck > 30;
+                            } catch (\Exception $e) {
+                                $isLongTermForDisplay = true;
+                            }
+                        }
+                        
+                        $dateDisplay = '';
+                        $startDateFormatted = '';
                         if ($startAt) {
                             $startDate = \Carbon\Carbon::parse($startAt)->format('Y-m-d');
+                            $startDateFormatted = $startDate;
                             // Check if end_at exists and is not empty/null
                             if (!empty($endAt) && $endAt !== null && trim($endAt) !== '') {
                                 $endDate = \Carbon\Carbon::parse($endAt)->format('Y-m-d');
                                 $dateDisplay = $startDate . ' ' . __('booking.to') . ' ' . $endDate;
-                            } else {
-                                $dateDisplay = $startDate . ' (' . __('booking.long_term_rental') . ')';
                             }
                         }
                     @endphp
-                    <input type="text" id="booking_dates" name="booking_dates" 
-                           value="{{ old('booking_dates', $dateDisplay) }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
-                           readonly disabled>
+                    
+                    @if($isLongTermForDisplay)
+                        <label for="rental_period" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.rental_period') ?? 'Mietdauer' }}</label>
+                        <div class="space-y-3">
+                            @if($startDateFormatted)
+                            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                                <p class="text-sm text-gray-700 font-medium mb-1">{{ __('booking.date') ?? 'Datum' }}: {{ $startDateFormatted }}</p>
+                            </div>
+                            @endif
+                            <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                                <p class="text-sm text-gray-700">{{ __('booking.rental_duration_long_term') }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.date') ?? 'Datum' }}</label>
+                        <input type="text" id="booking_dates" name="booking_dates" 
+                               value="{{ old('booking_dates', $dateDisplay) }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
+                               readonly disabled>
+                    @endif
                     <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $formData['step2']['start_at'] ?? '') }}">
                     <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $formData['step2']['end_at'] ?? '') }}">
                     <p class="mt-1 text-xs text-gray-500">{{ __('booking.date_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da das Datum bereits ausgewählt wurde.' }}</p>

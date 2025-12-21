@@ -28,4 +28,9 @@ class House extends Model
     {
         return $this->hasMany(Room::class);
     }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(HouseImage::class)->orderBy('sort_order');
+    }
 }

@@ -38,6 +38,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('properties', \App\Http\Controllers\Admin\PropertyController::class);
         Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class);
         Route::resource('houses', \App\Http\Controllers\Admin\HouseController::class);
+        Route::post('houses/{house}/images', [\App\Http\Controllers\Admin\HouseController::class, 'uploadImage'])->name('houses.images.upload');
+        Route::put('houses/{house}/images/order', [\App\Http\Controllers\Admin\HouseController::class, 'updateImageOrder'])->name('houses.images.order');
+        Route::delete('houses/{house}/images/{image}', [\App\Http\Controllers\Admin\HouseController::class, 'deleteImage'])->name('houses.images.delete');
         Route::resource('rooms', \App\Http\Controllers\Admin\RoomController::class);
         Route::post('ical/sync', [\App\Http\Controllers\Admin\IcalController::class, 'sync'])
             ->middleware('throttle:ical-sync')
