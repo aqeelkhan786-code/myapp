@@ -40,7 +40,7 @@
                 <p class="text-sm text-gray-700 mb-1"><strong>IBAN:</strong> DE24 1001 1001 2623 5950 48</p>
                 <p class="text-sm text-gray-700"><strong>BIC:</strong> NTSBDEB1XXX</p>
                 <p class="text-sm text-gray-600 mt-3">
-                    <strong>Verwendungszweck:</strong> {{ $booking->guest_full_name }} + {{ $booking->room->name }} + {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}
+                    <strong>Verwendungszweck:</strong> {{ $booking->guest_full_name }} + {{ $booking->room->name }}@if($booking->start_at) + {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}@endif
                 </p>
             </div>
             <div class="bg-green-50 p-4 rounded-md">
@@ -74,7 +74,13 @@
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">{{ __('booking.check_in') }}:</span>
-                    <span class="font-semibold">{{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}</span>
+                    <span class="font-semibold">
+                        @if($booking->start_at)
+                            {{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}
+                        @else
+                            <span class="text-gray-500">{{ __('booking.not_set') }}</span>
+                        @endif
+                    </span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-600">{{ __('booking.check_out') }}:</span>

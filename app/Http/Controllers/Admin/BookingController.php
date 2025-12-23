@@ -175,6 +175,15 @@ class BookingController extends Controller
     }
 
     /**
+     * Display the specified booking
+     */
+    public function show(Booking $booking)
+    {
+        // Redirect to edit page since we don't have a separate show view
+        return redirect()->route('admin.bookings.edit', $booking);
+    }
+
+    /**
      * Show the form for editing a booking
      */
     public function edit(Booking $booking)
@@ -250,24 +259,39 @@ class BookingController extends Controller
      */
     public function regenerateDocument(Request $request, Booking $booking, $documentId)
     {
-        $document = \App\Models\Document::where('booking_id', $booking->id)
-            ->findOrFail($documentId);
-        
-        // Delete old PDF if exists
-        if ($document->storage_path && \Storage::exists($document->storage_path)) {
-            \Storage::delete($document->storage_path);
+        try {
+            $document = \App\Models\Document::where('booking_id', $booking->id)
+                ->findOrFail($documentId);
+            
+            // Delete old PDF if exists
+            if ($document->storage_path && \Storage::exists($document->storage_path)) {
+                \Storage::delete($document->storage_path);
+            }
+            
+            // Reset document
+            $document->update([
+                'storage_path' => '',
+                'version' => $document->version + 1,
+            ]);
+            
+            // Generate PDF synchronously (immediately) instead of queuing
+            $documentService = new \App\Services\DocumentService();
+            $documentService->generatePdf($document);
+            
+            // Refresh document to get updated storage_path
+            $document->refresh();
+            
+            return back()->with('success', 'Document regenerated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Document regeneration error', [
+                'document_id' => $documentId,
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return back()->withErrors(['error' => 'Failed to regenerate document: ' . $e->getMessage()]);
         }
-        
-        // Reset document
-        $document->update([
-            'storage_path' => '',
-            'version' => $document->version + 1,
-        ]);
-        
-        // Regenerate
-        \App\Jobs\GenerateDocumentPdf::dispatch($document);
-        
-        return back()->with('success', 'Document regeneration queued. Please wait a moment and refresh.');
     }
 
     /**
@@ -278,7 +302,7 @@ class BookingController extends Controller
         $request->validate([
             'room_id' => 'required|exists:rooms,id',
             'start_at' => 'required|date',
-            'end_at' => 'required|date|after:start_at',
+            'end_at' => 'nullable|date|after:start_at',
             'guest_first_name' => 'required|string|max:255',
             'guest_last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -291,7 +315,7 @@ class BookingController extends Controller
 
         $room = Room::findOrFail($request->room_id);
         $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
-        $endAt = Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay();
+        $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
 
         // Check for conflicts (excluding current booking)
         $conflicts = $this->bookingService->getConflicts($room, $startAt, $endAt, $booking->id);
@@ -311,7 +335,7 @@ class BookingController extends Controller
                 'room_id' => $room->id,
                 'room_name' => $room->name,
                 'start_at' => $startAt->format('Y-m-d'),
-                'end_at' => $endAt->format('Y-m-d'),
+                'end_at' => $endAt ? $endAt->format('Y-m-d') : null,
                 'conflicting_booking_ids' => $conflicts->pluck('id')->toArray(),
             ], auth()->id(), $booking, 'Booking conflict was overridden by admin');
         }
@@ -324,8 +348,8 @@ class BookingController extends Controller
         $changes = [
             'old' => [
                 'room_id' => $oldRoomId,
-                'start_at' => $oldStartAt->format('Y-m-d'),
-                'end_at' => $oldEndAt->format('Y-m-d'),
+                'start_at' => $oldStartAt ? $oldStartAt->format('Y-m-d') : null,
+                'end_at' => $oldEndAt ? $oldEndAt->format('Y-m-d') : null,
                 'status' => $oldStatus,
                 'guest_first_name' => $booking->guest_first_name,
                 'guest_last_name' => $booking->guest_last_name,
@@ -335,10 +359,13 @@ class BookingController extends Controller
 
         // Recalculate total if dates or room changed
         if ($booking->room_id != $room->id || 
-            $booking->start_at->notEqualTo($startAt->utc()) || 
-            $booking->end_at->notEqualTo($endAt->utc())) {
+            ($oldStartAt && $oldStartAt->notEqualTo($startAt->utc())) || 
+            ($oldEndAt && $endAt && $oldEndAt->notEqualTo($endAt->utc())) ||
+            ($oldEndAt === null && $endAt !== null) ||
+            ($oldEndAt !== null && $endAt === null) ||
+            !$oldStartAt) {
             $totalAmount = $this->bookingService->calculateTotal($room, $startAt, $endAt);
-            $isShortTerm = $room->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+            $isShortTerm = $endAt && $room->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
         } else {
             $totalAmount = $booking->total_amount;
             $isShortTerm = $booking->is_short_term;
@@ -347,7 +374,7 @@ class BookingController extends Controller
         $booking->update([
             'room_id' => $room->id,
             'start_at' => $startAt->utc(),
-            'end_at' => $endAt->utc(),
+            'end_at' => $endAt ? $endAt->utc() : null,
             'source' => $request->source,
             'status' => $request->status,
             'guest_first_name' => $request->guest_first_name,
@@ -363,7 +390,7 @@ class BookingController extends Controller
         $changes['new'] = [
             'room_id' => $room->id,
             'start_at' => $startAt->format('Y-m-d'),
-            'end_at' => $endAt->format('Y-m-d'),
+            'end_at' => $endAt ? $endAt->format('Y-m-d') : null,
             'status' => $request->status,
             'guest_first_name' => $request->guest_first_name,
             'guest_last_name' => $request->guest_last_name,
@@ -395,8 +422,8 @@ class BookingController extends Controller
             'booking_id' => $booking->id,
             'room_id' => $booking->room_id,
             'guest_name' => "{$booking->guest_first_name} {$booking->guest_last_name}",
-            'start_at' => $booking->start_at->format('Y-m-d'),
-            'end_at' => $booking->end_at->format('Y-m-d'),
+            'start_at' => $booking->start_at ? $booking->start_at->format('Y-m-d') : null,
+            'end_at' => $booking->end_at ? $booking->end_at->format('Y-m-d') : null,
             'status' => $booking->status,
         ], auth()->id(), $booking);
 

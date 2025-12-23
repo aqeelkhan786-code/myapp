@@ -68,6 +68,10 @@ return [
     'landlord_confirmation' => 'Landlord Confirmation',
     'rent_arrears_certificate' => 'Rent Arrears Certificate',
     'complete_booking' => 'Complete Booking',
+    'step_not_available' => 'This step is not available. Please contact support if you need assistance.',
+    'payment_not_successful' => 'Payment was not successful. Status',
+    'payment_processing_error' => 'Payment processing error',
+    'unknown' => 'unknown',
     'payment_required_short_term' => 'Payment Required for Short-term Booking',
     'payment_processed_stripe' => 'Payment will be processed securely via Stripe',
     'payment_processing_not_configured' => 'Payment Processing Not Configured',
@@ -82,6 +86,13 @@ return [
     'date' => 'Date',
     'rental_period' => 'Rental Period',
     'rental_duration_long_term' => 'Rental Duration: The rental period is 12 months. The rental relationship can also be terminated monthly before the end of the first rental year, subject to compliance with the statutory notice periods.',
+    'book_this_room' => 'Book This Room',
+    'start_booking_description' => 'Start your booking by filling out our simple 3-step form.',
+    'start_booking' => 'Start Booking',
+    'room_not_found' => 'Room not found.',
+    'room' => 'Room',
+    'price_per_night' => 'Price per night',
+    'not_set' => 'Not set',
 ];
 
 

@@ -69,6 +69,10 @@ return [
     'landlord_confirmation' => 'Vermieterbestätigung',
     'rent_arrears_certificate' => 'Mietschuldenfreiheitsbescheinigung',
     'complete_booking' => 'Buchung abschließen',
+    'step_not_available' => 'Dieser Schritt ist nicht verfügbar. Bitte kontaktieren Sie den Support, wenn Sie Hilfe benötigen.',
+    'payment_not_successful' => 'Zahlung war nicht erfolgreich. Status',
+    'payment_processing_error' => 'Zahlungsverarbeitungsfehler',
+    'unknown' => 'unbekannt',
     'payment_required_short_term' => 'Zahlung erforderlich für kurzfristige Buchung',
     'payment_processed_stripe' => 'Die Zahlung wird sicher über Stripe verarbeitet',
     'payment_processing_not_configured' => 'Zahlungsabwicklung nicht konfiguriert',
@@ -144,6 +148,13 @@ return [
     'date' => 'Datum',
     'rental_period' => 'Mietdauer',
     'rental_duration_long_term' => 'Mietdauer: Die Mietdauer beträgt 12 Monate. Das Mietverhältnis kann auch vor Ablauf des ersten Mietjahres unter Einhaltung der gesetzlichen Kündigungsfristen monatlich gekündigt werden.',
+    'book_this_room' => 'Dieses Zimmer buchen',
+    'start_booking_description' => 'Beginnen Sie Ihre Buchung, indem Sie unser einfaches 3-Schritte-Formular ausfüllen.',
+    'start_booking' => 'Buchung starten',
+    'room_not_found' => 'Zimmer nicht gefunden.',
+    'room' => 'Zimmer',
+    'price_per_night' => 'Preis pro Nacht',
+    'not_set' => 'Nicht gesetzt',
 ];
 
 

@@ -151,8 +151,17 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $booking->room->name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $booking->guest_full_name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }} - 
-                        {{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                        @if($booking->start_at)
+                            {{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}
+                        @else
+                            <span class="text-gray-400">{{ __('admin.not_set') }}</span>
+                        @endif
+                        @if($booking->start_at && $booking->end_at) - @endif
+                        @if($booking->end_at)
+                            {{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                        @else
+                            <span class="text-gray-400">({{ __('admin.long_term') }})</span>
+                        @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 text-xs font-semibold rounded-full

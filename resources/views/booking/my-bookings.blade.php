@@ -39,12 +39,16 @@
                         <div class="space-y-2 mb-4">
                             <div class="flex items-center text-sm text-gray-600">
                                 <i class="fa-solid fa-calendar-check w-5 mr-2 text-blue-600"></i>
-                                <span>{{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}</span>
-                                @if($booking->end_at)
-                                    <span class="mx-1">-</span>
-                                    <span>{{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}</span>
+                                @if($booking->start_at)
+                                    <span>{{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}</span>
+                                    @if($booking->end_at)
+                                        <span class="mx-1">-</span>
+                                        <span>{{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}</span>
+                                    @else
+                                        <span class="ml-2 text-xs text-gray-500">({{ __('booking.long_term_rental') }})</span>
+                                    @endif
                                 @else
-                                    <span class="ml-2 text-xs text-gray-500">(Long-term)</span>
+                                    <span class="text-gray-500">{{ __('booking.not_set') }}</span>
                                 @endif
                             </div>
                             

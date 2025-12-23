@@ -190,15 +190,23 @@ class BookingController extends Controller
                 'communication_preference' => 'required|in:Mail,Whatsapp',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:255',
-                'renter_address' => 'required|string|max:255',
-                'renter_postal_code' => 'required|string|max:255',
-                'renter_city' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
                 'start_at' => 'nullable|date',
                 'end_at' => 'nullable|date',
                 'signature' => 'required|string',
                 'payment_method_id' => $booking->is_short_term ? 'required|string' : 'nullable',
             ];
+            
+            // Address fields are only required for long-term rentals
+            if (!$booking->is_short_term) {
+                $validationRules['renter_address'] = 'required|string|max:255';
+                $validationRules['renter_postal_code'] = 'required|string|max:255';
+                $validationRules['renter_city'] = 'required|string|max:255';
+            } else {
+                $validationRules['renter_address'] = 'nullable|string|max:255';
+                $validationRules['renter_postal_code'] = 'nullable|string|max:255';
+                $validationRules['renter_city'] = 'nullable|string|max:255';
+            }
             
             // Job field is only required for long-term rentals
             if (!$booking->is_short_term) {
@@ -216,10 +224,18 @@ class BookingController extends Controller
                 'communication_preference',
                 'email',
                 'phone',
-                'renter_address',
-                'renter_postal_code',
-                'renter_city',
             ]);
+            
+            // Only include address fields if provided (required for long-term, optional for short-term)
+            if ($request->has('renter_address')) {
+                $updateData['renter_address'] = $request->renter_address;
+            }
+            if ($request->has('renter_postal_code')) {
+                $updateData['renter_postal_code'] = $request->renter_postal_code;
+            }
+            if ($request->has('renter_city')) {
+                $updateData['renter_city'] = $request->renter_city;
+            }
             
             // Only include job if provided (required for long-term, optional for short-term)
             if ($request->has('job')) {
@@ -605,12 +621,19 @@ class BookingController extends Controller
         $allRooms = Room::with('property')->orderBy('name')->get();
         
         // Prepare rooms data for JavaScript
-        $roomsData = $allRooms->map(function($r) {
+        // Determine if this is long-term to set the correct price
+        $checkIn = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
+        $checkOut = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
+        $isLongTermForPrice = empty($checkOut) || $checkOut === null || trim($checkOut) === '';
+        
+        $roomsData = $allRooms->map(function($r) use ($isLongTermForPrice) {
             return [
                 'id' => $r->id,
                 'name' => $r->name,
                 'address' => ($r->property && $r->property->address) ? $r->property->address : 'N/A',
-                'price' => $r->base_price
+                'base_price' => $r->base_price,
+                'monthly_price' => $r->monthly_price ?? 700,
+                'price' => $isLongTermForPrice ? ($r->monthly_price ?? 700) : $r->base_price
             ];
         })->values()->all();
         
@@ -684,13 +707,22 @@ class BookingController extends Controller
                 'room_id' => 'nullable|exists:rooms,id',
                 'start_at' => 'required|date|after:yesterday',
                 'end_at' => 'nullable|date|after:start_at',
-                'renter_postal_code' => 'required|string|max:255',
-                'renter_city' => 'required|string|max:255',
-                'renter_phone' => 'required|string|max:255',
-                'renter_address' => 'required|string|max:255', // Required for both short-term and long-term
                 'signature' => 'nullable|string', // Only required for long-term rentals
                 'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
             ];
+            
+            // Address fields are only required for long-term rentals
+            if ($isLongTermRental) {
+                $validationRules['renter_address'] = 'required|string|max:255';
+                $validationRules['renter_postal_code'] = 'required|string|max:255';
+                $validationRules['renter_city'] = 'required|string|max:255';
+                $validationRules['renter_phone'] = 'required|string|max:255';
+            } else {
+                $validationRules['renter_address'] = 'nullable|string|max:255';
+                $validationRules['renter_postal_code'] = 'nullable|string|max:255';
+                $validationRules['renter_city'] = 'nullable|string|max:255';
+                $validationRules['renter_phone'] = 'nullable|string|max:255';
+            }
             
             // Job field is only required for long-term rentals
             if ($isLongTermRental) {
@@ -749,16 +781,11 @@ class BookingController extends Controller
                 'end_at' => $request->end_at ?? null, // Optional for long-term rentals
                 'renter_name' => $renterName,
                 'renter_address' => $request->renter_address ?? '',
-                'renter_postal_code' => $request->renter_postal_code,
-                'renter_city' => $request->renter_city,
-                'renter_phone' => $request->renter_phone,
+                'renter_postal_code' => $request->renter_postal_code ?? '',
+                'renter_city' => $request->renter_city ?? '',
+                'renter_phone' => $request->renter_phone ?? $request->phone ?? '',
                 'renter_email' => $renterEmail,
             ];
-            
-            // For short-term rentals, address is collected in step 1, so ensure it's set
-            if (!$isLongTermRental && !isset($formData['step2']['renter_address'])) {
-                $formData['step2']['renter_address'] = $request->renter_address ?? '';
-            }
             
             $formData['step3'] = [
                 'signature' => $request->signature ?? null,

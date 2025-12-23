@@ -50,11 +50,23 @@
                 <div class="flex flex-wrap gap-4 text-sm">
                     <div>
                         <span class="text-gray-500">{{ __('booking.check_in') }}:</span>
-                        <span class="font-semibold ml-1">{{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}</span>
+                        <span class="font-semibold ml-1">
+                            @if($booking->start_at)
+                                {{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}
+                            @else
+                                <span class="text-gray-500">{{ __('booking.not_set') }}</span>
+                            @endif
+                        </span>
                     </div>
                     <div>
                         <span class="text-gray-500">{{ __('booking.check_out') }}:</span>
-                        <span class="font-semibold ml-1">{{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}</span>
+                        <span class="font-semibold ml-1">
+                            @if($booking->end_at)
+                                {{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                            @else
+                                <span class="text-gray-500">{{ __('booking.long_term_rental') }}</span>
+                            @endif
+                        </span>
                     </div>
                     <div>
                         <span class="text-gray-500">{{ __('booking.total') }}:</span>
@@ -166,10 +178,10 @@
                 <div class="mb-8">
                     <label for="booking_dates" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.select_date') ?? 'Datum auswählen' }}</label>
                     <input type="text" id="booking_dates" name="booking_dates" 
-                           value="{{ old('booking_dates', \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d') . ' ' . __('booking.to') . ' ' . \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')) }}" 
+                           value="{{ old('booking_dates', ($booking->start_at && $booking->end_at) ? \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d') . ' ' . __('booking.to') . ' ' . \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d') : '') }}" 
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
-                    <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d')) }}">
-                    <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')) }}">
+                    <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $booking->start_at ? \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d') : '') }}">
+                    <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $booking->end_at ? \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d') : '') }}">
                 </div>
 
                 <!-- RENTAL AGREEMENT Section -->
@@ -270,7 +282,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Rental Period</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>This field is hidden when viewing the form</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
-                            <strong>Tenancy from</strong> {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}
+                            <strong>Tenancy from</strong> @if($booking->start_at){{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}@else{{ __('booking.not_set') }}@endif
                         </p>
                         <p class="text-sm text-gray-700 mb-2">For 1 year</p>
                         <p class="text-sm text-gray-600">

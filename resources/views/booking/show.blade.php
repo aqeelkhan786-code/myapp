@@ -6,7 +6,7 @@
 @if(!$room)
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p class="text-red-800">Room not found.</p>
+            <p class="text-red-800">{{ __('booking.room_not_found') }}</p>
         </div>
     </div>
 @else
@@ -38,15 +38,15 @@
             </div>
             
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ $room->name ?? 'Room' }}</h1>
+                <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ $room->name ?? __('booking.room') }}</h1>
                 <p class="text-gray-600 mb-4">{{ $room->description ?? '' }}</p>
                 <div class="space-y-2">
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Capacity:</span>
-                        <span class="font-semibold">{{ $room->capacity ?? 0 }} guests</span>
+                        <span class="text-gray-600">{{ __('booking.capacity') }}:</span>
+                        <span class="font-semibold">{{ $room->capacity ?? 0 }} {{ ($room->capacity ?? 0) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Price per night:</span>
+                        <span class="text-gray-600">{{ __('booking.price_per_night') }}:</span>
                         <span class="font-semibold">€{{ number_format($room->base_price ?? 0, 2) }}</span>
                     </div>
                 </div>
@@ -55,12 +55,12 @@
         
         <!-- Booking Button -->
         <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Book This Room</h2>
-            <p class="text-gray-600 mb-6">Start your booking by filling out our simple 3-step form.</p>
+            <h2 class="text-xl font-bold text-gray-900 mb-4">{{ __('booking.book_this_room') }}</h2>
+            <p class="text-gray-600 mb-6">{{ __('booking.start_booking_description') }}</p>
             
             <a href="{{ route('booking.form', $room) }}" 
                class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block font-semibold">
-                Start Booking
+                {{ __('booking.start_booking') }}
             </a>
         </div>
     </div>

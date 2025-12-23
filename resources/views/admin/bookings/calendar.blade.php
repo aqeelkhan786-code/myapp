@@ -109,7 +109,7 @@
             <!-- Week View -->
             <div class="p-6">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-6 text-center">
-                    Week of {{ $startDate->format('M d') }} - {{ $endDate->format('M d, Y') }}
+                    {{ __('admin.week_of') }} {{ $startDate->format('M d') }} - {{ $endDate->format('M d, Y') }}
                 </h2>
                 <div class="grid grid-cols-7 gap-4">
                     @php $currentDate = $startDate->copy(); @endphp
@@ -163,8 +163,17 @@
                                     <h3 class="text-lg font-semibold text-gray-900">{{ $booking->guest_full_name }}</h3>
                                     <p class="text-sm text-gray-600">{{ $booking->room->property->name }} - {{ $booking->room->name }}</p>
                                     <p class="text-sm text-gray-500 mt-1">
-                                        {{ Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }} - 
-                                        {{ Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                                        @if($booking->start_at)
+                                            {{ Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}
+                                        @else
+                                            <span class="text-gray-400">{{ __('admin.not_set') }}</span>
+                                        @endif
+                                        @if($booking->start_at && $booking->end_at) - @endif
+                                        @if($booking->end_at)
+                                            {{ Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                                        @else
+                                            <span class="text-gray-400">({{ __('admin.long_term') }})</span>
+                                        @endif
                                     </p>
                                 </div>
                                 <div class="flex gap-2">
@@ -173,7 +182,7 @@
                                     </span>
                                     <a href="{{ route('admin.bookings.edit', $booking) }}" 
                                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
-                                        Edit
+                                        {{ __('admin.edit') }}
                                     </a>
                                 </div>
                             </div>
@@ -181,7 +190,7 @@
                         @endforeach
                     @else
                         <div class="text-center py-12 text-gray-500">
-                            <p>No bookings for this day</p>
+                            <p>{{ __('admin.no_bookings_for_day') }}</p>
                         </div>
                     @endif
                 </div>

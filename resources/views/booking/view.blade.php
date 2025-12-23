@@ -40,7 +40,13 @@
                         </div>
                         <div>
                             <span class="text-sm text-gray-600">{{ __('booking.check_in_date') }}:</span>
-                            <p class="font-semibold text-gray-900">{{ \Carbon\Carbon::parse($booking->start_at)->format('F d, Y') }}</p>
+                            <p class="font-semibold text-gray-900">
+                                @if($booking->start_at)
+                                    {{ \Carbon\Carbon::parse($booking->start_at)->format('F d, Y') }}
+                                @else
+                                    <span class="text-gray-500">{{ __('booking.not_set') }}</span>
+                                @endif
+                            </p>
                         </div>
                         <div>
                             <span class="text-sm text-gray-600">{{ __('booking.check_out_date') }}:</span>
@@ -48,14 +54,14 @@
                                 @if($booking->end_at)
                                     {{ \Carbon\Carbon::parse($booking->end_at)->format('F d, Y') }}
                                 @else
-                                    <span class="text-gray-500">Long-term rental</span>
+                                    <span class="text-gray-500">{{ __('booking.long_term_rental') }}</span>
                                 @endif
                             </p>
                         </div>
                         <div>
                             <span class="text-sm text-gray-600">Duration:</span>
                             <p class="font-semibold text-gray-900">
-                                @if($booking->end_at)
+                                @if($booking->start_at && $booking->end_at)
                                     {{ \Carbon\Carbon::parse($booking->start_at)->diffInDays(\Carbon\Carbon::parse($booking->end_at)) }} days
                                 @else
                                     Long-term rental
@@ -149,7 +155,7 @@
                                         <p class="text-sm text-gray-500">
                                             Version {{ $document->version }}
                                             @if($document->signed_at)
-                                                • Signed on {{ \Carbon\Carbon::parse($document->signed_at)->format('M d, Y') }}
+                                                • Signed on @if($document->signed_at){{ \Carbon\Carbon::parse($document->signed_at)->format('M d, Y') }}@else{{ __('booking.not_set') }}@endif
                                             @endif
                                         </p>
                                     </div>

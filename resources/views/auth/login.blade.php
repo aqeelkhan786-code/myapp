@@ -63,7 +63,7 @@
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     const originalText = submitBtn.textContent || submitBtn.innerHTML;
-                    submitBtn.textContent = 'Logging in...';
+                    submitBtn.textContent = @json(__('auth.Logging in...'));
                     
                     // Re-enable after 5 seconds in case of error
                     setTimeout(function() {

@@ -26,7 +26,7 @@
     @stack('styles')
 </head>
 <body class="font-sans antialiased">
-    <div class="min-h-screen bg-gray-100">
+    <div class="bg-gray-100">
         @unless(request()->routeIs('booking.form') || request()->routeIs('booking.form-step'))
             @include('layouts.navigation')
         @endunless

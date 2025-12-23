@@ -3,7 +3,7 @@
 @section('title', __('booking.booking_form') . ' - ' . __('booking.step') . ' ' . $step)
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-12">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Progress Steps - Only Step 1 visible to users -->
     <div class="mb-8">
         <div class="flex items-center justify-center">
@@ -67,7 +67,38 @@
         </div>
     </div>
     
-    <div class="bg-white rounded-lg shadow-md p-8 pb-6">
+    <!-- Room Amenities Section -->
+    <div class="mb-8 bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ {{ app()->getLocale() === 'de' ? 'Ausstattung & Komfort' : 'Amenities & Comfort' }}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="amenity-item">
+                <span class="text-gray-700">📶 {{ app()->getLocale() === 'de' ? 'Kostenloses WLAN – stabil und zuverlässig' : 'WiFi – free and reliable' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">🍳 {{ app()->getLocale() === 'de' ? 'Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht' : 'Fully equipped kitchen – for shared use' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">🛏️ {{ app()->getLocale() === 'de' ? 'Bequeme Betten – für einen erholsamen Schlaf' : 'Comfortable beds – restful sleep guaranteed' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">📺 {{ app()->getLocale() === 'de' ? 'TV in jedem Zimmer' : 'TV in every room' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">🛋️ {{ app()->getLocale() === 'de' ? 'Gemeinschaftsbereiche – perfekt zum Entspannen am Abend' : 'Common areas – for relaxed evenings' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">🚗 {{ app()->getLocale() === 'de' ? 'Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe' : 'Parking – directly at the house or nearby' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">📍 {{ app()->getLocale() === 'de' ? 'Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV' : 'Central location – good connection to shopping and public transport' }}</span>
+            </div>
+            <div class="amenity-item">
+                <span class="text-gray-700">📅 {{ app()->getLocale() === 'de' ? 'Flexible Mietdauer – kurz- oder langfristig möglich' : 'Flexible rental period – short and long-term stays possible' }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-8">
         @if($step == 1)
             <!-- Step 1: Rental Agreement Form -->
             <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.rental_agreement_title') }}</h2>
@@ -183,65 +214,6 @@
                     </div>
                 </div>
 
-                @php
-                    // Determine if this is a short-term rental for showing address fields
-                    $startAtCheck = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
-                    $endAtCheck = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
-                    $isShortTermCheck = false;
-                    
-                    // Only short-term if end_at exists, is not empty, and nights <= 30
-                    if ($endAtCheck && trim($endAtCheck) !== '' && $startAtCheck && $room->short_term_allowed) {
-                        $startDateCheck = \Carbon\Carbon::parse($startAtCheck);
-                        $endDateCheck = \Carbon\Carbon::parse($endAtCheck);
-                        $nightsCheck = $startDateCheck->diffInDays($endDateCheck);
-                        $isShortTermCheck = $nightsCheck <= 30;
-                    }
-                @endphp
-
-                @if($isShortTermCheck)
-                <!-- Address Fields for Short-term Rentals (shown with personal info) -->
-                <div class="mb-8 border-t pt-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.address_information') }}</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address') }} {{ __('common.required') }}</label>
-                            <input type="text" name="renter_address" id="renter_address" 
-                                   value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_address')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postal_code') }} {{ __('common.required') }}</label>
-                            <input type="text" name="renter_postal_code" id="renter_postal_code" 
-                                   value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_postal_code')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="renter_city" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.city') }} {{ __('common.required') }}</label>
-                            <input type="text" name="renter_city" id="renter_city" 
-                                   value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_city')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') }} {{ __('common.required') }}</label>
-                            <input type="tel" name="renter_phone" id="renter_phone" 
-                                   value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? $formData['step1']['phone'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_phone')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-                @endif
 
                 <!-- Apartment -->
                 <div class="mb-6">
@@ -727,7 +699,7 @@
                 @endif
                 @endif
                 
-                <div class="flex justify-end mt-4 mb-2">
+                <div class="flex justify-end mt-4">
                     <button type="submit" id="submit-btn" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                         {{ __('booking.complete_booking') }}
                     </button>
@@ -736,7 +708,7 @@
         @else
             <!-- Steps 2 and 3 are admin-only and not visible to regular users -->
             <div class="text-center py-12">
-                <p class="text-gray-500 text-lg">This step is not available. Please contact support if you need assistance.</p>
+                <p class="text-gray-500 text-lg">{{ __('booking.step_not_available') }}</p>
             </div>
         @endif
         
@@ -881,7 +853,7 @@
                 @csrf
                 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.signature') }} *</label>
                     <canvas id="signature-pad" class="border border-gray-300 rounded-md" width="600" height="200"></canvas>
                     <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">{{ __('booking.clear_signature') }}</button>
                     <input type="hidden" name="signature" id="signature-data">
@@ -893,10 +865,10 @@
                 <div class="flex justify-between">
                     <a href="{{ route('booking.form', ['room' => $room->id, 'step' => 2]) }}" 
                        class="bg-gray-200 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors">
-                        Previous
+                        {{ __('booking.previous') }}
                     </a>
                     <button type="submit" class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors">
-                        Complete Booking
+                        {{ __('booking.complete_booking') }}
                     </button>
                 </div>
             </form>
@@ -956,9 +928,18 @@
             const roomAddressEl = document.getElementById('room-address');
             const rentPerNightEl = document.getElementById('rent-per-night');
             
+            // Determine if long-term based on check_out parameter or end_at
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkOut = urlParams.get('check_out');
+            const isLongTerm = !checkOut || checkOut === '';
+            
             if (selectedRoomNameEl) selectedRoomNameEl.textContent = selectedRoom.name;
             if (roomAddressEl) roomAddressEl.value = selectedRoom.address;
-            if (rentPerNightEl) rentPerNightEl.textContent = '€' + parseFloat(selectedRoom.price).toFixed(2);
+            if (rentPerNightEl) {
+                // Use monthly_price for long-term, base_price for short-term
+                const price = isLongTerm ? (selectedRoom.monthly_price || 700) : (selectedRoom.base_price || 0);
+                rentPerNightEl.textContent = '€' + parseFloat(price).toFixed(2);
+            }
         }
     }
     
@@ -1331,7 +1312,7 @@
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
                         if (paymentMessage) {
-                            paymentMessage.textContent = 'Payment was not successful. Status: ' + (finalPaymentIntent ? finalPaymentIntent.status : 'unknown');
+                            paymentMessage.textContent = @json(__('booking.payment_not_successful')) + ': ' + (finalPaymentIntent ? finalPaymentIntent.status : @json(__('booking.unknown')));
                             paymentMessage.classList.remove('hidden');
                         }
                     }
@@ -1339,7 +1320,7 @@
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     if (paymentMessage) {
-                        paymentMessage.textContent = 'Payment processing error: ' + error.message;
+                        paymentMessage.textContent = @json(__('booking.payment_processing_error')) + ': ' + error.message;
                         paymentMessage.classList.remove('hidden');
                     }
                 }
@@ -1447,7 +1428,9 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     // Get blocked dates from bookings
-    const blockedDates = @json(($bookings ?? collect())->map(function($booking) {
+    const blockedDates = @json(($bookings ?? collect())->filter(function($booking) {
+        return $booking->start_at && $booking->end_at;
+    })->map(function($booking) {
         return [
             \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
             \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
