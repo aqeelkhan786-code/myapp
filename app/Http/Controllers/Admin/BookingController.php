@@ -54,6 +54,96 @@ class BookingController extends Controller
     }
 
     /**
+     * Display table-style calendar view (like PDF format)
+     */
+    public function calendarTable(Request $request)
+    {
+        // Get start month from request or default to current month
+        $startMonth = $request->get('month', now('Europe/Berlin')->format('Y-m'));
+        $startDate = Carbon::parse($startMonth . '-01')->setTimezone('Europe/Berlin');
+        
+        // Number of months to display (default 5 months like PDF)
+        $monthsCount = $request->get('months', 5);
+        
+        // Set Carbon locale for month names
+        $locale = app()->getLocale();
+        Carbon::setLocale($locale);
+        
+        // Generate months array
+        $months = [];
+        for ($i = 0; $i < $monthsCount; $i++) {
+            $monthDate = $startDate->copy()->addMonths($i);
+            $months[] = [
+                'date' => $monthDate,
+                'name' => $monthDate->translatedFormat('F'), // Use translatedFormat for locale-aware month names
+                'year' => $monthDate->format('Y'),
+                'start' => $monthDate->copy()->startOfMonth(),
+                'end' => $monthDate->copy()->endOfMonth(),
+            ];
+        }
+        
+        // Get all locations with houses and rooms
+        $locations = \App\Models\Location::with(['houses.rooms' => function($query) {
+            $query->orderBy('name');
+        }])->orderBy('name')->get();
+        
+        // Get all confirmed bookings for the date range
+        $bookingsStart = $months[0]['start']->copy()->startOfDay();
+        $bookingsEnd = $months[count($months) - 1]['end']->copy()->endOfDay();
+        
+        // Get all confirmed bookings that overlap with the date range
+        // A booking overlaps if: start_at <= range_end AND (end_at >= range_start OR end_at IS NULL)
+        $bookings = Booking::with(['room.house.location'])
+            ->where('status', 'confirmed')
+            ->where('start_at', '<=', $bookingsEnd->utc())
+            ->where(function($query) use ($bookingsStart) {
+                $query->whereNull('end_at')
+                      ->orWhere('end_at', '>=', $bookingsStart->utc());
+            })
+            ->get();
+        
+        // Organize bookings by room and month for easy lookup
+        $bookingsByRoomMonth = [];
+        foreach ($bookings as $booking) {
+            $roomId = $booking->room_id;
+            $bookingStart = Carbon::parse($booking->start_at)->setTimezone('Europe/Berlin');
+            $bookingEnd = $booking->end_at ? Carbon::parse($booking->end_at)->setTimezone('Europe/Berlin') : null;
+            
+            foreach ($months as $monthIndex => $month) {
+                $monthStart = $month['start'];
+                $monthEnd = $month['end'];
+                
+                // Check if booking overlaps with this month
+                $overlaps = false;
+                if ($bookingEnd) {
+                    $overlaps = $bookingStart->lte($monthEnd) && $bookingEnd->gte($monthStart);
+                } else {
+                    // Long-term booking (no end date)
+                    $overlaps = $bookingStart->lte($monthEnd);
+                }
+                
+                if ($overlaps) {
+                    if (!isset($bookingsByRoomMonth[$roomId])) {
+                        $bookingsByRoomMonth[$roomId] = [];
+                    }
+                    if (!isset($bookingsByRoomMonth[$roomId][$monthIndex])) {
+                        $bookingsByRoomMonth[$roomId][$monthIndex] = [];
+                    }
+                    $bookingsByRoomMonth[$roomId][$monthIndex][] = $booking;
+                }
+            }
+        }
+        
+        return view('admin.bookings.calendar-table', compact(
+            'locations', 
+            'months', 
+            'bookingsByRoomMonth',
+            'startMonth',
+            'monthsCount'
+        ));
+    }
+
+    /**
      * Display a listing of bookings
      */
     public function index(Request $request)

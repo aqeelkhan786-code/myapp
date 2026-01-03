@@ -10,6 +10,9 @@
             <a href="{{ route('admin.bookings.calendar') }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
                 {{ __('admin.calendar_view') }}
             </a>
+            <a href="{{ route('admin.bookings.calendar-table') }}" class="bg-red-700 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors font-medium shadow-sm">
+                {{ __('admin.table_calendar') }}
+            </a>
             <form action="{{ route('admin.ical.sync') }}" method="POST" class="inline">
                 @csrf
                 <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
