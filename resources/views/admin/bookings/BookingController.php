@@ -6,19 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Services\BookingService;
-use App\Mail\BookingConfirmation;
+use App\Services\DocumentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class BookingController extends Controller
 {
     protected $bookingService;
+    protected $documentService;
 
-    public function __construct(BookingService $bookingService)
+    public function __construct(BookingService $bookingService, DocumentService $documentService)
     {
         $this->middleware('auth');
         $this->bookingService = $bookingService;
+        $this->documentService = $documentService;
     }
 
     /**
@@ -257,16 +258,9 @@ class BookingController extends Controller
             'conflicts' => $hasConflicts ? $conflicts->pluck('id')->toArray() : [],
         ], auth()->id(), $booking);
 
-        // Send confirmation email if booking is created as confirmed
+        // Generate and send check-in document if booking is created as confirmed
         if ($request->status === 'confirmed') {
-            try {
-                Mail::to($booking->email)->send(new BookingConfirmation($booking->fresh()));
-            } catch (\Exception $e) {
-                \Log::error('Failed to send booking confirmation email', [
-                    'booking_id' => $booking->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->documentService->generateAndSendCheckInDocument($booking);
         }
 
         if ($hasConflicts) {
@@ -349,16 +343,9 @@ class BookingController extends Controller
                 'reason' => 'Payment marked as paid',
             ], auth()->id(), $booking);
             
-            // Send confirmation email if status changed to confirmed
+            // Generate and send check-in document if status changed to confirmed
             if ($newStatus === 'confirmed') {
-                try {
-                    Mail::to($booking->email)->send(new BookingConfirmation($booking->fresh()));
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email', [
-                        'booking_id' => $booking->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                $this->documentService->generateAndSendCheckInDocument($booking);
             }
         }
 
@@ -523,16 +510,9 @@ class BookingController extends Controller
                 'new_status' => $request->status,
             ], auth()->id(), $booking);
             
-            // Send confirmation email if status changed to confirmed
-            if ($request->status === 'confirmed' && $oldStatus !== 'confirmed') {
-                try {
-                    Mail::to($booking->email)->send(new BookingConfirmation($booking->fresh()));
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email', [
-                        'booking_id' => $booking->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+            // Generate and send check-in document if status changed to confirmed
+            if ($request->status === 'confirmed') {
+                $this->documentService->generateAndSendCheckInDocument($booking);
             }
         }
 

@@ -22,6 +22,7 @@ class Room extends Model
         'monthly_price',
         'short_term_allowed',
         'description',
+        'check_in_pdf_path',
     ];
 
     protected $casts = [
@@ -68,5 +69,14 @@ class Room extends Model
     public function blackoutDates(): HasMany
     {
         return $this->hasMany(BlackoutDate::class);
+    }
+
+    /**
+     * Get the check-in PDF path for this room
+     */
+    public function getCheckInPdfPath(): ?string
+    {
+        $documentService = app(\App\Services\DocumentService::class);
+        return $documentService->getCheckInPdfPath($this);
     }
 }

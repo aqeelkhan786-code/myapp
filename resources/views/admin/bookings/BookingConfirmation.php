@@ -3,14 +3,11 @@
 namespace App\Mail;
 
 use App\Models\Booking;
-use App\Services\DocumentService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 
 class BookingConfirmation extends Mailable
 {
@@ -47,24 +44,5 @@ class BookingConfirmation extends Mailable
                 'booking' => $this->booking,
             ],
         );
-    }
-
-    /**
-     * Get the attachments for the message.
-     */
-    public function attachments(): array
-    {
-        $attachments = [];
-        
-        // Get check-in PDF if available
-        $documentService = app(DocumentService::class);
-        $checkInPdfPath = $documentService->getCheckInPdfPath($this->booking->room);
-        
-        if ($checkInPdfPath && Storage::exists($checkInPdfPath)) {
-            $attachments[] = Attachment::fromStorage($checkInPdfPath)
-                ->as('Check-In-Information.pdf');
-        }
-        
-        return $attachments;
     }
 }
