@@ -43,11 +43,11 @@
                         <dd class="mt-1 text-sm text-gray-900">{{ $room->capacity }} {{ $room->capacity == 1 ? __('admin.guest') : __('admin.guests') }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('admin.base_price') }} (Short-term per night)</dt>
+                        <dt class="text-sm font-medium text-gray-500">{{ __('admin.base_price_short_term') }}</dt>
                         <dd class="mt-1 text-sm text-gray-900">€{{ number_format($room->base_price, 2) }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">Monthly Price (Long-term per month)</dt>
+                        <dt class="text-sm font-medium text-gray-500">{{ __('admin.monthly_price_long_term') }}</dt>
                         <dd class="mt-1 text-sm text-gray-900">€{{ number_format($room->monthly_price ?? 700, 2) }}</dd>
                     </div>
                     <div>
@@ -159,11 +159,11 @@
                         <div class="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <div>
                                 <p class="text-sm font-medium text-gray-900">
-                                    {{ \Carbon\Carbon::parse($blackout->start_date)->format('M d, Y') }} - 
-                                    {{ \Carbon\Carbon::parse($blackout->end_date)->format('M d, Y') }}
+                                    {{ \Carbon\Carbon::parse($blackout->start_date)->locale(app()->getLocale())->translatedFormat('d.m.Y') }} - 
+                                    {{ \Carbon\Carbon::parse($blackout->end_date)->locale(app()->getLocale())->translatedFormat('d.m.Y') }}
                                 </p>
                                 <p class="text-xs text-gray-600">
-                                    Reason: <span class="font-semibold">{{ ucfirst($blackout->reason) }}</span>
+                                    {{ __('admin.reason') }}: <span class="font-semibold">{{ ucfirst(__('admin.' . $blackout->reason)) }}</span>
                                     @if($blackout->notes)
                                         | {{ $blackout->notes }}
                                     @endif

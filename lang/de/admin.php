@@ -13,6 +13,7 @@ return [
     'confirmed' => 'Bestätigt',
     'cancelled' => 'Storniert',
     'room' => 'Zimmer',
+    'rooms' => 'Zimmer',
     'property' => 'Immobilie',
     'capacity' => 'Kapazität',
     'price' => 'Preis',
@@ -238,5 +239,8 @@ return [
     'moving_out_legend' => 'Zieht diesen Monat aus',
     'click_booking_edit' => 'Klicken Sie auf eine Buchung, um Details zu bearbeiten',
     'table_calendar' => 'Tabellenkalender',
+    'location_house' => 'Standort / Haus',
+    'not_assigned' => 'Nicht zugewiesen',
+    'no_image' => 'Kein Bild',
 ];
 

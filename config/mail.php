@@ -114,6 +114,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Owner Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This is the email address of the owner/landlord that will receive
+    | notifications and documents when sendToOwner is enabled.
+    |
+    */
+
+    'owner_email' => env('MAIL_OWNER_EMAIL', 'buchung@ma-room.de'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Markdown Mail Settings
     |--------------------------------------------------------------------------
     |

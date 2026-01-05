@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Storage;
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.room') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.property') }}</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location / House</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.location_house') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.capacity') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.price') }}</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('admin.short_term') }}</th>
@@ -51,7 +51,7 @@ use Illuminate\Support\Facades\Storage;
                                  onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'%3E%3Crect width=\'40\' height=\'40\' fill=\'%23e5e7eb\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%239ca3af\' font-size=\'10\'%3ENo Image%3C/text%3E%3C/svg%3E';">
                             @else
                             <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center mr-3">
-                                <span class="text-xs text-gray-400">No Image</span>
+                                <span class="text-xs text-gray-400">{{ __('admin.no_image') }}</span>
                             </div>
                             @endif
                             <div>
@@ -66,7 +66,7 @@ use Illuminate\Support\Facades\Storage;
                             <div class="text-sm font-medium">{{ $room->house->location->name }}</div>
                             <div class="text-xs text-gray-500">{{ $room->house->name }}</div>
                         @else
-                            <span class="text-gray-400 italic">Not assigned</span>
+                            <span class="text-gray-400 italic">{{ __('admin.not_assigned') }}</span>
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $room->capacity }}</td>

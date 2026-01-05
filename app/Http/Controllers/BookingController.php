@@ -197,15 +197,17 @@ class BookingController extends Controller
                 'payment_method_id' => $booking->is_short_term ? 'required|string' : 'nullable',
             ];
             
-            // Address fields are only required for long-term rentals
+            // Address fields are only required for short-term rentals
             if (!$booking->is_short_term) {
-                $validationRules['renter_address'] = 'required|string|max:255';
-                $validationRules['renter_postal_code'] = 'required|string|max:255';
-                $validationRules['renter_city'] = 'required|string|max:255';
-            } else {
                 $validationRules['renter_address'] = 'nullable|string|max:255';
                 $validationRules['renter_postal_code'] = 'nullable|string|max:255';
                 $validationRules['renter_city'] = 'nullable|string|max:255';
+                $validationRules['renter_phone'] = 'nullable|string|max:255';
+            } else {
+                $validationRules['renter_address'] = 'required|string|max:255';
+                $validationRules['renter_postal_code'] = 'required|string|max:255';
+                $validationRules['renter_city'] = 'required|string|max:255';
+                $validationRules['renter_phone'] = 'required|string|max:255';
             }
             
             // Job field is only required for long-term rentals
@@ -711,17 +713,17 @@ class BookingController extends Controller
                 'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
             ];
             
-            // Address fields are only required for long-term rentals
+            // Address fields are only required for short-term rentals
             if ($isLongTermRental) {
-                $validationRules['renter_address'] = 'required|string|max:255';
-                $validationRules['renter_postal_code'] = 'required|string|max:255';
-                $validationRules['renter_city'] = 'required|string|max:255';
-                $validationRules['renter_phone'] = 'required|string|max:255';
-            } else {
                 $validationRules['renter_address'] = 'nullable|string|max:255';
                 $validationRules['renter_postal_code'] = 'nullable|string|max:255';
                 $validationRules['renter_city'] = 'nullable|string|max:255';
                 $validationRules['renter_phone'] = 'nullable|string|max:255';
+            } else {
+                $validationRules['renter_address'] = 'required|string|max:255';
+                $validationRules['renter_postal_code'] = 'required|string|max:255';
+                $validationRules['renter_city'] = 'required|string|max:255';
+                $validationRules['renter_phone'] = 'required|string|max:255';
             }
             
             // Job field is only required for long-term rentals

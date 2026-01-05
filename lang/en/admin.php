@@ -13,6 +13,7 @@ return [
     'confirmed' => 'Confirmed',
     'cancelled' => 'Cancelled',
     'room' => 'Room',
+    'rooms' => 'Rooms',
     'property' => 'Property',
     'capacity' => 'Capacity',
     'price' => 'Price',
@@ -238,5 +239,8 @@ return [
     'moving_out_legend' => 'Moving out this month',
     'click_booking_edit' => 'Click on any booking to edit details',
     'table_calendar' => 'Table Calendar',
+    'location_house' => 'Location / House',
+    'not_assigned' => 'Not assigned',
+    'no_image' => 'No Image',
 ];
 

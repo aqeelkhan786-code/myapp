@@ -21,6 +21,19 @@ return [
     'room' => 'Room',
     'conflicts_with' => 'conflicts with',
     'visit_us' => 'Visit Us',
+    'checkin_pdf_documents' => 'Check-in PDF Documents',
+    'checkin_document' => 'Check-in Document',
+    'download' => 'Download',
+    'send' => 'Send',
+    'download_pdf' => 'Download PDF',
+    'send_via_email' => 'Send via Email',
+    'send_checkin_pdf_email' => 'Send Check-in PDF via Email',
+    'recipient_email' => 'Recipient Email',
+    'subject' => 'Subject',
+    'message' => 'Message',
+    'cancel' => 'Cancel',
+    'send_email' => 'Send Email',
+    'pdf_attached' => 'The following PDF will be attached:',
 ];
 
 

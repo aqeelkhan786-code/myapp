@@ -373,51 +373,6 @@
                         </div>
                     </div>
 
-                    <!-- Renter Section -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.renter') }}</h3>
-                        <p class="text-sm text-gray-600 mb-4"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
-                                <input type="text" name="renter_address" id="renter_address" 
-                                       value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                @error('renter_address')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postcode_city_required') }}</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input type="text" name="renter_postal_code" id="renter_postal_code" 
-                                           value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
-                                           placeholder="{{ __('booking.postal_code') ?? 'Postleitzahl' }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                    <input type="text" name="renter_city" id="renter_city" 
-                                           value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
-                                           placeholder="{{ __('booking.city') ?? 'Stadt' }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                </div>
-                                @error('renter_postal_code')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                                @error('renter_city')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                            <div>
-                                <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.telephone_required') }}</label>
-                                <input type="tel" name="renter_phone" id="renter_phone" 
-                                       value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? '') }}" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                @error('renter_phone')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Rental property -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">🏠 Mietobjekt</h3>
@@ -667,6 +622,51 @@
                     }
                 @endphp
                 @if($isShortTermForPayment)
+                <!-- Renter Section for Short-term Bookings -->
+                <div class="mb-8 border-t pt-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.renter') }}</h2>
+                    <p class="text-sm text-gray-600 mb-4"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
+                            <input type="text" name="renter_address" id="renter_address" 
+                                   value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_address')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postcode_city_required') }}</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" name="renter_postal_code" id="renter_postal_code" 
+                                       value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
+                                       placeholder="{{ __('booking.postal_code') ?? 'Postleitzahl' }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <input type="text" name="renter_city" id="renter_city" 
+                                       value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
+                                       placeholder="{{ __('booking.city') ?? 'Stadt' }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            @error('renter_postal_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            @error('renter_city')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.telephone_required') }}</label>
+                            <input type="tel" name="renter_phone" id="renter_phone" 
+                                   value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            @error('renter_phone')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Payment Section for Short-term Bookings -->
                 <div class="mb-8 border-t pt-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.payment_information') ?? 'Zahlungsinformationen' }}</h2>

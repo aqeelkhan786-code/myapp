@@ -23,6 +23,8 @@ require __DIR__.'/auth.php';
 // Dashboard (protected route)
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/check-in-pdf/{pdf}/download', [\App\Http\Controllers\DashboardController::class, 'downloadCheckInPdf'])->name('dashboard.checkin-pdf.download');
+    Route::post('/dashboard/check-in-pdf/send', [\App\Http\Controllers\DashboardController::class, 'sendCheckInPdfs'])->name('dashboard.checkin-pdf.send');
     
     // Profile Routes
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');

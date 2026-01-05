@@ -21,6 +21,19 @@ return [
     'room' => 'Zimmer',
     'conflicts_with' => 'steht in Konflikt mit',
     'visit_us' => 'Besuchen Sie uns',
+    'checkin_pdf_documents' => 'Check-in PDF Dokumente',
+    'checkin_document' => 'Check-in Dokument',
+    'download' => 'Herunterladen',
+    'send' => 'Senden',
+    'download_pdf' => 'PDF herunterladen',
+    'send_via_email' => 'Per E-Mail senden',
+    'send_checkin_pdf_email' => 'Check-in PDF per E-Mail senden',
+    'recipient_email' => 'Empfänger-E-Mail',
+    'subject' => 'Betreff',
+    'message' => 'Nachricht',
+    'cancel' => 'Abbrechen',
+    'send_email' => 'E-Mail senden',
+    'pdf_attached' => 'Die folgende PDF wird angehängt:',
 ];
 
 
