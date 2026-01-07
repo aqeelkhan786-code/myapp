@@ -155,6 +155,20 @@ return [
     'room' => 'Zimmer',
     'price_per_night' => 'Preis pro Nacht',
     'not_set' => 'Nicht gesetzt',
+    'rental_property_label' => 'Mietobjekt:',
+    'back_to_search' => 'Zurück zur Suche',
+    'booking_id' => 'Buchungs-ID',
+    'duration' => 'Dauer',
+    'booking_type' => 'Buchungstyp',
+    'name' => 'Name',
+    'short_term' => 'Kurzfristig',
+    'long_term' => 'Langfristig',
+    'deposit_amount' => 'Kaution',
+    'check_in_details' => 'Check-in Details',
+    'pin_code' => 'PIN-Code für Haustür',
+    'apartment_keys' => 'Wohnungsschlüssel',
+    'room_key' => 'Zimmerschlüssel',
+    'deposit_amount_description' => 'Die Kaution beträgt in der Regel 1 Monatsmiete für Langzeitmieten.',
 ];
 
 

@@ -174,7 +174,10 @@
                                     <span class="text-sm">{{ $room->capacity ?? 1 }} {{ ($room->capacity ?? 1) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                                 </div>
                                 <div class="text-lg font-bold text-blue-600">
-                                    @if(empty($checkOut))
+                                    @php
+                                        $isLongTerm = empty($checkOut) || $checkOut === null || trim($checkOut) === '';
+                                    @endphp
+                                    @if($isLongTerm)
                                         {{-- Long-term rental - show monthly price --}}
                                         €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}
                                     @else

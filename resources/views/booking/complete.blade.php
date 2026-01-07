@@ -7,10 +7,7 @@
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <!-- Success Image Header -->
         <div class="relative h-48 bg-gradient-to-r from-green-400 to-green-600">
-            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=400&fit=crop" 
-                 alt="{{ __('booking.booking_confirmed') }}" 
-                 class="w-full h-full object-cover opacity-50">
-            <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-full h-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center">
                 <svg class="h-20 w-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -96,12 +93,52 @@
                     <span class="text-gray-600">{{ __('booking.booking_reference') }}:</span>
                     <span class="font-semibold">#{{ $booking->id }}</span>
                 </div>
+                @if(!$booking->is_short_term)
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('booking.deposit_amount') }}:</span>
+                    <span class="font-semibold">€{{ number_format($booking->room->monthly_price ?? 700.00, 2) }}</span>
+                </div>
+                @else
                 <div class="flex justify-between">
                     <span class="text-gray-600">{{ __('booking.total_amount') }}:</span>
                     <span class="font-semibold">€{{ number_format($booking->total_amount, 2) }}</span>
                 </div>
+                @endif
             </div>
         </div>
+        
+        @if(!$booking->is_short_term)
+        <!-- Check-in Details Section -->
+        <div class="bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-6 text-left">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">🔑 {{ __('booking.check_in_details') }}</h2>
+            <div class="bg-white p-4 rounded-md space-y-2">
+                <div class="flex items-start">
+                    <span class="mr-2">🔐</span>
+                    <div>
+                        <strong>{{ __('booking.pin_code') }}:</strong>
+                        <p class="text-sm text-gray-600">Wird nach Eingang der Kaution per E-Mail mitgeteilt</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <span class="mr-2">🗝️</span>
+                    <div>
+                        <strong>{{ __('booking.room_key') }}:</strong>
+                        <p class="text-sm text-gray-600">1 Zimmerschlüssel</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <span class="mr-2">🏠</span>
+                    <div>
+                        <strong>{{ __('booking.apartment_keys') }}:</strong>
+                        <p class="text-sm text-gray-600">0 Wohnungsschlüssel</p>
+                    </div>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 mt-4">
+                ⚠️ Die Check-in-Details (inkl. PIN-Code und Schlüsselübergabeinformationen) erhalten Sie per E-Mail, sobald die Kaution bei uns eingegangen ist.
+            </p>
+        </div>
+        @endif
         
         <p class="text-sm text-gray-500 mb-6">{{ __('booking.confirmation_email_sent') }} {{ $booking->email }}</p>
         

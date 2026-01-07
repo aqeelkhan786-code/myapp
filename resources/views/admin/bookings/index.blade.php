@@ -10,7 +10,7 @@
             <a href="{{ route('admin.bookings.calendar') }}" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
                 {{ __('admin.calendar_view') }}
             </a>
-            <a href="{{ route('admin.bookings.calendar-table') }}" class="bg-red-700 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors font-medium shadow-sm">
+            <a href="{{ route('admin.bookings.calendar-table') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors font-medium shadow-sm">
                 {{ __('admin.table_calendar') }}
             </a>
             <form action="{{ route('admin.ical.sync') }}" method="POST" class="inline">
@@ -19,7 +19,7 @@
                     {{ __('admin.sync_ical_now') }}
                 </button>
             </form>
-            <a href="{{ route('admin.bookings.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            <a href="{{ route('admin.bookings.create') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors font-medium shadow-sm">
                 {{ __('admin.create_new_booking') }}
             </a>
         </div>
@@ -187,7 +187,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">€{{ number_format($booking->total_amount ?? 0, 2) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="{{ route('admin.bookings.edit', $booking) }}" class="text-blue-600 hover:text-blue-900 mr-3">{{ __('admin.edit') }}</a>
+                        <a href="{{ route('admin.bookings.edit', $booking) }}" class="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 transition-colors inline-block mr-3">{{ __('admin.edit') }}</a>
                         <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete') }}');">
                             @csrf
                             @method('DELETE')

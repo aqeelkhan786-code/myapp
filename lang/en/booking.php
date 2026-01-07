@@ -93,6 +93,20 @@ return [
     'room' => 'Room',
     'price_per_night' => 'Price per night',
     'not_set' => 'Not set',
+    'rental_property_label' => 'Rental property:',
+    'back_to_search' => 'Back to Search',
+    'booking_id' => 'Booking ID',
+    'duration' => 'Duration',
+    'booking_type' => 'Booking Type',
+    'name' => 'Name',
+    'short_term' => 'Short-term',
+    'long_term' => 'Long-term',
+    'deposit_amount' => 'Deposit',
+    'check_in_details' => 'Check-in Details',
+    'pin_code' => 'PIN Code for front door',
+    'apartment_keys' => 'Apartment keys',
+    'room_key' => 'Room key',
+    'deposit_amount_description' => 'The deposit is typically 1 month rent for long-term rentals.',
 ];
 
 

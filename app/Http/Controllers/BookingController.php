@@ -15,6 +15,7 @@ use App\Jobs\SendDocumentEmail;
 use App\Mail\BookingConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -1047,8 +1048,22 @@ class BookingController extends Controller
                     ['signature' => $formData['step3']['signature']]
                 );
                 
+                // Update with signature data
+                $document->update([
+                    'signed_at' => now(),
+                    'signature_data' => ['signature' => $formData['step3']['signature']],
+                ]);
+                
                 GenerateDocumentPdf::dispatch($document);
                 SendDocumentEmail::dispatch($document, [$booking->email], true)->afterResponse();
+            }
+            
+            // Send booking confirmation email
+            try {
+                Mail::to($booking->email)->send(new BookingConfirmation($booking));
+                Log::info('Booking confirmation email sent', ['booking_id' => $booking->id, 'email' => $booking->email]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send booking confirmation email: ' . $e->getMessage(), ['booking_id' => $booking->id]);
             }
             
             // Clear session

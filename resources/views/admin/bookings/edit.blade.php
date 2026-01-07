@@ -270,6 +270,43 @@
         </div>
     </div>
 
+    <!-- Check-in Details Section -->
+    <div class="mt-8 bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('dashboard.checkin_pdf_documents') }}</h2>
+        
+        @php
+            $documentService = new \App\Services\DocumentService();
+            $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
+        @endphp
+        
+        @if($checkInPdfPath && \Storage::exists($checkInPdfPath))
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-1">{{ __('dashboard.checkin_document') }}</h3>
+                    <p class="text-sm text-gray-600">{{ basename($checkInPdfPath) }}</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ route('dashboard.checkin-pdf.download', ['pdf' => base64_encode(basename($checkInPdfPath))]) }}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                        {{ __('admin.download_pdf') }}
+                    </a>
+                    <form action="{{ route('dashboard.checkin-pdf.send') }}" method="POST" class="inline">
+                        @csrf
+                        <input type="hidden" name="recipient_email" value="{{ $booking->email }}">
+                        <input type="hidden" name="pdf_name" value="{{ base64_encode(basename($checkInPdfPath)) }}">
+                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm">
+                            {{ __('dashboard.send_checkin_pdf_email') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @else
+        <p class="text-sm text-gray-500">{{ __('admin.no_checkin_pdf_available') }}</p>
+        @endif
+    </div>
+
     <!-- Documents Section -->
     <div class="mt-8 bg-white shadow-md rounded-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.documents') }}</h2>

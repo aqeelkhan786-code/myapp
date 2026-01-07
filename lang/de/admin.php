@@ -209,6 +209,7 @@ return [
     'regenerate' => 'Neu generieren',
     'regenerate_document_confirm' => 'Dieses Dokument neu generieren?',
     'no_documents_generated' => 'Für diese Buchung wurden noch keine Dokumente generiert.',
+    'no_checkin_pdf_available' => 'Kein Check-in PDF verfügbar',
     'override_conflict_proceed' => 'Konflikt überschreiben (trotz konfliktierender Buchungen fortfahren)',
     'base_price_short_term' => 'Grundpreis (€) - Kurzfristig (pro Nacht)',
     'monthly_price_long_term' => 'Monatspreis (€) - Langfristig (pro Monat)',

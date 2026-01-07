@@ -100,6 +100,11 @@ class BookingFlowController extends Controller
         $checkIn = $request->get('check_in');
         $checkOut = $request->get('check_out');
         
+        // Normalize empty check_out to null for consistent handling
+        if (empty($checkOut) || trim($checkOut) === '') {
+            $checkOut = null;
+        }
+        
         $filteredRooms = $rooms;
         
         // Filter by availability if check-in date is provided
