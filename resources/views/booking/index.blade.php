@@ -19,7 +19,10 @@
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex-1">
-                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_out_date') }}</label>
+                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ __('booking.check_out_date') }} 
+                    <span class="text-xs text-gray-500 font-normal">({{ __('booking.optional_long_term') ?? 'Optional for long-term' }})</span>
+                </label>
                 <input type="date" 
                        name="check_out" 
                        id="check_out" 
@@ -38,11 +41,16 @@
                 @endif
             </div>
         </form>
-        @if(request('check_in') && request('check_out'))
+        @if(request('check_in'))
         <p class="mt-4 text-sm text-gray-600">
             {{ __('booking.showing') }} {{ $rooms->count() }} {{ __('booking.available_rooms') }} 
-            <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> {{ __('booking.to') }} 
-            <strong>{{ \Carbon\Carbon::parse(request('check_out'))->format('M d, Y') }}</strong>
+            @if(isset($isLongTerm) && $isLongTerm)
+                {{ __('booking.from') ?? 'from' }} <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> 
+                <span class="text-blue-600 font-semibold">({{ __('booking.long_term_rental') ?? 'Long-term rental' }})</span>
+            @elseif(request('check_out'))
+                <strong>{{ \Carbon\Carbon::parse(request('check_in'))->format('M d, Y') }}</strong> {{ __('booking.to') }} 
+                <strong>{{ \Carbon\Carbon::parse(request('check_out'))->format('M d, Y') }}</strong>
+            @endif
         </p>
         @endif
     </div>
@@ -91,9 +99,15 @@
                 <p class="text-gray-600 mb-4">{{ Str::limit($room->description, 100) }}</p>
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ $room->capacity == 1 ? __('booking.guest') : __('booking.guests') }}</span>
-                    <span class="text-lg font-bold text-gray-900">€{{ number_format($room->base_price, 2) }}{{ __('booking.night') }}</span>
+                    @php
+                        $isLongTermBooking = isset($isLongTerm) && $isLongTerm;
+                        $displayPrice = $isLongTermBooking ? ($room->monthly_price ?? 700.00) : $room->base_price;
+                        $priceLabel = $isLongTermBooking ? (__('booking.month') ?? '/Monat') : (__('booking.night') ?? '/Nacht');
+                    @endphp
+                    <span class="text-lg font-bold text-gray-900">€{{ number_format($displayPrice, 2) }}{{ $priceLabel }}</span>
                 </div>
-                <a href="{{ route('booking.show', $room) }}" class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                <a href="{{ route('booking.form', $room) }}{{ request('check_in') ? '?check_in=' . request('check_in') . (request('check_out') ? '&check_out=' . request('check_out') : '') : '' }}" 
+                   class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
                     {{ __('booking.view_details_book') }}
                 </a>
             </div>

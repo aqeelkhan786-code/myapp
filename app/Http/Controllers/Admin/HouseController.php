@@ -44,6 +44,8 @@ class HouseController extends Controller
             'location_id' => 'required|exists:locations,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'amenities_text' => 'nullable|string',
+            'button_text' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:10240', // 10MB max
         ]);
 
@@ -52,6 +54,8 @@ class HouseController extends Controller
             'name' => $request->name,
             'slug' => Str::slug($request->name),
             'description' => $request->description,
+            'amenities_text' => $request->amenities_text,
+            'button_text' => $request->button_text,
         ];
 
         // Handle image upload
@@ -223,6 +227,8 @@ class HouseController extends Controller
             'location_id' => 'required|exists:locations,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'amenities_text' => 'nullable|string',
+            'button_text' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:10240', // 10MB max
         ]);
 
@@ -231,6 +237,8 @@ class HouseController extends Controller
             'name' => $request->name,
             'slug' => Str::slug($request->name),
             'description' => $request->description,
+            'amenities_text' => $request->amenities_text,
+            'button_text' => $request->button_text,
         ];
 
         // Handle image upload

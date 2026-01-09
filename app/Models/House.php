@@ -16,6 +16,8 @@ class House extends Model
         'name',
         'slug',
         'description',
+        'amenities_text',
+        'button_text',
         'image',
     ];
 

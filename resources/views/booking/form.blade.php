@@ -71,30 +71,41 @@
     <div class="mb-8 bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ {{ app()->getLocale() === 'de' ? 'Ausstattung & Komfort' : 'Amenities & Comfort' }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="amenity-item">
-                <span class="text-gray-700">📶 {{ app()->getLocale() === 'de' ? 'Kostenloses WLAN – stabil und zuverlässig' : 'WiFi – free and reliable' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">🍳 {{ app()->getLocale() === 'de' ? 'Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht' : 'Fully equipped kitchen – for shared use' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">🛏️ {{ app()->getLocale() === 'de' ? 'Bequeme Betten – für einen erholsamen Schlaf' : 'Comfortable beds – restful sleep guaranteed' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">📺 {{ app()->getLocale() === 'de' ? 'TV in jedem Zimmer' : 'TV in every room' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">🛋️ {{ app()->getLocale() === 'de' ? 'Gemeinschaftsbereiche – perfekt zum Entspannen am Abend' : 'Common areas – for relaxed evenings' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">🚗 {{ app()->getLocale() === 'de' ? 'Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe' : 'Parking – directly at the house or nearby' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">📍 {{ app()->getLocale() === 'de' ? 'Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV' : 'Central location – good connection to shopping and public transport' }}</span>
-            </div>
-            <div class="amenity-item">
-                <span class="text-gray-700">📅 {{ app()->getLocale() === 'de' ? 'Flexible Mietdauer – kurz- oder langfristig möglich' : 'Flexible rental period – short and long-term stays possible' }}</span>
-            </div>
+            @php
+                // Get amenities from room, then house, or use default
+                $amenitiesText = $room->amenities_text ?? ($room->house ? $room->house->amenities_text : null);
+                $isDe = app()->getLocale() === 'de';
+                $defaultAmenities = $isDe ? [
+                    '📶 Kostenloses WLAN – stabil und zuverlässig',
+                    '🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht',
+                    '🛏️ Bequeme Betten – für einen erholsamen Schlaf',
+                    '📺 TV in jedem Zimmer',
+                    '🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend',
+                    '🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe',
+                    '📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV',
+                    '📅 Flexible Mietdauer – kurz- oder langfristig möglich',
+                ] : [
+                    '📶 WiFi – free and reliable',
+                    '🍳 Fully equipped kitchen – for shared use',
+                    '🛏️ Comfortable beds – restful sleep guaranteed',
+                    '📺 TV in every room',
+                    '🛋️ Common areas – for relaxed evenings',
+                    '🚗 Parking – directly at the house or nearby',
+                    '📍 Central location – good connection to shopping and public transport',
+                    '📅 Flexible rental period – short and long-term stays possible',
+                ];
+                
+                if ($amenitiesText) {
+                    $amenities = array_filter(array_map('trim', explode("\n", $amenitiesText)));
+                } else {
+                    $amenities = $defaultAmenities;
+                }
+            @endphp
+            @foreach($amenities as $amenity)
+                <div class="amenity-item">
+                    <span class="text-gray-700">{{ $amenity }}</span>
+                </div>
+            @endforeach
         </div>
     </div>
     

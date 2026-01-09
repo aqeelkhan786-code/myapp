@@ -21,43 +21,58 @@
             </div>
         @endif
         
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">✅ Buchungsbestätigung – Ihre Buchung war erfolgreich</h1>
-        <p class="text-gray-600 mb-6 text-lg">Vielen Dank! Ihre Buchung wurde erfolgreich übermittelt und reserviert.</p>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">✅ {{ __('booking.booking_confirmation_title') }}</h1>
+        <p class="text-gray-600 mb-6 text-lg">{{ __('booking.booking_confirmation_message') }}</p>
         
         @if(!$booking->is_short_term)
         <!-- Deposit Payment Information for Long-term Rentals -->
         <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 mb-6 text-left">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">💳 Kaution überweisen</h2>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">💳 {{ __('booking.transfer_deposit') }}</h2>
             <p class="text-gray-700 mb-4">
-                Damit wir Ihre Buchung verbindlich abschließen können, bitten wir Sie, die Kaution zeitnah per Überweisung zu leisten:
+                {{ __('booking.deposit_transfer_instruction') }}
             </p>
             <div class="bg-white p-4 rounded-md mb-4">
-                <p class="text-sm text-gray-700 mb-1"><strong>Empfänger:</strong> Martin Assies</p>
-                <p class="text-sm text-gray-700 mb-1"><strong>Bank:</strong> N26 Bank</p>
-                <p class="text-sm text-gray-700 mb-1"><strong>IBAN:</strong> DE24 1001 1001 2623 5950 48</p>
-                <p class="text-sm text-gray-700"><strong>BIC:</strong> NTSBDEB1XXX</p>
+                <div class="mb-3 pb-3 border-b border-gray-200">
+                    <p class="text-lg font-bold text-gray-900">
+                        {{ __('booking.deposit_amount') }}: <span class="text-blue-600">€{{ number_format($booking->room->monthly_price ?? 700.00, 2) }}</span>
+                    </p>
+                </div>
+                <p class="text-sm text-gray-700 mb-1"><strong>{{ __('booking.recipient') }}:</strong> Martin Assies</p>
+                <p class="text-sm text-gray-700 mb-1"><strong>{{ __('booking.bank') }}:</strong> N26 Bank</p>
+                <p class="text-sm text-gray-700 mb-1"><strong>{{ __('booking.iban') }}:</strong> DE24 1001 1001 2623 5950 48</p>
+                <p class="text-sm text-gray-700"><strong>{{ __('booking.bic') }}:</strong> NTSBDEB1XXX</p>
                 <p class="text-sm text-gray-600 mt-3">
-                    <strong>Verwendungszweck:</strong> {{ $booking->guest_full_name }} + {{ $booking->room->name }}@if($booking->start_at) + {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}@endif
+                    <strong>{{ __('booking.reference') }}:</strong> {{ $booking->guest_full_name }} + {{ $booking->room->name }}@if($booking->start_at) + @php
+                        $carbon = \Carbon\Carbon::parse($booking->start_at);
+                        $carbon->setLocale(app()->getLocale());
+                        echo $carbon->translatedFormat(app()->getLocale() === 'de' ? 'd.m.Y' : 'M d, Y');
+                    @endphp @endif
                 </p>
             </div>
             <div class="bg-green-50 p-4 rounded-md">
-                <p class="text-sm text-gray-700 font-semibold mb-2">📬 Sobald die Kaution bei uns eingegangen ist, erhalten Sie von uns:</p>
+                <p class="text-sm text-gray-700 font-semibold mb-2">📬 {{ __('booking.deposit_received_info') }}</p>
                 <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4">
-                    <li>den Mietvertrag zur Unterzeichnung sowie</li>
-                    <li>die Check-in-Details (inkl. Zugang / PIN-Code und Schlüsselübergabeinformationen).</li>
+                    <li>{{ __('booking.rental_agreement_for_signature') }}</li>
+                    <li>{{ __('booking.check_in_details_with_keys') }}</li>
                 </ul>
             </div>
             <p class="text-sm text-gray-600 mt-4">
-                💬 Bei Fragen melden Sie sich gerne jederzeit.
+                💬 {{ __('booking.contact_anytime') }}
             </p>
         </div>
         @endif
         
         <div class="bg-gray-50 rounded-lg p-6 mb-6 text-left">
             <div class="flex items-center mb-4">
-                <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=100&h=100&fit=crop" 
-                     alt="{{ __('booking.room') }}" 
-                     class="w-16 h-16 rounded-lg object-cover mr-4">
+                @if($booking->room && $booking->room->images && $booking->room->images->count() > 0)
+                    <img src="{{ asset('storage/' . $booking->room->images->first()->path) }}" 
+                         alt="{{ $booking->room->name ?? __('booking.room') }}" 
+                         class="w-16 h-16 rounded-lg object-cover mr-4">
+                @else
+                    <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=100&h=100&fit=crop" 
+                         alt="{{ __('booking.room') }}" 
+                         class="w-16 h-16 rounded-lg object-cover mr-4">
+                @endif
                 <h2 class="text-xl font-semibold text-gray-900">{{ __('booking.booking_details') }}</h2>
             </div>
             <div class="space-y-2">
@@ -73,7 +88,11 @@
                     <span class="text-gray-600">{{ __('booking.check_in') }}:</span>
                     <span class="font-semibold">
                         @if($booking->start_at)
-                            {{ \Carbon\Carbon::parse($booking->start_at)->format('M d, Y') }}
+                            @php
+                                $carbon = \Carbon\Carbon::parse($booking->start_at);
+                                $carbon->setLocale(app()->getLocale());
+                                echo $carbon->translatedFormat(app()->getLocale() === 'de' ? 'd.m.Y' : 'M d, Y');
+                            @endphp
                         @else
                             <span class="text-gray-500">{{ __('booking.not_set') }}</span>
                         @endif
@@ -83,7 +102,11 @@
                     <span class="text-gray-600">{{ __('booking.check_out') }}:</span>
                     <span class="font-semibold">
                         @if($booking->end_at)
-                            {{ \Carbon\Carbon::parse($booking->end_at)->format('M d, Y') }}
+                            @php
+                                $carbon = \Carbon\Carbon::parse($booking->end_at);
+                                $carbon->setLocale(app()->getLocale());
+                                echo $carbon->translatedFormat(app()->getLocale() === 'de' ? 'd.m.Y' : 'M d, Y');
+                            @endphp
                         @else
                             <span class="text-gray-500">{{ __('booking.long_term_rental') }}</span>
                         @endif
@@ -116,26 +139,26 @@
                     <span class="mr-2">🔐</span>
                     <div>
                         <strong>{{ __('booking.pin_code') }}:</strong>
-                        <p class="text-sm text-gray-600">Wird nach Eingang der Kaution per E-Mail mitgeteilt</p>
+                        <p class="text-sm text-gray-600">{{ __('booking.pin_code_will_be_sent') }}</p>
                     </div>
                 </div>
                 <div class="flex items-start">
                     <span class="mr-2">🗝️</span>
                     <div>
                         <strong>{{ __('booking.room_key') }}:</strong>
-                        <p class="text-sm text-gray-600">1 Zimmerschlüssel</p>
+                        <p class="text-sm text-gray-600">{{ __('booking.one_room_key') }}</p>
                     </div>
                 </div>
                 <div class="flex items-start">
                     <span class="mr-2">🏠</span>
                     <div>
                         <strong>{{ __('booking.apartment_keys') }}:</strong>
-                        <p class="text-sm text-gray-600">0 Wohnungsschlüssel</p>
+                        <p class="text-sm text-gray-600">{{ __('booking.zero_apartment_keys') }}</p>
                     </div>
                 </div>
             </div>
             <p class="text-sm text-gray-600 mt-4">
-                ⚠️ Die Check-in-Details (inkl. PIN-Code und Schlüsselübergabeinformationen) erhalten Sie per E-Mail, sobald die Kaution bei uns eingegangen ist.
+                ⚠️ {{ __('booking.check_in_details_will_be_sent') }}
             </p>
         </div>
         @endif

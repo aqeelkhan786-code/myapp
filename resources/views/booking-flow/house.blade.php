@@ -157,30 +157,31 @@
             <div class="mb-12 max-w-4xl mx-auto">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ Ausstattung & Komfort</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div class="amenity-item">
-                        <span class="text-gray-700">📶 Kostenloses WLAN – stabil und zuverlässig</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">🛏️ Bequeme Betten – für einen erholsamen Schlaf</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">📺 TV in jedem Zimmer</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV</span>
-                    </div>
-                    <div class="amenity-item">
-                        <span class="text-gray-700">📅 Flexible Mietdauer – kurz- oder langfristig möglich</span>
-                    </div>
+                    @php
+                        // Get amenities from first house, or use default
+                        $amenitiesText = $houses->first()->amenities_text ?? null;
+                        $defaultAmenities = [
+                            '📶 Kostenloses WLAN – stabil und zuverlässig',
+                            '🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht',
+                            '🛏️ Bequeme Betten – für einen erholsamen Schlaf',
+                            '📺 TV in jedem Zimmer',
+                            '🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend',
+                            '🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe',
+                            '📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV',
+                            '📅 Flexible Mietdauer – kurz- oder langfristig möglich',
+                        ];
+                        
+                        if ($amenitiesText) {
+                            $amenities = array_filter(array_map('trim', explode("\n", $amenitiesText)));
+                        } else {
+                            $amenities = $defaultAmenities;
+                        }
+                    @endphp
+                    @foreach($amenities as $amenity)
+                        <div class="amenity-item">
+                            <span class="text-gray-700">{{ $amenity }}</span>
+                        </div>
+                    @endforeach
                 </div>
 
                 @if(strtolower($location->name) === 'fürstenwalde')
@@ -210,7 +211,7 @@
             <div class="text-center mb-8">
                 <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $firstHouseWithRooms->id]) }}" 
                    class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                    {{ __('booking_flow.view_available_rooms') }}
+                    {{ $firstHouseWithRooms->button_text ?? __('booking_flow.view_available_rooms') }}
                 </a>
             </div>
             @endif
@@ -249,7 +250,7 @@
             <div class="text-center mb-12">
                 <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $firstHouseWithRooms->id]) }}" 
                    class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                    {{ __('booking_flow.view_available_rooms') }}
+                    {{ $firstHouseWithRooms->button_text ?? __('booking_flow.view_available_rooms') }}
                 </a>
             </div>
             @endif

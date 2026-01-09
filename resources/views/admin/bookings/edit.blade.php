@@ -307,6 +307,22 @@
         @endif
     </div>
 
+    <!-- Send Documents Section -->
+    @if($booking->status === 'confirmed')
+    <div class="mt-8 bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.send_documents') ?? 'Send Documents' }}</h2>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-gray-700 mb-4">{{ __('admin.send_documents_description') ?? 'Send rental agreement and check-in details to the guest via email.' }}</p>
+            <form action="{{ route('admin.bookings.send-documents', $booking) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    {{ __('admin.send_rental_agreement_and_checkin') ?? 'Send Rental Agreement & Check-in Details' }}
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
+
     <!-- Documents Section -->
     <div class="mt-8 bg-white shadow-md rounded-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.documents') }}</h2>

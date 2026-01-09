@@ -115,6 +115,24 @@
             @enderror
         </div>
 
+        <div class="mb-6">
+            <label for="amenities_text" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.amenities_text') }} ({{ __('admin.amenities_text_help') }})</label>
+            <textarea name="amenities_text" id="amenities_text" rows="10"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      placeholder="📶 Kostenloses WLAN – stabil und zuverlässig
+🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht
+🛏️ Bequeme Betten – für einen erholsamen Schlaf
+📺 TV in jedem Zimmer
+🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend
+🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe
+📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV
+📅 Flexible Mietdauer – kurz- oder langfristig möglich">{{ old('amenities_text') }}</textarea>
+            @error('amenities_text')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+            <p class="mt-1 text-xs text-gray-500">{{ __('admin.amenities_text_note') }}</p>
+        </div>
+
         <div class="flex justify-end gap-4">
             <a href="{{ route('admin.rooms.index') }}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors">
                 {{ __('admin.cancel') }}

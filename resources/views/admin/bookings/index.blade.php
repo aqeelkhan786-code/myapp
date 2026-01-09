@@ -133,7 +133,7 @@
         });
     </script>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -187,12 +187,14 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">€{{ number_format($booking->total_amount ?? 0, 2) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="{{ route('admin.bookings.edit', $booking) }}" class="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 transition-colors inline-block mr-3">{{ __('admin.edit') }}</a>
-                        <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete') }}');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('admin.delete') }}</button>
-                        </form>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.bookings.edit', $booking) }}" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow inline-block text-sm font-medium">{{ __('admin.edit') }}</a>
+                            <form action="{{ route('admin.bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete') }}');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:text-red-900 font-medium">{{ __('admin.delete') }}</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty

@@ -22,6 +22,7 @@ class Room extends Model
         'monthly_price',
         'short_term_allowed',
         'description',
+        'amenities_text',
         'check_in_pdf_path',
     ];
 

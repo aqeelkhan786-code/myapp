@@ -37,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('bookings/calendar/view', [\App\Http\Controllers\Admin\BookingController::class, 'calendar'])->name('bookings.calendar');
         Route::get('bookings/calendar/table', [\App\Http\Controllers\Admin\BookingController::class, 'calendarTable'])->name('bookings.calendar-table');
         Route::post('bookings/{booking}/documents/{document}/regenerate', [\App\Http\Controllers\Admin\BookingController::class, 'regenerateDocument'])->name('bookings.documents.regenerate');
+        Route::post('bookings/{booking}/send-documents', [\App\Http\Controllers\Admin\BookingController::class, 'sendDocuments'])->name('bookings.send-documents');
         Route::post('bookings/{booking}/mark-paid', [\App\Http\Controllers\Admin\BookingController::class, 'markAsPaid'])->name('bookings.mark-paid');
         Route::resource('properties', \App\Http\Controllers\Admin\PropertyController::class);
         Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class);

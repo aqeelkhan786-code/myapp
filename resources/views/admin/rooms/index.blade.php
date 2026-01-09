@@ -21,6 +21,55 @@ use Illuminate\Support\Facades\Storage;
     </div>
     @endif
 
+    <!-- Date Filter Section -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ __('admin.filter_by_date') }}</h2>
+        <form method="GET" action="{{ route('admin.rooms.index') }}" class="flex flex-col md:flex-row gap-4 items-end">
+            <div class="flex-1">
+                <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.check_in_date') }}</label>
+                <input type="date" 
+                       name="check_in" 
+                       id="check_in" 
+                       value="{{ $checkIn ?? '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex-1">
+                <label for="check_out" class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ __('admin.check_out_date') }} <span class="text-gray-500 text-xs font-normal">({{ __('admin.optional') }})</span>
+                </label>
+                <input type="date" 
+                       name="check_out" 
+                       id="check_out" 
+                       value="{{ $checkOut ?? '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors font-semibold">
+                    {{ __('admin.filter') }}
+                </button>
+                @if($checkIn ?? $checkOut)
+                <a href="{{ route('admin.rooms.index') }}" 
+                   class="bg-gray-200 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors">
+                    {{ __('admin.clear') }}
+                </a>
+                @endif
+            </div>
+        </form>
+        @if($checkIn ?? false)
+        <div class="mt-4 p-3 bg-blue-50 rounded-md">
+            <p class="text-sm text-blue-800">
+                <strong>{{ __('admin.filtering_by_date') }}:</strong> 
+                {{ __('admin.check_in') }}: {{ \Carbon\Carbon::parse($checkIn)->format('d.m.Y') }}
+                @if($checkOut)
+                    | {{ __('admin.check_out') }}: {{ \Carbon\Carbon::parse($checkOut)->format('d.m.Y') }}
+                @else
+                    | {{ __('admin.long_term_rental') }}
+                @endif
+            </p>
+        </div>
+        @endif
+    </div>
+
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -70,7 +119,18 @@ use Illuminate\Support\Facades\Storage;
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $room->capacity }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">€{{ number_format($room->base_price, 2) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div class="space-y-1">
+                            <div>
+                                <span class="text-xs text-gray-500">{{ __('admin.short_term') }}:</span>
+                                <span class="font-medium">€{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}</span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-500">{{ __('admin.long_term') }}:</span>
+                                <span class="font-medium">€{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}</span>
+                            </div>
+                        </div>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         @if($room->short_term_allowed)
                         <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ __('admin.yes') }}</span>

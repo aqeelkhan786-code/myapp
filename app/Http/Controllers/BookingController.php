@@ -40,19 +40,50 @@ class BookingController extends Controller
     {
         $query = Room::with('images');
         
+        // Determine if this is a long-term booking (no check_out date)
+        $checkIn = $request->get('check_in');
+        $checkOut = $request->get('check_out');
+        $isLongTerm = !empty($checkIn) && (empty($checkOut) || trim($checkOut) === '');
+        
         // Filter by availability if dates are provided
-        if ($request->has('check_in') && $request->has('check_out')) {
+        if ($request->has('check_in') && $request->has('check_out') && !$isLongTerm) {
             try {
-                $checkIn = Carbon::parse($request->check_in)->setTimezone('Europe/Berlin')->startOfDay();
-                $checkOut = Carbon::parse($request->check_out)->setTimezone('Europe/Berlin')->startOfDay();
+                $checkInDate = Carbon::parse($request->check_in)->setTimezone('Europe/Berlin')->startOfDay();
+                $checkOutDate = Carbon::parse($request->check_out)->setTimezone('Europe/Berlin')->startOfDay();
                 
                 // Get room IDs that have confirmed bookings for these dates
                 $unavailableRoomIds = Booking::where('status', 'confirmed')
-                    ->where(function ($q) use ($checkIn, $checkOut) {
-                        $q->where(function ($q2) use ($checkIn, $checkOut) {
-                            $q2->where('start_at', '<', $checkOut->utc())
-                               ->where('end_at', '>', $checkIn->utc());
+                    ->where(function ($q) use ($checkInDate, $checkOutDate) {
+                        $q->where(function ($q2) use ($checkInDate, $checkOutDate) {
+                            $q2->where('start_at', '<', $checkOutDate->utc())
+                               ->where('end_at', '>', $checkInDate->utc());
                         });
+                    })
+                    ->pluck('room_id')
+                    ->unique();
+                
+                // Exclude unavailable rooms
+                $query->whereNotIn('id', $unavailableRoomIds);
+            } catch (\Exception $e) {
+                // Invalid dates, show all rooms
+            }
+        } elseif ($isLongTerm && $checkIn) {
+            // For long-term bookings, check if room is available from check_in date onwards
+            try {
+                $checkInDate = Carbon::parse($request->check_in)->setTimezone('Europe/Berlin')->startOfDay();
+                
+                // Get room IDs that have confirmed bookings starting from check_in date
+                $unavailableRoomIds = Booking::where('status', 'confirmed')
+                    ->where(function ($q) use ($checkInDate) {
+                        $q->where('start_at', '>=', $checkInDate->utc())
+                          ->orWhere(function ($q2) use ($checkInDate) {
+                              // Also exclude rooms with ongoing bookings that extend past check_in
+                              $q2->where('start_at', '<', $checkInDate->utc())
+                                 ->where(function ($q3) {
+                                     $q3->whereNull('end_at')
+                                        ->orWhere('end_at', '>', $checkInDate->utc());
+                                 });
+                          });
                     })
                     ->pluck('room_id')
                     ->unique();
@@ -66,7 +97,7 @@ class BookingController extends Controller
         
         $rooms = $query->get();
         
-        return view('booking.index', compact('rooms'));
+        return view('booking.index', compact('rooms', 'isLongTerm', 'checkIn', 'checkOut'));
     }
 
     /**
@@ -474,7 +505,7 @@ class BookingController extends Controller
      */
     public function complete(Booking $booking)
     {
-        $booking->load('room', 'documents');
+        $booking->load('room.images', 'documents');
         return view('booking.complete', compact('booking'));
     }
 
@@ -513,8 +544,15 @@ class BookingController extends Controller
      */
     public function view(Booking $booking)
     {
-        $booking->load('room', 'documents', 'paymentLogs');
-        return view('booking.view', compact('booking'));
+        $booking->load('room.house', 'documents', 'paymentLogs');
+        
+        // Get check-in PDF path if available
+        $checkInPdfPath = null;
+        if ($booking->room) {
+            $checkInPdfPath = $this->documentService->getCheckInPdfPath($booking->room);
+        }
+        
+        return view('booking.view', compact('booking', 'checkInPdfPath'));
     }
 
     /**
@@ -618,7 +656,7 @@ class BookingController extends Controller
             session(['booking_form_data' => $formData]);
         }
         
-        $room->load('images', 'property');
+        $room->load('images', 'property', 'house');
         
         // Get all rooms for apartment selection dropdown
         $allRooms = Room::with('property')->orderBy('name')->get();

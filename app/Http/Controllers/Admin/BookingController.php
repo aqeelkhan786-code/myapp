@@ -246,36 +246,57 @@ class BookingController extends Controller
         ]);
 
         // Generate documents for manual bookings
+        $documentService = new \App\Services\DocumentService();
         if ($request->source === 'manual') {
-            $documentService = new \App\Services\DocumentService();
             $locale = $booking->getLocaleFromLanguage() ?: 'de'; // Default to German for manual bookings
             
-            // Create rental agreement document
+            // Create rental agreement document and generate PDF synchronously
             $rentalAgreement = $documentService->createDocument(
                 $booking,
                 'rental_agreement',
                 $locale,
                 []
             );
-            \App\Jobs\GenerateDocumentPdf::dispatch($rentalAgreement);
+            try {
+                $documentService->generatePdf($rentalAgreement);
+            } catch (\Exception $e) {
+                \Log::error('Failed to generate rental agreement PDF for manual booking', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
             
-            // Create landlord confirmation document
+            // Create landlord confirmation document and generate PDF synchronously
             $landlordConfirmation = $documentService->createDocument(
                 $booking,
                 'landlord_confirmation',
                 $locale,
                 []
             );
-            \App\Jobs\GenerateDocumentPdf::dispatch($landlordConfirmation);
+            try {
+                $documentService->generatePdf($landlordConfirmation);
+            } catch (\Exception $e) {
+                \Log::error('Failed to generate landlord confirmation PDF for manual booking', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
             
-            // Create rent arrears document
+            // Create rent arrears document and generate PDF synchronously
             $rentArrears = $documentService->createDocument(
                 $booking,
                 'rent_arrears',
                 $locale,
                 []
             );
-            \App\Jobs\GenerateDocumentPdf::dispatch($rentArrears);
+            try {
+                $documentService->generatePdf($rentArrears);
+            } catch (\Exception $e) {
+                \Log::error('Failed to generate rent arrears PDF for manual booking', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Audit log: booking created
@@ -293,40 +314,7 @@ class BookingController extends Controller
 
             // Send confirmation email and documents if booking is created as confirmed
             if ($request->status === 'confirmed') {
-                try {
-                    $booking->refresh();
-                    Mail::to($booking->email)->send(new BookingConfirmation($booking));
-                    
-                    // Send rental agreement if it exists
-                    $documentService = new \App\Services\DocumentService();
-                    $rentalAgreement = $booking->documents()
-                        ->where('doc_type', 'rental_agreement')
-                        ->whereNotNull('storage_path')
-                        ->first();
-                    
-                    if ($rentalAgreement && \Storage::exists($rentalAgreement->storage_path)) {
-                        \App\Jobs\SendDocumentEmail::dispatch($rentalAgreement, [$booking->email], false)->afterResponse();
-                    }
-                    
-                    // Send check-in PDF if available
-                    $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
-                    if ($checkInPdfPath && \Storage::exists($checkInPdfPath)) {
-                        $message = app()->getLocale() === 'de' 
-                            ? 'Sehr geehrter Kunde,\n\nBitte finden Sie die Check-in Informationen im Anhang.\n\nMit freundlichen Grüßen,\nMaRoom Team'
-                            : 'Dear customer,\n\nPlease find attached the check-in information document.\n\nBest regards,\nMaRoom Team';
-                        
-                        $subject = app()->getLocale() === 'de' 
-                            ? 'Check-in Informationen - MaRoom'
-                            : 'Check-in Information - MaRoom';
-                        
-                        Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject));
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email and documents', [
-                        'booking_id' => $booking->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                $this->sendConfirmationDocuments($booking, $documentService);
             }
 
         if ($hasConflicts) {
@@ -411,49 +399,28 @@ class BookingController extends Controller
             
             // Send confirmation email and documents if status changed to confirmed
             if ($newStatus === 'confirmed') {
-                try {
-                    $booking->refresh();
-                    Mail::to($booking->email)->send(new BookingConfirmation($booking));
-                    
-                    // Send rental agreement if it exists
-                    $documentService = new \App\Services\DocumentService();
-                    $rentalAgreement = $booking->documents()
-                        ->where('doc_type', 'rental_agreement')
-                        ->whereNotNull('storage_path')
-                        ->first();
-                    
-                    if ($rentalAgreement && \Storage::exists($rentalAgreement->storage_path)) {
-                        \App\Jobs\SendDocumentEmail::dispatch($rentalAgreement, [$booking->email], false)->afterResponse();
-                    }
-                    
-                    // Send check-in PDF if available
-                    $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
-                    if ($checkInPdfPath && \Storage::exists($checkInPdfPath)) {
-                        $message = app()->getLocale() === 'de' 
-                            ? 'Sehr geehrter Kunde,\n\nBitte finden Sie die Check-in Informationen im Anhang.\n\nMit freundlichen Grüßen,\nMaRoom Team'
-                            : 'Dear customer,\n\nPlease find attached the check-in information document.\n\nBest regards,\nMaRoom Team';
-                        
-                        $subject = app()->getLocale() === 'de' 
-                            ? 'Check-in Informationen - MaRoom'
-                            : 'Check-in Information - MaRoom';
-                        
-                        Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject));
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email and documents', [
-                        'booking_id' => $booking->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                $documentService = new \App\Services\DocumentService();
+                $this->sendConfirmationDocuments($booking, $documentService);
             }
         }
 
-        $message = 'Payment recorded successfully.';
+        $message = __('admin.payment_recorded_successfully');
         if ($newStatus !== $oldStatus) {
-            $message .= ' Booking status automatically changed from Pending to Confirmed.';
+            $message .= ' ' . __('admin.booking_status_auto_changed');
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Send rental agreement and check-in details to guest
+     */
+    public function sendDocuments(Request $request, Booking $booking)
+    {
+        $documentService = new \App\Services\DocumentService();
+        $this->sendConfirmationDocuments($booking, $documentService);
+        
+        return back()->with('success', __('admin.documents_sent_successfully') ?? 'Documents have been sent successfully to the guest.');
     }
 
     /**
@@ -611,45 +578,83 @@ class BookingController extends Controller
             
             // Send confirmation email and documents if status changed to confirmed
             if ($request->status === 'confirmed' && $oldStatus !== 'confirmed') {
+                $documentService = new \App\Services\DocumentService();
+                $this->sendConfirmationDocuments($booking, $documentService);
+            }
+        }
+
+        return redirect()->route('admin.bookings.index')
+            ->with('success', __('admin.booking_updated_successfully'));
+    }
+
+    /**
+     * Send confirmation documents (rental agreement and check-in details) to guest
+     */
+    protected function sendConfirmationDocuments(Booking $booking, \App\Services\DocumentService $documentService = null)
+    {
+        if (!$documentService) {
+            $documentService = new \App\Services\DocumentService();
+        }
+        
+        try {
+            $booking->refresh();
+            
+            // Send confirmation email
+            Mail::to($booking->email)->send(new BookingConfirmation($booking));
+            
+            // Ensure rental agreement document exists and is generated
+            $rentalAgreement = $booking->documents()
+                ->where('doc_type', 'rental_agreement')
+                ->first();
+            
+            if (!$rentalAgreement) {
+                // Create rental agreement if it doesn't exist (for manual bookings)
+                $locale = $booking->getLocaleFromLanguage() ?: 'de';
+                $rentalAgreement = $documentService->createDocument(
+                    $booking,
+                    'rental_agreement',
+                    $locale,
+                    []
+                );
+            }
+            
+            // Generate PDF if not already generated
+            if (!$rentalAgreement->storage_path || !\Storage::exists($rentalAgreement->storage_path)) {
                 try {
-                    $booking->refresh();
-                    Mail::to($booking->email)->send(new BookingConfirmation($booking));
-                    
-                    // Send rental agreement if it exists
-                    $documentService = new \App\Services\DocumentService();
-                    $rentalAgreement = $booking->documents()
-                        ->where('doc_type', 'rental_agreement')
-                        ->whereNotNull('storage_path')
-                        ->first();
-                    
-                    if ($rentalAgreement && \Storage::exists($rentalAgreement->storage_path)) {
-                        \App\Jobs\SendDocumentEmail::dispatch($rentalAgreement, [$booking->email], false)->afterResponse();
-                    }
-                    
-                    // Send check-in PDF if available
-                    $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
-                    if ($checkInPdfPath && \Storage::exists($checkInPdfPath)) {
-                        $message = app()->getLocale() === 'de' 
-                            ? 'Sehr geehrter Kunde,\n\nBitte finden Sie die Check-in Informationen im Anhang.\n\nMit freundlichen Grüßen,\nMaRoom Team'
-                            : 'Dear customer,\n\nPlease find attached the check-in information document.\n\nBest regards,\nMaRoom Team';
-                        
-                        $subject = app()->getLocale() === 'de' 
-                            ? 'Check-in Informationen - MaRoom'
-                            : 'Check-in Information - MaRoom';
-                        
-                        Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject));
-                    }
+                    $documentService->generatePdf($rentalAgreement);
+                    $rentalAgreement->refresh();
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email and documents', [
+                    \Log::error('Failed to generate rental agreement PDF', [
                         'booking_id' => $booking->id,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
+            
+            // Send rental agreement if it exists and has PDF
+            if ($rentalAgreement->storage_path && \Storage::exists($rentalAgreement->storage_path)) {
+                \App\Jobs\SendDocumentEmail::dispatch($rentalAgreement, [$booking->email], false)->afterResponse();
+            }
+            
+            // Send check-in PDF if available
+            $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
+            if ($checkInPdfPath && \Storage::exists($checkInPdfPath)) {
+                $message = app()->getLocale() === 'de' 
+                    ? "Sehr geehrter Kunde,\n\nBitte finden Sie die Check-in Informationen im Anhang.\n\nMit freundlichen Grüßen,\nMaRoom Team"
+                    : "Dear customer,\n\nPlease find attached the check-in information document.\n\nBest regards,\nMaRoom Team";
+                
+                $subject = app()->getLocale() === 'de' 
+                    ? 'Check-in Informationen - MaRoom'
+                    : 'Check-in Information - MaRoom';
+                
+                Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send booking confirmation email and documents', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
         }
-
-        return redirect()->route('admin.bookings.index')
-            ->with('success', 'Booking updated successfully.');
     }
 
     /**

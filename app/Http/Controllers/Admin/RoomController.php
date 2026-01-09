@@ -26,10 +26,58 @@ class RoomController extends Controller
     /**
      * Display a listing of rooms
      */
-    public function index()
+    public function index(Request $request)
     {
-        $rooms = Room::with(['property', 'house.location', 'images'])->get();
-        return view('admin.rooms.index', compact('rooms'));
+        $query = Room::with(['property', 'house.location', 'images']);
+        
+        // Filter by availability if dates are provided
+        $checkIn = $request->get('check_in');
+        $checkOut = $request->get('check_out');
+        
+        if ($checkIn) {
+            try {
+                $startAt = \Carbon\Carbon::parse($checkIn)->setTimezone('Europe/Berlin')->startOfDay();
+                
+                if ($checkOut && trim($checkOut) !== '') {
+                    // Both dates provided - check availability for date range
+                    $endAt = \Carbon\Carbon::parse($checkOut)->setTimezone('Europe/Berlin')->startOfDay();
+                    
+                    // Get room IDs that have confirmed bookings for these dates
+                    $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
+                        ->where(function ($q) use ($startAt, $endAt) {
+                            $q->where(function ($q2) use ($startAt, $endAt) {
+                                $q2->where('start_at', '<', $endAt->utc())
+                                   ->where('end_at', '>', $startAt->utc());
+                            });
+                        })
+                        ->pluck('room_id')
+                        ->unique();
+                    
+                    // Filter available rooms
+                    $query->whereNotIn('id', $unavailableRoomIds);
+                } else {
+                    // Only check-in provided - check if room is available on that date (for long-term rentals)
+                    $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
+                        ->where(function ($q) use ($startAt) {
+                            $q->where('start_at', '<=', $startAt->utc())
+                              ->where(function($q2) use ($startAt) {
+                                  $q2->whereNull('end_at')
+                                     ->orWhere('end_at', '>', $startAt->utc());
+                              });
+                        })
+                        ->pluck('room_id')
+                        ->unique();
+                    
+                    // Filter available rooms
+                    $query->whereNotIn('id', $unavailableRoomIds);
+                }
+            } catch (\Exception $e) {
+                // Invalid dates, show all rooms
+            }
+        }
+        
+        $rooms = $query->get();
+        return view('admin.rooms.index', compact('rooms', 'checkIn', 'checkOut'));
     }
 
     /**
@@ -57,6 +105,7 @@ class RoomController extends Controller
             'monthly_price' => 'nullable|numeric|min:0',
             'short_term_allowed' => 'boolean',
             'description' => 'nullable|string',
+            'amenities_text' => 'nullable|string',
         ]);
 
         $room = Room::create([
@@ -69,6 +118,7 @@ class RoomController extends Controller
             'monthly_price' => $request->monthly_price ?? 700.00,
             'short_term_allowed' => $request->has('short_term_allowed'),
             'description' => $request->description,
+            'amenities_text' => $request->amenities_text,
         ]);
 
         return redirect()->route('admin.rooms.index')
@@ -208,6 +258,7 @@ class RoomController extends Controller
             'monthly_price' => 'nullable|numeric|min:0',
             'short_term_allowed' => 'boolean',
             'description' => 'nullable|string',
+            'amenities_text' => 'nullable|string',
         ]);
 
         $room->update([
@@ -220,6 +271,7 @@ class RoomController extends Controller
             'monthly_price' => $request->monthly_price ?? 700.00,
             'short_term_allowed' => $request->has('short_term_allowed'),
             'description' => $request->description,
+            'amenities_text' => $request->amenities_text,
         ]);
 
         return redirect()->route('admin.rooms.index')
