@@ -31,8 +31,12 @@ class BookingConfirmation extends Mailable
      */
     public function envelope(): Envelope
     {
+        // Set locale based on booking language
+        $locale = $this->booking->getLocaleFromLanguage();
+        app()->setLocale($locale);
+        
         return new Envelope(
-            subject: 'Booking Confirmation - ' . $this->booking->room->name,
+            subject: __('booking.email_subject') . ' - ' . $this->booking->room->name,
         );
     }
 
@@ -41,6 +45,10 @@ class BookingConfirmation extends Mailable
      */
     public function content(): Content
     {
+        // Set locale based on booking language
+        $locale = $this->booking->getLocaleFromLanguage();
+        app()->setLocale($locale);
+        
         return new Content(
             view: 'emails.booking-confirmation',
             with: [

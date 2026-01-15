@@ -107,13 +107,6 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.job_required') }}</label>
-                            <input type="text" name="job" id="job" 
-                                   value="{{ old('job', $booking->job) }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('job')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
                         </div>
                         <div>
                             <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.language') }}({{ __('common.required') ?? 'Erforderlich' }})</label>
@@ -128,13 +121,15 @@
                             @enderror
                         </div>
                         <div>
-                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.communication') }}({{ __('common.required') ?? 'Erforderlich' }})</label>
-                            <select name="communication_preference" id="communication_preference" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">{{ __('booking.select_communication') }}</option>
-                                <option value="Mail" {{ old('communication_preference', $booking->communication_preference) == 'Mail' ? 'selected' : '' }}>Mail</option>
-                                <option value="Whatsapp" {{ old('communication_preference', $booking->communication_preference) == 'Whatsapp' ? 'selected' : '' }}>Whatsapp</option>
-                            </select>
+                            <div class="flex items-start">
+                                <input type="checkbox" name="communication_preference" id="communication_preference" 
+                                       value="Mail,Whatsapp"
+                                       {{ old('communication_preference', $booking->communication_preference ?? '') == 'Mail,Whatsapp' || $booking->communication_preference == 'Mail' || $booking->communication_preference == 'Whatsapp' ? 'checked' : '' }}
+                                       class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" required>
+                                <label for="communication_preference" class="ml-2 block text-sm font-medium text-gray-700">
+                                    {{ __('booking.communication_agreement') }} <span class="text-red-600">*</span>
+                                </label>
+                            </div>
                             @error('communication_preference')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror

@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'select_apartment' => 'Your Apartment',
-    'apartment' => 'Your Apartment',
+    'select_apartment' => 'Rental Property',
+    'apartment' => 'Rental Property',
     'check_in_date' => 'Check-in Date',
     'check_out_date' => 'Check-out Date',
     'filter_available_rooms' => 'Filter Available Rooms',
@@ -16,6 +16,7 @@ return [
     'guest' => 'guest',
     'guests' => 'guests',
     'night' => '/night',
+    'week' => '/week',
     'month' => '/month',
     'view_details_book' => 'View Details & Book',
     'rental_agreement' => 'Rental Agreement',
@@ -48,6 +49,11 @@ return [
     'booking_confirmed' => 'Booking Confirmed!',
     'thank_you_booking' => 'Thank you for your booking. Your reservation has been confirmed.',
     'booking_details' => 'Booking Details',
+    'email_dear' => 'Dear',
+    'email_confirmed_message' => 'Your booking has been confirmed. We look forward to hosting you!',
+    'email_best_regards' => 'Best regards,',
+    'email_automated_notice' => 'This is an automated email. Please do not reply.',
+    'email_subject' => 'Booking Confirmation',
     'room' => 'Room',
     'guest' => 'Guest',
     'booking_reference' => 'Booking Reference',
@@ -77,6 +83,7 @@ return [
     'payment_processing_not_configured' => 'Payment Processing Not Configured',
     'contact_support_complete_booking' => 'Please contact support to complete your booking.',
     'creating_booking' => 'Creating Booking...',
+    'rental_agreement_title' => 'Rental Agreement',
     'signature_instruction' => 'Please sign above using your mouse or touch screen',
     'please_provide_signature' => 'Please provide your signature',
     'signature_pad_error' => 'Error initializing signature pad. Please refresh the page.',
@@ -85,6 +92,7 @@ return [
     'error_capturing_signature' => 'Error capturing signature. Please try again.',
     'date' => 'Date',
     'rental_period' => 'Rental Period',
+    'rental_start' => 'Rental Start',
     'rental_duration_long_term' => 'Rental Duration: The rental period is 12 months. The rental relationship can also be terminated monthly before the end of the first rental year, subject to compliance with the statutory notice periods.',
     'book_this_room' => 'Book This Room',
     'start_booking_description' => 'Start your booking by filling out our simple 3-step form.',
@@ -143,6 +151,8 @@ return [
     'one_room_key' => '1 room key',
     'zero_apartment_keys' => '0 apartment keys',
     'check_in_details_will_be_sent' => 'You will receive the check-in details (including PIN code and key handover information) by email once we receive the deposit.',
+    'communication' => 'Communication',
+    'communication_agreement' => 'I agree to communication via E-Mail and WhatsApp',
 ];
 
 

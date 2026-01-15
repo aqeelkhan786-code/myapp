@@ -219,7 +219,7 @@ class BookingController extends Controller
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
                 'language' => 'required|in:Deutsch,Englisch',
-                'communication_preference' => 'required|in:Mail,Whatsapp',
+                'communication_preference' => 'required|string',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
@@ -242,13 +242,6 @@ class BookingController extends Controller
                 $validationRules['renter_phone'] = 'required|string|max:255';
             }
             
-            // Job field is only required for long-term rentals
-            if (!$booking->is_short_term) {
-                $validationRules['job'] = 'required|string|max:255';
-            } else {
-                $validationRules['job'] = 'nullable|string|max:255';
-            }
-            
             $request->validate($validationRules);
 
             $updateData = $request->only([
@@ -269,11 +262,6 @@ class BookingController extends Controller
             }
             if ($request->has('renter_city')) {
                 $updateData['renter_city'] = $request->renter_city;
-            }
-            
-            // Only include job if provided (required for long-term, optional for short-term)
-            if ($request->has('job')) {
-                $updateData['job'] = $request->job;
             }
             
             $booking->update($updateData);
@@ -742,7 +730,7 @@ class BookingController extends Controller
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
                 'language' => 'required|in:Deutsch,Englisch',
-                'communication_preference' => 'required|in:Mail,Whatsapp',
+                'communication_preference' => 'required|string',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
@@ -763,13 +751,6 @@ class BookingController extends Controller
                 $validationRules['renter_postal_code'] = 'required|string|max:255';
                 $validationRules['renter_city'] = 'required|string|max:255';
                 $validationRules['renter_phone'] = 'required|string|max:255';
-            }
-            
-            // Job field is only required for long-term rentals
-            if ($isLongTermRental) {
-                $validationRules['job'] = 'required|string|max:255';
-            } else {
-                $validationRules['job'] = 'nullable|string|max:255';
             }
             
             $request->validate($validationRules);
@@ -807,10 +788,6 @@ class BookingController extends Controller
                 'phone',
             ]);
             
-            // Only include job if provided (required for long-term, optional for short-term)
-            if ($request->has('job')) {
-                $formData['step1']['job'] = $request->job;
-            }
             
             // Use guest name and email from step1
             $renterName = trim(($formData['step1']['guest_first_name'] ?? '') . ' ' . ($formData['step1']['guest_last_name'] ?? ''));
@@ -855,7 +832,6 @@ class BookingController extends Controller
                     'total_amount' => $totalAmount,
                     'guest_first_name' => $formData['step1']['guest_first_name'],
                     'guest_last_name' => $formData['step1']['guest_last_name'],
-                    'job' => $formData['step1']['job'],
                     'language' => $formData['step1']['language'],
                     'communication_preference' => $formData['step1']['communication_preference'],
                     'email' => $formData['step1']['email'],

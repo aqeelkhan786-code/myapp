@@ -13,6 +13,9 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
@@ -114,6 +117,62 @@
             padding: 10px 20px;
             border-radius: 5px;
         }
+        /* Swiper Styles */
+        .house-swiper {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        .house-swiper .swiper-slide {
+            text-align: center;
+            font-size: 18px;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .house-swiper .swiper-slide img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .house-swiper .swiper-button-next,
+        .house-swiper .swiper-button-prev {
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        .house-swiper .swiper-button-next:hover,
+        .house-swiper .swiper-button-prev:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .house-swiper .swiper-button-next:after,
+        .house-swiper .swiper-button-prev:after {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .house-swiper .swiper-pagination-bullet {
+            background: #fff;
+            opacity: 0.5;
+            width: 12px;
+            height: 12px;
+        }
+        .house-swiper .swiper-pagination-bullet-active {
+            opacity: 1;
+            background: #2563eb;
+        }
+        @media (max-width: 768px) {
+            .house-swiper {
+                height: 400px;
+            }
+        }
     </style>
 </head>
 <body class="font-sans antialiased bg-white">
@@ -145,34 +204,39 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ __('booking_flow.description') }}</h2>
                 <div class="prose prose-lg max-w-none">
                     <p class="text-gray-700 leading-relaxed mb-4">
-                        <strong>🏠 {{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
+                        <strong>{{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
                     </p>
                     <p class="text-gray-700 leading-relaxed mb-6">
-                        In {{ $location->name }} bieten wir {{ $houses->count() }} {{ $houses->count() === 1 ? 'Haus' : 'Häuser' }} mit modernen, möblierten Zimmern zur Miete an – ideal für 👷 Bauarbeiter, ✈️ Geschäftsreisende und 🚗 Pendler.
+                        {{ __('booking_flow.at_haus_offer', ['location' => $location->name, 'count' => $houses->count(), 'house' => $houses->count() === 1 ? __('booking_flow.house_singular') : __('booking_flow.house_plural')]) }}
                     </p>
                 </div>
             </div>
 
             <!-- Room Amenities Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ Ausstattung & Komfort</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking_flow.amenities_comfort') }}</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     @php
                         // Get amenities from first house, or use default
                         $amenitiesText = $houses->first()->amenities_text ?? null;
                         $defaultAmenities = [
-                            '📶 Kostenloses WLAN – stabil und zuverlässig',
-                            '🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht',
-                            '🛏️ Bequeme Betten – für einen erholsamen Schlaf',
-                            '📺 TV in jedem Zimmer',
-                            '🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend',
-                            '🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe',
-                            '📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV',
-                            '📅 Flexible Mietdauer – kurz- oder langfristig möglich',
+                            __('booking_flow.amenity_large_beds'),
+                            __('booking_flow.amenity_fast_wifi'),
+                            __('booking_flow.amenity_weekly_cleaning'),
+                            __('booking_flow.amenity_smart_tv'),
+                            __('booking_flow.amenity_prices_included'),
+                            __('booking_flow.amenity_washer_dryer'),
+                            __('booking_flow.amenity_central_location'),
+                            __('booking_flow.amenity_fully_equipped_kitchen'),
+                            __('booking_flow.amenity_parking'),
                         ];
                         
                         if ($amenitiesText) {
                             $amenities = array_filter(array_map('trim', explode("\n", $amenitiesText)));
+                            // Remove emojis from amenities
+                            $amenities = array_map(function($item) {
+                                return preg_replace('/[\x{1F300}-\x{1F9FF}]/u', '', $item);
+                            }, $amenities);
                         } else {
                             $amenities = $defaultAmenities;
                         }
@@ -189,12 +253,12 @@
                 <div class="mb-8 space-y-4">
                     <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                         <p class="text-gray-700 leading-relaxed">
-                            <strong>🌊 Spree & Wasserlage:</strong> Fürstenwalde liegt direkt an der Spree – perfekt für Spaziergänge am Wasser, kleine Auszeiten im Grünen und entspannte Feierabende.
+                            <strong>{{ __('booking_flow.furstenwalde_spree_title') }}</strong> {{ __('booking_flow.furstenwalde_spree_description') }}
                         </p>
                     </div>
                     <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
                         <p class="text-gray-700 leading-relaxed">
-                            <strong>🌲 Viel Natur drumherum:</strong> Mit Seen, Wäldern und Ausflugszielen in der Umgebung (z. B. Richtung Scharmützelsee) ist man schnell raus aus dem Alltag und mitten in der Erholung.
+                            <strong>{{ __('booking_flow.furstenwalde_nature_title') }}</strong> {{ __('booking_flow.furstenwalde_nature_description') }}
                         </p>
                     </div>
                 </div>
@@ -216,42 +280,44 @@
             </div>
             @endif
 
-            <!-- Houses Gallery Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12">
-                @foreach($houses as $house)
-                    @if($house->images && $house->images->count() > 0)
-                        @foreach($house->images as $image)
-                            <div class="house-gallery-item bg-white rounded-lg overflow-hidden shadow-md" 
-                                 onclick="openImageModal({{ $house->id }}, {{ $image->id }})">
-                                <div class="h-48 bg-gray-200 relative overflow-hidden">
-                                    <img src="{{ asset('storage/' . $image->path) }}" 
-                                         alt="{{ $house->name }}" 
-                                         class="w-full h-full object-cover"
-                                         loading="lazy">
-                                </div>
-                            </div>
-                        @endforeach
-                    @elseif($house->image)
-                        <div class="house-gallery-item bg-white rounded-lg overflow-hidden shadow-md" 
-                             onclick="openImageModal({{ $house->id }}, 'single')">
-                            <div class="h-48 bg-gray-200 relative overflow-hidden">
-                                <img src="{{ asset('storage/' . $house->image) }}" 
-                                     alt="{{ $house->name }}" 
-                                     class="w-full h-full object-cover"
-                                     loading="lazy">
-                            </div>
+            <!-- Houses Image Slider -->
+            @php
+                $allImages = [];
+                foreach($houses as $house) {
+                    if ($house->images && $house->images->count() > 0) {
+                        foreach($house->images as $image) {
+                            $allImages[] = [
+                                'id' => $image->id,
+                                'path' => asset('storage/' . $image->path),
+                                'house_id' => $house->id,
+                                'house_name' => $house->name
+                            ];
+                        }
+                    } elseif ($house->image) {
+                        $allImages[] = [
+                            'id' => 'single',
+                            'path' => asset('storage/' . $house->image),
+                            'house_id' => $house->id,
+                            'house_name' => $house->name
+                        ];
+                    }
+                }
+            @endphp
+            
+            @if(count($allImages) > 0)
+            <div class="mb-12">
+                <div class="swiper house-swiper">
+                    <div class="swiper-wrapper">
+                        @foreach($allImages as $index => $img)
+                        <div class="swiper-slide" onclick="openImageModalFromSlider({{ $img['house_id'] }}, '{{ $img['id'] }}', {{ $index }})">
+                            <img src="{{ $img['path'] }}" alt="{{ $img['house_name'] }}" loading="lazy">
                         </div>
-                    @endif
-                @endforeach
-            </div>
-
-            <!-- Book Button -->
-            @if($firstHouseWithRooms)
-            <div class="text-center mb-12">
-                <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $firstHouseWithRooms->id]) }}" 
-                   class="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl">
-                    {{ $firstHouseWithRooms->button_text ?? __('booking_flow.view_available_rooms') }}
-                </a>
+                        @endforeach
+                    </div>
+                    <div class="swiper-pagination"></div>
+                    <div class="swiper-button-next"></div>
+                    <div class="swiper-button-prev"></div>
+                </div>
             </div>
             @endif
 
@@ -297,7 +363,32 @@
         </div>
     </footer>
 
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
     <script>
+        // Initialize Swiper
+        const houseSwiper = new Swiper('.house-swiper', {
+            slidesPerView: 1,
+            spaceBetween: 0,
+            loop: true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            keyboard: {
+                enabled: true,
+            },
+        });
+
         // Store all house images data
         const houseImages = @json($houseImagesData);
 
@@ -307,6 +398,20 @@
             // Find the index of the clicked image
             const index = houseImages.findIndex(img => 
                 img.house_id === houseId && (img.id === imageId || (imageId === 'single' && img.id === 'single'))
+            );
+            
+            if (index !== -1) {
+                currentImageIndex = index;
+                updateModalImage();
+                document.getElementById('imageModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function openImageModalFromSlider(houseId, imageId, sliderIndex) {
+            // Find the index in houseImages array
+            const index = houseImages.findIndex(img => 
+                img.house_id === houseId && (String(img.id) === String(imageId) || (imageId === 'single' && img.id === 'single'))
             );
             
             if (index !== -1) {

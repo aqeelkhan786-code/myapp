@@ -34,14 +34,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Booking Confirmed!</h1>
+            <h1>{{ __('booking.booking_confirmed') }}</h1>
         </div>
         <div class="content">
-            <p>Dear {{ $booking->guest_first_name }},</p>
+            <p>{{ __('booking.email_dear') }} {{ $booking->guest_first_name }},</p>
             
-            <p>Your booking has been confirmed. We look forward to hosting you!</p>
+            <p>{{ __('booking.email_confirmed_message') }}</p>
             
-            <p><strong>Booking Details:</strong></p>
+            <p><strong>{{ __('booking.booking_details') }}:</strong></p>
             <ul>
                 <li>{{ __('booking.room') }}: {{ $booking->room->name }}</li>
                 <li>{{ __('booking.check_in') }}: {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}</li>
@@ -49,10 +49,10 @@
                 <li>{{ __('booking.total_amount') }}: €{{ number_format($booking->total_amount, 2) }}</li>
             </ul>
             
-            <p>Best regards,<br>MaRoom Booking System</p>
+            <p>{{ __('booking.email_best_regards') }}<br>{{ config('app.name', 'MaRoom Booking System') }}</p>
         </div>
         <div class="footer">
-            <p>This is an automated email. Please do not reply.</p>
+            <p>{{ __('booking.email_automated_notice') }}</p>
         </div>
     </div>
 </body>

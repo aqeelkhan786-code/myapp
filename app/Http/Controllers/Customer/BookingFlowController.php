@@ -94,7 +94,7 @@ class BookingFlowController extends Controller
     public function search(Location $location, House $house, Request $request)
     {
         // Get all rooms for this house
-        $rooms = $house->rooms()->with('images', 'property')->get();
+        $rooms = $house->rooms()->with('images', 'property', 'house')->get();
         
         // Get filter parameters
         $checkIn = $request->get('check_in');
@@ -166,6 +166,49 @@ class BookingFlowController extends Controller
             })
             ->toArray();
         
-        return view('booking-flow.search', compact('location', 'house', 'rooms', 'filteredRooms', 'checkIn', 'checkOut', 'blockedDates'));
+        // Prepare room data for modal (with amenities)
+        $roomsDataForModal = $filteredRooms->map(function($room) {
+            $amenitiesText = $room->amenities_text ?? ($room->house ? $room->house->amenities_text : null);
+            $isDe = app()->getLocale() === 'de';
+            $defaultAmenities = $isDe ? [
+                __('booking_flow.amenity_large_beds'),
+                __('booking_flow.amenity_fast_wifi'),
+                __('booking_flow.amenity_weekly_cleaning'),
+                __('booking_flow.amenity_smart_tv'),
+                __('booking_flow.amenity_prices_included'),
+                __('booking_flow.amenity_washer_dryer'),
+                __('booking_flow.amenity_central_location'),
+                __('booking_flow.amenity_fully_equipped_kitchen'),
+                __('booking_flow.amenity_parking'),
+            ] : [
+                __('booking_flow.amenity_large_beds'),
+                __('booking_flow.amenity_fast_wifi'),
+                __('booking_flow.amenity_weekly_cleaning'),
+                __('booking_flow.amenity_smart_tv'),
+                __('booking_flow.amenity_prices_included'),
+                __('booking_flow.amenity_washer_dryer'),
+                __('booking_flow.amenity_central_location'),
+                __('booking_flow.amenity_fully_equipped_kitchen'),
+                __('booking_flow.amenity_parking'),
+            ];
+            
+            if ($amenitiesText) {
+                $amenities = array_filter(array_map('trim', explode("\n", $amenitiesText)));
+                // Remove emojis from amenities
+                $amenities = array_map(function($item) {
+                    return preg_replace('/[\x{1F300}-\x{1F9FF}]/u', '', $item);
+                }, $amenities);
+            } else {
+                $amenities = $defaultAmenities;
+            }
+            
+            return [
+                'id' => $room->id,
+                'name' => $room->name,
+                'amenities' => array_values($amenities),
+            ];
+        });
+        
+        return view('booking-flow.search', compact('location', 'house', 'rooms', 'filteredRooms', 'checkIn', 'checkOut', 'blockedDates', 'roomsDataForModal'));
     }
 }

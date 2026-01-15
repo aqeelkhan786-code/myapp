@@ -35,6 +35,61 @@
         .room-card:hover img {
             transform: scale(1.1);
         }
+        /* Modal Styles */
+        .room-details-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+        .room-details-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content-wrapper {
+            background-color: #fff;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 32px;
+        }
+        .close-modal {
+            cursor: pointer;
+            font-size: 28px;
+            font-weight: bold;
+            color: #6b7280;
+            line-height: 1;
+        }
+        .close-modal:hover {
+            color: #111827;
+        }
+        @media (max-width: 768px) {
+            .modal-body {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body class="font-sans antialiased bg-gray-50">
@@ -139,8 +194,7 @@
                 @if($filteredRooms->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach($filteredRooms as $room)
-                    <a href="{{ route('booking.form', ['room' => $room->id, 'check_in' => $checkIn, 'check_out' => $checkOut]) }}" 
-                       class="room-card bg-white rounded-2xl overflow-hidden shadow-lg group">
+                    <div class="room-card bg-white rounded-2xl overflow-hidden shadow-lg group">
                         <!-- Room Image -->
                         <div class="h-64 bg-gray-200 relative overflow-hidden">
                             @if($room->images && $room->images->count() > 0)
@@ -173,27 +227,35 @@
                                     </svg>
                                     <span class="text-sm">{{ $room->capacity ?? 1 }} {{ ($room->capacity ?? 1) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                                 </div>
-                                <div class="text-lg font-bold text-blue-600">
+                                <div class="text-right">
                                     @php
                                         $isLongTerm = empty($checkOut) || $checkOut === null || trim($checkOut) === '';
+                                        $weeklyPrice = ($room->base_price ?? 0) * 7;
                                     @endphp
                                     @if($isLongTerm)
                                         {{-- Long-term rental - show monthly price --}}
-                                        €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}
+                                        <div class="text-lg font-bold text-blue-600">
+                                            €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}
+                                        </div>
                                     @else
-                                        {{-- Short-term rental - show nightly price --}}
-                                        €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
+                                        {{-- Short-term rental - show nightly and weekly price --}}
+                                        <div class="text-lg font-bold text-blue-600 mb-1">
+                                            €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
+                                        </div>
+                                        <div class="text-sm font-semibold text-gray-600">
+                                            €{{ number_format($weeklyPrice, 2) }}/{{ __('booking.week') }}
+                                        </div>
                                     @endif
                                 </div>
                             </div>
-                            <div class="mt-4 flex items-center text-blue-600 font-semibold">
+                            <button onclick="openRoomDetailsModal({{ $room->id }})" class="mt-4 w-full flex items-center justify-center text-blue-600 font-semibold hover:text-blue-700 transition-colors">
                                 <span>{{ __('booking_flow.view_details') }}</span>
                                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
-                            </div>
+                            </button>
                         </div>
-                    </a>
+                    </div>
                     @endforeach
                 </div>
                 @else
@@ -221,10 +283,33 @@
             </div>
             @endif
             
+            <!-- Room Details Modal -->
+            <div id="roomDetailsModal" class="room-details-modal">
+                <div class="modal-content-wrapper">
+                    <div class="modal-header">
+                        <h2 id="modalRoomName" class="text-2xl font-bold text-gray-900"></h2>
+                        <span class="close-modal" onclick="closeRoomDetailsModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking_flow.amenities_comfort') }}</h3>
+                            <ul id="modalAmenities" class="space-y-2 text-sm text-gray-700">
+                                <!-- Amenities will be populated by JavaScript -->
+                            </ul>
+                        </div>
+                        <div class="flex flex-col justify-center items-center">
+                            <a id="modalBookButton" href="#" class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg hover:shadow-xl whitespace-nowrap">
+                                Buchen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Back Button -->
             <div class="text-center mt-12">
                 <a href="{{ route('booking-flow.house', $location) }}" 
-                   class="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -235,6 +320,9 @@
     </div>
 
     <script>
+        // Room data for modal
+        const roomsData = @json($roomsDataForModal);
+        
         // Get blocked dates from bookings (passed from controller)
         const blockedDates = @json($blockedDates ?? []);
         
@@ -276,6 +364,66 @@
                     to: range[1]
                 };
             }),
+        });
+        
+        // Room Details Modal Functions
+        function openRoomDetailsModal(roomId) {
+            const room = roomsData.find(r => r.id === roomId);
+            if (!room) return;
+            
+            // Set room name
+            document.getElementById('modalRoomName').textContent = room.name;
+            
+            // Set amenities
+            const amenitiesList = document.getElementById('modalAmenities');
+            amenitiesList.innerHTML = '';
+            room.amenities.forEach(amenity => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start';
+                li.innerHTML = '<span class="mr-2 text-blue-600">•</span><span>' + amenity.trim() + '</span>';
+                amenitiesList.appendChild(li);
+            });
+            
+            // Set book button link
+            const bookButton = document.getElementById('modalBookButton');
+            const checkIn = document.getElementById('check_in').value;
+            const checkOut = document.getElementById('check_out').value;
+            // Correct route structure: /booking/{room}/form
+            let bookUrl = '{{ url("/booking") }}/' + roomId + '/form';
+            const params = [];
+            if (checkIn) {
+                params.push('check_in=' + encodeURIComponent(checkIn));
+            }
+            if (checkOut) {
+                params.push('check_out=' + encodeURIComponent(checkOut));
+            }
+            if (params.length > 0) {
+                bookUrl += '?' + params.join('&');
+            }
+            bookButton.href = bookUrl;
+            
+            // Show modal
+            document.getElementById('roomDetailsModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeRoomDetailsModal() {
+            document.getElementById('roomDetailsModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('roomDetailsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRoomDetailsModal();
+            }
+        });
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRoomDetailsModal();
+            }
         });
     </script>
 </body>

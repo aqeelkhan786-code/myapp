@@ -69,34 +69,29 @@
     
     <!-- Room Amenities Section -->
     <div class="mb-8 bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ {{ app()->getLocale() === 'de' ? 'Ausstattung & Komfort' : 'Amenities & Comfort' }}</h2>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking_flow.amenities_comfort') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @php
                 // Get amenities from room, then house, or use default
                 $amenitiesText = $room->amenities_text ?? ($room->house ? $room->house->amenities_text : null);
-                $isDe = app()->getLocale() === 'de';
-                $defaultAmenities = $isDe ? [
-                    '📶 Kostenloses WLAN – stabil und zuverlässig',
-                    '🍳 Voll ausgestattete Gemeinschaftsküche – alles vorhanden, was man braucht',
-                    '🛏️ Bequeme Betten – für einen erholsamen Schlaf',
-                    '📺 TV in jedem Zimmer',
-                    '🛋️ Gemeinschaftsbereiche – perfekt zum Entspannen am Abend',
-                    '🚗 Parkmöglichkeiten – direkt am Haus oder in unmittelbarer Nähe',
-                    '📍 Zentrale Lage – gute Anbindung an Einkaufsmöglichkeiten & ÖPNV',
-                    '📅 Flexible Mietdauer – kurz- oder langfristig möglich',
-                ] : [
-                    '📶 WiFi – free and reliable',
-                    '🍳 Fully equipped kitchen – for shared use',
-                    '🛏️ Comfortable beds – restful sleep guaranteed',
-                    '📺 TV in every room',
-                    '🛋️ Common areas – for relaxed evenings',
-                    '🚗 Parking – directly at the house or nearby',
-                    '📍 Central location – good connection to shopping and public transport',
-                    '📅 Flexible rental period – short and long-term stays possible',
+                $defaultAmenities = [
+                    __('booking_flow.amenity_large_beds'),
+                    __('booking_flow.amenity_fast_wifi'),
+                    __('booking_flow.amenity_weekly_cleaning'),
+                    __('booking_flow.amenity_smart_tv'),
+                    __('booking_flow.amenity_prices_included'),
+                    __('booking_flow.amenity_washer_dryer'),
+                    __('booking_flow.amenity_central_location'),
+                    __('booking_flow.amenity_fully_equipped_kitchen'),
+                    __('booking_flow.amenity_parking'),
                 ];
                 
                 if ($amenitiesText) {
                     $amenities = array_filter(array_map('trim', explode("\n", $amenitiesText)));
+                    // Remove emojis from amenities
+                    $amenities = array_map(function($item) {
+                        return preg_replace('/[\x{1F300}-\x{1F9FF}]/u', '', $item);
+                    }, $amenities);
                 } else {
                     $amenities = $defaultAmenities;
                 }
@@ -136,7 +131,25 @@
                 
                 <!-- Personal Information Section -->
                 <div class="mb-8">
+                    @php
+                        // Check if this is a short-term booking for address fields
+                        $endAtForAddress = $formData['step2']['end_at'] ?? request()->get('check_out');
+                        $startAtForAddress = $formData['step2']['start_at'] ?? request()->get('check_in');
+                        $isShortTermForAddress = false;
+                        
+                        if ($endAtForAddress && trim($endAtForAddress) !== '' && $startAtForAddress && $room->short_term_allowed) {
+                            try {
+                                $startDateForAddress = \Carbon\Carbon::parse($startAtForAddress);
+                                $endDateForAddress = \Carbon\Carbon::parse($endAtForAddress);
+                                $nightsForAddress = $startDateForAddress->diffInDays($endDateForAddress);
+                                $isShortTermForAddress = $nightsForAddress <= 30;
+                            } catch (\Exception $e) {
+                                $isShortTermForAddress = false;
+                            }
+                        }
+                    @endphp
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 1. Vorname -->
                         <div>
                             <label for="guest_first_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.first_name_required') }}</label>
                             <input type="text" name="guest_first_name" id="guest_first_name" 
@@ -146,40 +159,28 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                        <!-- 2. Adresse (nur für kurzfristige Buchungen) -->
                         <div>
-                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.last_name_required') }}</label>
-                            <input type="text" name="guest_last_name" id="guest_last_name" 
-                                   value="{{ old('guest_last_name', $formData['step1']['guest_last_name'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('guest_last_name')
+                            <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
+                            <input type="text" name="renter_address" id="renter_address" 
+                                   value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   {{ $isShortTermForAddress ? 'required' : '' }}>
+                            @error('renter_address')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-                        @php
-                            // Determine if this is a short-term rental for hiding job field
-                            $startAtForJob = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
-                            $endAtForJob = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
-                            $isShortTermForJob = false;
-                            
-                            // Only short-term if end_at exists, is not empty, and nights <= 30
-                            if ($endAtForJob && trim($endAtForJob) !== '' && $startAtForJob && $room->short_term_allowed) {
-                                $startDateForJob = \Carbon\Carbon::parse($startAtForJob);
-                                $endDateForJob = \Carbon\Carbon::parse($endAtForJob);
-                                $nightsForJob = $startDateForJob->diffInDays($endDateForJob);
-                                $isShortTermForJob = $nightsForJob <= 30;
-                            }
-                        @endphp
-                        @if(!$isShortTermForJob)
+                        <!-- 3. Telefon -->
                         <div>
-                            <label for="job" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.job_required') }}</label>
-                            <input type="text" name="job" id="job" 
-                                   value="{{ old('job', $formData['step1']['job'] ?? '') }}" 
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') ?? 'Handynummer' }} {{ __('common.required') ?? '*' }}</label>
+                            <input type="tel" name="phone" id="phone" 
+                                   value="{{ old('phone', $formData['step1']['phone'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('job')
+                            @error('phone')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-                        @endif
+                        <!-- 4. Sprache -->
                         <div>
                             <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.language') ?? 'Sprache' }} {{ __('common.required') ?? '*' }}</label>
                             <select name="language" id="language" 
@@ -192,33 +193,62 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                        <!-- 5. Nachname -->
                         <div>
-                            <label for="communication_preference" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.communication') ?? 'Kommunikation' }} {{ __('common.required') ?? '*' }}</label>
-                            <select name="communication_preference" id="communication_preference" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">{{ __('booking.select_communication') }}</option>
-                                <option value="Mail" {{ old('communication_preference', $formData['step1']['communication_preference'] ?? '') == 'Mail' ? 'selected' : '' }}>Mail</option>
-                                <option value="Whatsapp" {{ old('communication_preference', $formData['step1']['communication_preference'] ?? '') == 'Whatsapp' ? 'selected' : '' }}>Whatsapp</option>
-                            </select>
-                            @error('communication_preference')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.phone') ?? 'Handynummer' }} {{ __('common.required') ?? '*' }}</label>
-                            <input type="tel" name="phone" id="phone" 
-                                   value="{{ old('phone', $formData['step1']['phone'] ?? '') }}" 
+                            <label for="guest_last_name" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.last_name_required') }}</label>
+                            <input type="text" name="guest_last_name" id="guest_last_name" 
+                                   value="{{ old('guest_last_name', $formData['step1']['guest_last_name'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('phone')
+                            @error('guest_last_name')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                        <!-- 6. Postleitzahl (nur für kurzfristige Buchungen) -->
+                        <div>
+                            <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postal_code') ?? 'Postleitzahl' }} {{ $isShortTermForAddress ? '*' : '' }}</label>
+                            <input type="text" name="renter_postal_code" id="renter_postal_code" 
+                                   value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
+                                   placeholder="{{ __('booking.postal_code') ?? 'Postleitzahl' }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   {{ $isShortTermForAddress ? 'required' : '' }}>
+                            @error('renter_postal_code')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <!-- 7. Email -->
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.email') ?? 'E-Mail-Adresse' }} {{ __('common.required') ?? '*' }}</label>
                             <input type="email" name="email" id="email" 
                                    value="{{ old('email', $formData['step1']['email'] ?? '') }}" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             @error('email')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <!-- 8. Stadt (nur für kurzfristige Buchungen) -->
+                        <div>
+                            <label for="renter_city" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.city') ?? 'Stadt' }} {{ $isShortTermForAddress ? '*' : '' }}</label>
+                            <input type="text" name="renter_city" id="renter_city" 
+                                   value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
+                                   placeholder="{{ __('booking.city') ?? 'Stadt' }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   {{ $isShortTermForAddress ? 'required' : '' }}>
+                            @error('renter_city')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <!-- 9. Kommunikation Checkbox -->
+                        <div class="md:col-span-2">
+                            <div class="flex items-start">
+                                <input type="checkbox" name="communication_preference" id="communication_preference" 
+                                       value="Mail,Whatsapp"
+                                       {{ old('communication_preference', $formData['step1']['communication_preference'] ?? '') == 'Mail,Whatsapp' ? 'checked' : '' }}
+                                       class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" required>
+                                <label for="communication_preference" class="ml-2 block text-sm font-medium text-gray-700">
+                                    {{ __('booking.communication_agreement') }} <span class="text-red-600">*</span>
+                                </label>
+                            </div>
+                            @error('communication_preference')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -277,7 +307,7 @@
                     @endphp
                     
                     @if($isLongTermForDisplay)
-                        <label for="rental_period" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.rental_period') ?? 'Mietdauer' }}</label>
+                        <label for="rental_period" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.rental_start') ?? 'Mietbeginn' }}</label>
                         <div class="space-y-3">
                             @if($startDateFormatted)
                             <div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
@@ -358,7 +388,7 @@
                     
                     <!-- Important Notice -->
                     <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">⚠️ Wichtiger Hinweis zur Buchung</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Wichtiger Hinweis zur Buchung</h3>
                         <p class="text-sm text-gray-700 leading-relaxed">
                             Mit dem Absenden der Buchung schließen Sie einen Mietvertrag (Untermietvertrag) ab.<br>
                             Der Vertrag ist verbindlich und wird digital unterschrieben bzw. mit Ihrer Unterschrift bestätigt.
@@ -386,10 +416,10 @@
 
                     <!-- Rental property -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🏠 Mietobjekt</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietobjekt</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2"><strong id="selected-room-name">{{ $room->name ?? 'N/A' }}</strong></p>
-                        <p class="text-sm text-gray-600 mb-4">Inklusive gemeinsamer Nutzung von: 🍳 Küche, 🚿 Badezimmer, 🪑 Möbel</p>
+                        <p class="text-sm text-gray-600 mb-4">Inklusive gemeinsamer Nutzung von: Küche, Badezimmer, Möbel</p>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
                             <input type="text" id="room-address" value="{{ $room->property->address ?? 'Sample Address' }}" 
@@ -397,24 +427,26 @@
                         </div>
                         
                         <!-- Keys & Access -->
-                        <div class="mt-6">
-                            <h4 class="text-md font-semibold text-gray-900 mb-3">🔑 Schlüssel & Zugang</h4>
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <h4 class="text-md font-semibold text-gray-900 mb-3">Schlüssel & Zugang</h4>
                             <p class="text-sm text-gray-700 mb-3">Für die Dauer der Mietzeit erhält der Mieter:</p>
                             <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4 mb-3">
                                 <li>1 Pin-Code für die Haustür</li>
                                 <li>1 Wohnungsschlüssel</li>
                                 <li>1 Zimmerschlüssel</li>
                             </ul>
-                            <p class="text-sm text-gray-700 font-semibold mb-2">⚠️ Wichtig: Das Anfertigen von Schlüsseln ist untersagt.</p>
-                            <p class="text-sm text-gray-600">
-                                Bei Verlust eines oder mehrerer Schlüssel ist der Vermieter berechtigt, betroffene Schlösser auf Kosten des Mieters auszutauschen.
-                            </p>
+                            <div class="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                                <p class="text-sm text-gray-700 font-semibold mb-2">Wichtig: Das Anfertigen von Schlüsseln ist untersagt.</p>
+                                <p class="text-sm text-gray-600">
+                                    Bei Verlust eines oder mehrerer Schlüssel ist der Vermieter berechtigt, betroffene Schlösser auf Kosten des Mieters auszutauschen.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Rental Period -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📅 Mietdauer</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietdauer</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
                             <strong>Mietbeginn:</strong> ab <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Datum auswählen]' }}</span>
@@ -427,8 +459,8 @@
                             <strong>Mietdauer:</strong> {{ $isLongTerm ? '1 Monat' : 'Variabel' }}
                         </p>
                         
-                        <div class="mt-4">
-                            <h4 class="text-md font-semibold text-gray-900 mb-2">📝 Kündigungsfrist</h4>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">Kündigungsfrist</h4>
                             <p class="text-sm text-gray-600 leading-relaxed">
                                 Mieter und Vermieter können den Mietvertrag mit einer Frist von 1 Monat zum Monatsende kündigen.<br>
                                 Die Kündigung muss schriftlich erfolgen (WhatsApp oder E-Mail) und spätestens am letzten Tag des Vormonats bei der anderen Partei eingehen.
@@ -438,7 +470,7 @@
 
                     <!-- Rental Fee -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">💰 Miete</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Miete</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         @php
                             $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
@@ -448,20 +480,20 @@
                             Die Miete beträgt <strong id="rent-per-night">€{{ number_format($isLongTerm ? ($room->monthly_price ?? 700) : ($room->base_price ?? 0), 2) }}</strong> {{ $isLongTerm ? 'pro Monat' : __('booking.per_night_text') }}.
                         </p>
                         
-                        <div class="mb-4">
-                            <h4 class="text-md font-semibold text-gray-900 mb-2">✅ In der Miete enthalten:</h4>
+                        <div class="mb-4 mt-4 pt-4 border-t border-gray-200">
+                            <h4 class="text-md font-semibold text-gray-900 mb-2">In der Miete enthalten:</h4>
                             <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4">
-                                <li>🔥 Heizung, Warmwasser, Wasser, Abwasser</li>
-                                <li>⚡ Strom, Gas</li>
-                                <li>📶 Internet</li>
-                                <li>🧹 Reinigung der Gemeinschaftsräume</li>
-                                <li>🛏️ Bettwäsche, Handtücher</li>
+                                <li>Heizung, Warmwasser, Wasser, Abwasser</li>
+                                <li>Strom, Gas</li>
+                                <li>Internet</li>
+                                <li>Reinigung der Gemeinschaftsräume</li>
+                                <li>Bettwäsche, Handtücher</li>
                             </ul>
                         </div>
                         
                         <div class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
                             <p class="text-sm text-gray-700">
-                                <strong>📢 Hinweis zur Anpassung:</strong><br>
+                                <strong>Hinweis zur Anpassung:</strong><br>
                                 Aufgrund steigender Gas- und Energiepreise kann die Gesamtmiete steigen. Eine Erhöhung wird mindestens 1 Monat im Voraus angekündigt.
                             </p>
                         </div>
@@ -469,7 +501,7 @@
 
                     <!-- Payment of the rent -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">💳 Zahlung der Miete</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Zahlung der Miete</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-3">
                             Die Miete ist monatlich im Voraus zu zahlen, spätestens bis zum 1. des Monats, per Überweisung an:
@@ -484,7 +516,7 @@
 
                     <!-- Deposit -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔒 Kaution</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Kaution</h3>
                         <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-3">
                             Die Kaution beträgt <strong>780 €</strong> und ist per Überweisung zu zahlen an:
@@ -498,47 +530,47 @@
 
                     <!-- Renter's Rights, Obligations and Liability -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Rechte, Pflichten & Hausregeln</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Rechte, Pflichten & Hausregeln</h3>
                         <p class="text-sm text-gray-700 mb-4">Der Mieter verpflichtet sich insbesondere zu folgenden Punkten:</p>
-                        <ul class="text-sm text-gray-700 space-y-3 list-none">
+                        <ul class="text-sm text-gray-700 space-y-3">
                             <li class="flex items-start">
-                                <span class="mr-2">🧹</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Sauberkeit:</strong> Wohnung, Küche und Bad sind sauber und ordentlich zu halten.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🛡️</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Sorgfalt:</strong> Möbel und Gegenstände sind pfleglich zu behandeln und im ursprünglichen Zustand zu hinterlassen.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🗑️</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Hausordnung & Müll:</strong> Hausordnung beachten, Mülltrennung einhalten (Mülltonnen im Hof).</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">⚠️</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Schäden melden:</strong> Schäden sind sofort zu melden. Bei verspäteter Meldung haftet der Mieter für Folgeschäden.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🚭</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Rauchverbot:</strong> Im gesamten Apartment und Treppenhaus gilt absolutes Rauchverbot.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">👥</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Keine weiteren Personen:</strong> Unterbringung anderer Personen ist untersagt; längere Besuche nur nach Absprache.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🔍</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Zutritt Vermieter:</strong> Vermieter/Beauftragte dürfen die Räume bis zu 2× pro Monat zur Zustandsprüfung betreten.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🔇</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Ruhezeiten:</strong> 12–14 Uhr sowie 22–6 Uhr ist Lärm untersagt.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">🏠</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Bodenpflege:</strong> Böden trocken halten und sachgemäß behandeln, um Schäden zu vermeiden.</span>
                             </li>
                             <li class="flex items-start">
-                                <span class="mr-2">⚖️</span>
+                                <span class="mr-2 text-blue-600">•</span>
                                 <span><strong>Konsequenz bei Verstoß:</strong> Regelverstöße können zur sofortigen Kündigung führen.</span>
                             </li>
                         </ul>
@@ -546,7 +578,7 @@
 
                     <!-- Confirmation -->
                     <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">✅ Bestätigung</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Bestätigung</h3>
                         <p class="text-sm text-gray-700">
                             Mit Ihrer Unterschrift bestätigen Sie, dass Sie den Mietvertrag vollständig gelesen haben und mit allen Bedingungen einverstanden sind.
                         </p>
@@ -633,51 +665,6 @@
                     }
                 @endphp
                 @if($isShortTermForPayment)
-                <!-- Renter Section for Short-term Bookings -->
-                <div class="mb-8 border-t pt-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.renter') }}</h2>
-                    <p class="text-sm text-gray-600 mb-4"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label for="renter_address" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
-                            <input type="text" name="renter_address" id="renter_address" 
-                                   value="{{ old('renter_address', $formData['step2']['renter_address'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_address')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="renter_postal_code" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.postcode_city_required') }}</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" name="renter_postal_code" id="renter_postal_code" 
-                                       value="{{ old('renter_postal_code', $formData['step2']['renter_postal_code'] ?? '') }}" 
-                                       placeholder="{{ __('booking.postal_code') ?? 'Postleitzahl' }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <input type="text" name="renter_city" id="renter_city" 
-                                       value="{{ old('renter_city', $formData['step2']['renter_city'] ?? '') }}" 
-                                       placeholder="{{ __('booking.city') ?? 'Stadt' }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            </div>
-                            @error('renter_postal_code')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                            @error('renter_city')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="renter_phone" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.telephone_required') }}</label>
-                            <input type="tel" name="renter_phone" id="renter_phone" 
-                                   value="{{ old('renter_phone', $formData['step2']['renter_phone'] ?? '') }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            @error('renter_phone')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Payment Section for Short-term Bookings -->
                 <div class="mb-8 border-t pt-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.payment_information') ?? 'Zahlungsinformationen' }}</h2>
