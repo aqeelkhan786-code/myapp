@@ -13,6 +13,7 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'room_id',
         'start_at',
         'end_at',
@@ -44,6 +45,11 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 
     public function room(): BelongsTo
     {

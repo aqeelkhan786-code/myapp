@@ -40,9 +40,16 @@
             </form>
             
             <div class="mt-8 pt-6 border-t border-gray-200">
-                <p class="text-sm text-gray-600 text-center">
+                <p class="text-sm text-gray-600 text-center mb-4">
                     <i class="fa-solid fa-info-circle mr-2"></i>
-                    Need help? Contact us if you can't find your booking.
+                    {{ __('Need help? Contact us if you can\'t find your booking.') }}
+                </p>
+                <p class="text-sm text-gray-700 text-center">
+                    {{ __('Do you have an account?') }}
+                    <a href="{{ route('login') }}" class="text-blue-600 hover:text-blue-700 font-medium">{{ __('Log in') }}</a>
+                    {{ __('or') }}
+                    <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-700 font-medium">{{ __('Register') }}</a>
+                    {{ __('to see your bookings and payment info in one place.') }}
                 </p>
             </div>
         </div>

@@ -2,6 +2,7 @@
 
 return [
     'Dashboard' => 'Dashboard',
+    'My Bookings' => 'Meine Buchungen',
     'Manage Bookings' => 'Buchungen verwalten',
     'Manage Properties' => 'Immobilien verwalten',
     'Manage Locations' => 'Standorte verwalten',

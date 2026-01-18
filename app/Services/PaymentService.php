@@ -70,6 +70,7 @@ class PaymentService
     public function handleSuccessfulPayment(Booking $booking, PaymentIntent $paymentIntent): void
     {
         $booking->update([
+            'status' => 'confirmed', // Confirm booking after successful payment
             'payment_status' => 'paid',
             'paid_amount' => $paymentIntent->amount / 100, // Convert from cents
         ]);

@@ -5,8 +5,8 @@
 @section('content')
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="mb-6">
-        <a href="{{ route('booking.lookup') }}" class="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            <i class="fa-solid fa-arrow-left mr-2"></i> {{ __('booking.back_to_search') }}
+        <a href="{{ auth()->check() ? route('my-bookings') : route('booking.lookup') }}" class="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+            <i class="fa-solid fa-arrow-left mr-2"></i> {{ auth()->check() ? __('booking.back_to_my_bookings') : __('booking.back_to_search') }}
         </a>
     </div>
     

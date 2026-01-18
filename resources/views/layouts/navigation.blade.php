@@ -13,6 +13,7 @@
                 <!-- Navigation Links -->
                 <div class="hidden sm:flex space-x-4 sm:space-x-6 lg:space-x-8 sm:-my-px sm:ms-6 lg:ms-10 sm:items-center sm:flex-nowrap sm:overflow-x-auto">
                     @auth
+                    @if(Auth::user()->hasRole('admin'))
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('common.Dashboard') }}
                     </x-nav-link>
@@ -34,6 +35,11 @@
                     <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
                         {{ __('common.Settings') }}
                     </x-nav-link>
+                    @else
+                    <x-nav-link :href="route('my-bookings')" :active="request()->routeIs('my-bookings')">
+                        {{ __('common.My Bookings') }}
+                    </x-nav-link>
+                    @endif
                     @endauth
                     <x-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
                         {{ __('common.View Rooms') }}
@@ -130,6 +136,7 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             @auth
+            @if(Auth::user()->hasRole('admin'))
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('common.Dashboard') }}
             </x-responsive-nav-link>
@@ -148,6 +155,11 @@
             <x-responsive-nav-link :href="route('admin.rooms.index')" :active="request()->routeIs('admin.rooms.*')">
                 {{ __('common.Manage Rooms') }}
             </x-responsive-nav-link>
+            @else
+            <x-responsive-nav-link :href="route('my-bookings')" :active="request()->routeIs('my-bookings')">
+                {{ __('common.My Bookings') }}
+            </x-responsive-nav-link>
+            @endif
             @endauth
             <x-responsive-nav-link :href="route('booking.index')" :active="request()->routeIs('booking.*')">
                 {{ __('common.View Rooms') }}

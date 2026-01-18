@@ -678,14 +678,11 @@
                     </div>
                     
                     @if(config('services.stripe.key'))
-                    <!-- Stripe Payment Element -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.payment_information') }} *</label>
-                        <div id="payment-element" class="p-4 border border-gray-300 rounded-md bg-white">
-                            <!-- Stripe Elements will create form elements here -->
-                        </div>
-                        <div id="payment-message" class="mt-2 text-sm text-red-600 hidden"></div>
-                        <input type="hidden" name="payment_method_id" id="payment_method_id">
+                    <!-- Payment will be handled on billing page -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <p class="text-sm text-blue-800 font-semibold mb-2">ℹ️ Payment Information</p>
+                        <p class="text-sm text-blue-700 mb-4">You will be redirected to a secure payment page after completing the booking form.</p>
+                        <p class="text-sm text-blue-600">Total amount to pay: <strong>€{{ number_format($totalAmount, 2) }}</strong></p>
                     </div>
                     @else
                     <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -1233,192 +1230,12 @@
                 }
             }
             @endphp
-            @if($isShortTermForSubmit && config('services.stripe.key'))
-                // Process payment for short-term bookings
-                e.preventDefault();
-                const submitBtn = document.getElementById('submit-btn');
-                const originalText = submitBtn.textContent;
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Processing Payment...';
-                
-                // Hide any previous error messages
-                const paymentMessage = document.getElementById('payment-message');
-                if (paymentMessage) {
-                    paymentMessage.classList.add('hidden');
-                    paymentMessage.textContent = '';
-                }
-                
-                try {
-                    // Confirm payment with Stripe
-                    const {error: submitError, paymentIntent} = await stripe.confirmPayment({
-                        elements,
-                        confirmParams: {
-                            return_url: window.location.href,
-                        },
-                        redirect: 'if_required'
-                    });
-                    
-                    if (submitError) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
-                        if (paymentMessage) {
-                            paymentMessage.textContent = submitError.message;
-                            paymentMessage.classList.remove('hidden');
-                        }
-                        return false;
-                    }
-                    
-                    // Check payment status
-                    let finalPaymentIntent = paymentIntent;
-                    
-                    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-                        // Retrieve payment intent to check status
-                        const {error: retrieveError, paymentIntent: retrievedIntent} = await stripe.retrievePaymentIntent(clientSecret);
-                        if (retrieveError) {
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = originalText;
-                            if (paymentMessage) {
-                                paymentMessage.textContent = 'Failed to verify payment. Please try again.';
-                                paymentMessage.classList.remove('hidden');
-                            }
-                            return false;
-                        }
-                        finalPaymentIntent = retrievedIntent;
-                    }
-                    
-                    if (finalPaymentIntent && finalPaymentIntent.status === 'succeeded') {
-                        // Store payment intent ID for form submission
-                        const paymentMethodIdInput = document.getElementById('payment_method_id');
-                        if (paymentMethodIdInput) {
-                            paymentMethodIdInput.value = finalPaymentIntent.id || window.paymentIntentId;
-                        }
-                        
-                        // Update button to show processing
-                        submitBtn.textContent = '{{ __('booking.creating_booking') }}';
-                        submitBtn.disabled = true;
-                        
-                        // Prevent double submission
-                        if (form.dataset.submitting === 'true') {
-                            return false;
-                        }
-                        form.dataset.submitting = 'true';
-                        
-                        // Submit the form - this will trigger a POST request
-                        // The server will process and redirect
-                        form.submit();
-                    } else {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
-                        if (paymentMessage) {
-                            paymentMessage.textContent = @json(__('booking.payment_not_successful')) + ': ' + (finalPaymentIntent ? finalPaymentIntent.status : @json(__('booking.unknown')));
-                            paymentMessage.classList.remove('hidden');
-                        }
-                    }
-                } catch (error) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                    if (paymentMessage) {
-                        paymentMessage.textContent = @json(__('booking.payment_processing_error')) + ': ' + error.message;
-                        paymentMessage.classList.remove('hidden');
-                    }
-                }
-            @else
-            // For long-term bookings or when payment is not required, allow normal form submission
-            // No payment processing needed
-            @endif
+            // Allow normal form submission
+            // Payment will be handled on billing page for short-term bookings
         });
     }
     
-    @php
-        // Recalculate isShortTerm for Stripe initialization
-        $startAtForStripeInit = request()->get('check_in') ?? $formData['step2']['start_at'] ?? null;
-        $endAtForStripeInit = request()->get('check_out') ?? $formData['step2']['end_at'] ?? null;
-        $isShortTermForStripeInit = false;
-        
-        if ($endAtForStripeInit && trim($endAtForStripeInit) !== '' && $startAtForStripeInit && $room->short_term_allowed) {
-            try {
-                $startDateForStripeInit = \Carbon\Carbon::parse($startAtForStripeInit);
-                $endDateForStripeInit = \Carbon\Carbon::parse($endAtForStripeInit);
-                $nightsForStripeInit = $startDateForStripeInit->diffInDays($endDateForStripeInit);
-                $isShortTermForStripeInit = $nightsForStripeInit <= 30;
-            } catch (\Exception $e) {
-                $isShortTermForStripeInit = false;
-            }
-        }
-    @endphp
-    @if($isShortTermForStripeInit && config('services.stripe.key'))
-    // Initialize Stripe Payment for short-term bookings
-    <script src="https://js.stripe.com/v3/"></script>
-    <script>
-        const stripeKey = '{{ config("services.stripe.key") }}';
-        let stripe;
-        let elements;
-        let paymentElement;
-        let clientSecret;
-        
-        if (stripeKey) {
-            stripe = Stripe(stripeKey);
-            
-            // Initialize payment element
-            (async function() {
-                try {
-                    // Get booking details for payment intent
-                    const startAt = document.getElementById('start_at').value;
-                    const endAt = document.getElementById('end_at').value;
-                    const roomId = document.getElementById('room_id').value || {{ $room->id }};
-                    
-                    if (!startAt || !endAt) {
-                        console.error('Start and end dates are required for payment');
-                        return;
-                    }
-                    
-                    // Create payment intent via API
-                    const response = await fetch('{{ route("booking.payment-intent") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            room_id: roomId,
-                            start_at: startAt,
-                            end_at: endAt
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.client_secret) {
-                        clientSecret = data.client_secret;
-                        // Extract payment intent ID from client secret (format: pi_xxx_secret_xxx)
-                        window.paymentIntentId = clientSecret.split('_secret_')[0];
-                        
-                        elements = stripe.elements({ 
-                            clientSecret: clientSecret,
-                            appearance: {
-                                theme: 'stripe',
-                            }
-                        });
-                        paymentElement = elements.create('payment');
-                        paymentElement.mount('#payment-element');
-                    } else if (data.error) {
-                        document.getElementById('payment-message').textContent = data.error;
-                        document.getElementById('payment-message').classList.remove('hidden');
-                    }
-                } catch (error) {
-                    console.error('Payment initialization error:', error);
-                    document.getElementById('payment-message').textContent = 'Failed to initialize payment. Please refresh the page.';
-                    document.getElementById('payment-message').classList.remove('hidden');
-                }
-            })();
-        } else {
-            document.getElementById('payment-message').textContent = 'Payment processing is not configured. Please contact support.';
-            document.getElementById('payment-message').classList.remove('hidden');
-        }
-    </script>
-    @endif
-</script>
+    {{-- Payment is now handled on separate billing page, no Stripe initialization needed here --}}
 @endif
 
 @if($step == 2)
@@ -1518,7 +1335,6 @@
 </script>
 @endif
 
-@push('scripts')
 <script>
     // Initialize Swiper for room preview
     @if($room->images && $room->images->count() > 1)

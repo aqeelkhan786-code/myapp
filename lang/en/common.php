@@ -2,6 +2,7 @@
 
 return [
     'Dashboard' => 'Dashboard',
+    'My Bookings' => 'My Bookings',
     'Manage Bookings' => 'Manage Bookings',
     'Manage Properties' => 'Manage Properties',
     'Manage Locations' => 'Manage Locations',

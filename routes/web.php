@@ -20,11 +20,11 @@ Route::get('/', function () {
 
 require __DIR__.'/auth.php';
 
-// Dashboard (protected route)
+// Dashboard and profile (protected routes)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard/check-in-pdf/{pdf}/download', [\App\Http\Controllers\DashboardController::class, 'downloadCheckInPdf'])->name('dashboard.checkin-pdf.download');
-    Route::post('/dashboard/check-in-pdf/send', [\App\Http\Controllers\DashboardController::class, 'sendCheckInPdfs'])->name('dashboard.checkin-pdf.send');
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('role:admin');
+    Route::get('/dashboard/check-in-pdf/{pdf}/download', [\App\Http\Controllers\DashboardController::class, 'downloadCheckInPdf'])->name('dashboard.checkin-pdf.download')->middleware('role:admin');
+    Route::post('/dashboard/check-in-pdf/send', [\App\Http\Controllers\DashboardController::class, 'sendCheckInPdfs'])->name('dashboard.checkin-pdf.send')->middleware('role:admin');
     
     // Profile Routes
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
@@ -112,11 +112,15 @@ Route::post('/booking/{booking}/step/{step}', [BookingController::class, 'saveSt
 Route::post('/booking/{booking}/signature', [BookingController::class, 'saveSignature'])->name('booking.signature');
 Route::post('/booking/{booking}/payment', [BookingController::class, 'processPayment'])->name('booking.payment');
 Route::post('/booking/payment-intent', [BookingController::class, 'createPaymentIntent'])->name('booking.payment-intent');
+Route::get('/booking/{booking}/billing', [BookingController::class, 'showBilling'])->name('booking.billing');
+Route::post('/booking/{booking}/billing/pay', [BookingController::class, 'processBillingPayment'])->name('booking.billing.pay');
 Route::get('/booking/{booking}/complete', [BookingController::class, 'complete'])->name('booking.complete');
 
 // Booking Lookup (for customers to view their bookings)
 Route::get('/booking/lookup', [BookingController::class, 'lookup'])->name('booking.lookup');
 Route::post('/booking/find', [BookingController::class, 'findBookings'])->name('booking.find');
+// My Bookings (auth required) — view bookings and payment info
+Route::get('/my-bookings', [BookingController::class, 'myBookings'])->name('my-bookings')->middleware('auth');
 Route::get('/booking/{booking}/view', [BookingController::class, 'view'])->name('booking.view');
 
 // iCal Export

@@ -156,6 +156,7 @@ class BookingController extends Controller
 
             // Create booking with temporary guest info (will be updated in step 1)
             $booking = Booking::create([
+                'user_id' => auth()->id(),
                 'room_id' => $room->id,
                 'start_at' => $startAt->utc(),
                 'end_at' => $endAt->utc(),
@@ -239,7 +240,7 @@ class BookingController extends Controller
                 $validationRules['renter_address'] = 'required|string|max:255';
                 $validationRules['renter_postal_code'] = 'required|string|max:255';
                 $validationRules['renter_city'] = 'required|string|max:255';
-                $validationRules['renter_phone'] = 'required|string|max:255';
+                $validationRules['renter_phone'] = 'nullable|string|max:255';
             }
             
             $request->validate($validationRules);
@@ -394,11 +395,17 @@ class BookingController extends Controller
      */
     public function createPaymentIntent(Request $request)
     {
-        $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'start_at' => 'required|date',
-            'end_at' => 'required|date|after:start_at',
-        ]);
+        try {
+            $request->validate([
+                'room_id' => 'required|exists:rooms,id',
+                'start_at' => 'required|date',
+                'end_at' => 'required|date|after:start_at',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed: ' . implode(', ', $e->errors()['end_at'] ?? $e->errors()['start_at'] ?? ['Invalid input'])
+            ], 422);
+        }
         
         try {
             $room = Room::findOrFail($request->room_id);
@@ -489,32 +496,305 @@ class BookingController extends Controller
     }
 
     /**
+     * Show billing page for payment
+     */
+    public function showBilling(Booking $booking)
+    {
+        // For billing, redirect to register instead of login
+        if ($r = $this->authorizeBillingAccess($booking)) {
+            return $r;
+        }
+        $booking->load('room', 'room.property');
+        
+        // Only allow billing for short-term bookings
+        if (!$booking->is_short_term) {
+            return redirect()->route('booking.complete', ['booking' => $booking->id])
+                ->with('info', 'This booking does not require payment.');
+        }
+        
+        // If payment is already completed, redirect to complete page
+        if ($booking->payment_status === 'paid') {
+            return redirect()->route('booking.complete', ['booking' => $booking->id])
+                ->with('success', 'Payment already completed.');
+        }
+        
+        // Ensure booking is still pending (not confirmed without payment)
+        if ($booking->status === 'confirmed' && $booking->payment_status !== 'paid') {
+            // This shouldn't happen, but reset status to pending if it does
+            $booking->update(['status' => 'pending']);
+        }
+        
+        // Check if Stripe is configured
+        if (!config('services.stripe.secret')) {
+            \Log::error('Stripe secret key not configured', ['booking_id' => $booking->id]);
+            return view('booking.billing', [
+                'booking' => $booking,
+                'clientSecret' => null,
+            ])->withErrors(['error' => 'Payment processing is not configured. Please contact support.']);
+        }
+        
+        // Validate total amount
+        if (!$booking->total_amount || $booking->total_amount <= 0) {
+            \Log::error('Invalid booking total amount', [
+                'booking_id' => $booking->id,
+                'total_amount' => $booking->total_amount,
+            ]);
+            return view('booking.billing', [
+                'booking' => $booking,
+                'clientSecret' => null,
+            ])->withErrors(['error' => 'Invalid booking amount. Please contact support.']);
+        }
+        
+        // Create or retrieve payment intent
+        try {
+            \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+            
+            $paymentIntent = null;
+            
+            if ($booking->stripe_payment_intent_id) {
+                try {
+                    $paymentIntent = \Stripe\PaymentIntent::retrieve($booking->stripe_payment_intent_id);
+                    // Check if payment intent is already succeeded
+                    if ($paymentIntent->status === 'succeeded') {
+                        // Update booking payment status if not already updated
+                        if ($booking->payment_status !== 'paid') {
+                            $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                        }
+                        return redirect()->route('booking.complete', ['booking' => $booking->id])
+                            ->with('success', 'Payment already completed.');
+                    }
+                    // If payment intent exists but not succeeded, check if it's still valid
+                    if (in_array($paymentIntent->status, ['canceled', 'payment_failed'])) {
+                        // Create a new payment intent if the old one is canceled or failed
+                        $paymentIntent = null;
+                    }
+                } catch (\Stripe\Exception\InvalidRequestException $e) {
+                    // Payment intent not found, create a new one
+                    \Log::info('Payment intent not found, creating new one', [
+                        'booking_id' => $booking->id,
+                        'old_intent_id' => $booking->stripe_payment_intent_id,
+                    ]);
+                    $paymentIntent = null;
+                } catch (\Exception $e) {
+                    \Log::warning('Error retrieving payment intent, creating new one', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $paymentIntent = null;
+                }
+            }
+            
+            if (!$paymentIntent) {
+                // Validate amount before creating payment intent
+                $amountInCents = (int)($booking->total_amount * 100);
+                if ($amountInCents < 50) { // Minimum 0.50 EUR
+                    throw new \Exception('Payment amount is too small. Minimum amount is €0.50');
+                }
+                
+                $paymentIntent = \Stripe\PaymentIntent::create([
+                    'amount' => $amountInCents,
+                    'currency' => 'eur',
+                    'metadata' => [
+                        'booking_id' => $booking->id,
+                    ],
+                ]);
+                
+                $booking->update([
+                    'stripe_payment_intent_id' => $paymentIntent->id,
+                ]);
+                
+                \Log::info('Payment intent created successfully', [
+                    'booking_id' => $booking->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                    'amount' => $amountInCents,
+                ]);
+            }
+            
+            $clientSecret = $paymentIntent->client_secret;
+            
+            if (!$clientSecret) {
+                throw new \Exception('Payment intent client secret is missing. Payment intent ID: ' . $paymentIntent->id);
+            }
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            \Log::error('Stripe API error in billing page', [
+                'booking_id' => $booking->id,
+                'stripe_error' => $e->getMessage(),
+                'stripe_code' => $e->getStripeCode(),
+                'stripe_type' => $e->getStripeError()->type ?? 'unknown',
+            ]);
+            
+            $errorMessage = 'Failed to initialize payment. ';
+            if ($e->getStripeCode()) {
+                $errorMessage .= 'Error: ' . $e->getStripeCode() . '. ';
+            }
+            $errorMessage .= 'Please check your Stripe configuration or contact support.';
+            
+            // Show error on billing page instead of redirecting to complete (which would cause redirect loop)
+            return view('booking.billing', [
+                'booking' => $booking,
+                'clientSecret' => null,
+            ])->withErrors(['error' => $errorMessage]);
+        } catch (\Exception $e) {
+            \Log::error('Payment intent creation failed for billing page', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            $errorMessage = 'Failed to initialize payment: ' . $e->getMessage();
+            $errorMessage .= '. Please try again or contact support.';
+            
+            // Show error on billing page instead of redirecting to complete (which would cause redirect loop)
+            return view('booking.billing', [
+                'booking' => $booking,
+                'clientSecret' => null,
+            ])->withErrors(['error' => $errorMessage]);
+        }
+        
+        return view('booking.billing', compact('booking', 'clientSecret'));
+    }
+    
+    /**
+     * Process payment on billing page
+     */
+    public function processBillingPayment(Request $request, Booking $booking)
+    {
+        // For billing, redirect to register instead of login
+        if ($r = $this->authorizeBillingAccess($booking)) {
+            return $r;
+        }
+        $request->validate([
+            'payment_method_id' => 'required|string',
+        ]);
+        
+        try {
+            \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+            
+            if (!$booking->stripe_payment_intent_id) {
+                return back()->withErrors(['error' => 'Payment intent not found. Please refresh the page.']);
+            }
+            
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($booking->stripe_payment_intent_id);
+            
+            // Check if payment already succeeded
+            if ($paymentIntent->status === 'succeeded') {
+                $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                return redirect()->route('booking.complete', ['booking' => $booking->id])
+                    ->with('success', __('booking.payment_processed_successfully'));
+            }
+            
+            // Confirm the payment
+            $paymentIntent->confirm([
+                'payment_method' => $request->payment_method_id,
+            ]);
+            
+            // Check payment status
+            if ($paymentIntent->status === 'succeeded') {
+                $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                return redirect()->route('booking.complete', ['booking' => $booking->id])
+                    ->with('success', __('booking.payment_processed_successfully'));
+            } else {
+                return back()->withErrors(['error' => 'Payment could not be processed. Status: ' . $paymentIntent->status]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Billing payment processing failed: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Payment processing failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Show booking completion page
      */
     public function complete(Booking $booking)
     {
+        if ($r = $this->authorizeBookingAccess($booking)) {
+            return $r;
+        }
         $booking->load('room.images', 'documents');
+        
+        // For short-term bookings, ensure payment has been completed
+        if ($booking->is_short_term) {
+            // Check payment status - if not paid, redirect to billing
+            if ($booking->payment_status !== 'paid') {
+                // Double-check with Stripe if payment intent exists
+                if ($booking->stripe_payment_intent_id) {
+                    try {
+                        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+                        $paymentIntent = \Stripe\PaymentIntent::retrieve($booking->stripe_payment_intent_id);
+                        if ($paymentIntent->status === 'succeeded' && $booking->payment_status !== 'paid') {
+                            // Payment succeeded but booking not updated - update it now
+                            $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
+                            // Reload booking to get updated payment_status
+                            $booking->refresh();
+                        }
+                    } catch (\Exception $e) {
+                        // If we can't check Stripe, proceed with redirect to billing
+                        \Log::warning('Could not verify payment status with Stripe', [
+                            'booking_id' => $booking->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
+                // If still not paid after checking Stripe, redirect to billing
+                if ($booking->payment_status !== 'paid') {
+                    return redirect()->route('booking.billing', ['booking' => $booking->id])
+                        ->with('error', __('booking.payment_required_before_completion'));
+                }
+            }
+        }
+        
         return view('booking.complete', compact('booking'));
     }
 
     /**
-     * Show booking lookup page
+     * Show booking lookup page. When logged in, redirect to My Bookings.
      */
     public function lookup()
     {
+        if (auth()->check()) {
+            return redirect()->route('my-bookings');
+        }
         return view('booking.lookup');
     }
 
     /**
-     * Find bookings by email
+     * My Bookings — for logged-in customers. Shows bookings linked by user_id or email.
+     */
+    public function myBookings()
+    {
+        if (!auth()->check()) {
+            return redirect()->guest(route('login'));
+        }
+        $user = auth()->user();
+        $bookings = Booking::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('email', $user->email);
+        })
+            ->with('room', 'documents')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $email = $user->email;
+        $fromAuth = true;
+        return view('booking.my-bookings', compact('bookings', 'email', 'fromAuth'));
+    }
+
+    /**
+     * Find bookings by email. For guests: email required. For logged-in: optional, uses account email.
      */
     public function findBookings(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
+        $email = null;
+        if (auth()->check()) {
+            $email = $request->get('email') ?: auth()->user()->email;
+            if ($request->has('email') && $request->email !== auth()->user()->email) {
+                return back()->withErrors(['email' => 'You can only look up bookings for your own email address.'])->withInput();
+            }
+        } else {
+            $request->validate(['email' => 'required|email']);
+            $email = $request->email;
+        }
 
-        $email = $request->email;
         $bookings = Booking::where('email', $email)
             ->with('room', 'documents')
             ->orderBy('created_at', 'desc')
@@ -524,7 +804,8 @@ class BookingController extends Controller
             return back()->withErrors(['email' => 'No bookings found for this email address.'])->withInput();
         }
 
-        return view('booking.my-bookings', compact('bookings', 'email'));
+        $fromAuth = false;
+        return view('booking.my-bookings', compact('bookings', 'email', 'fromAuth'));
     }
 
     /**
@@ -532,6 +813,9 @@ class BookingController extends Controller
      */
     public function view(Booking $booking)
     {
+        if ($r = $this->authorizeBookingAccess($booking)) {
+            return $r;
+        }
         $booking->load('room.house', 'documents', 'paymentLogs');
         
         // Get check-in PDF path if available
@@ -735,7 +1019,7 @@ class BookingController extends Controller
                 'phone' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
                 'start_at' => 'required|date|after:yesterday',
-                'end_at' => 'nullable|date|after:start_at',
+                'end_at' => 'nullable|date',
                 'signature' => 'nullable|string', // Only required for long-term rentals
                 'payment_method_id' => 'nullable|string', // Required for short-term bookings, handled below
             ];
@@ -750,10 +1034,23 @@ class BookingController extends Controller
                 $validationRules['renter_address'] = 'required|string|max:255';
                 $validationRules['renter_postal_code'] = 'required|string|max:255';
                 $validationRules['renter_city'] = 'required|string|max:255';
-                $validationRules['renter_phone'] = 'required|string|max:255';
+                $validationRules['renter_phone'] = 'nullable|string|max:255';
             }
             
             $request->validate($validationRules);
+            
+            // Manual validation: Check if end_at is after start_at when both are provided
+            if ($request->filled('end_at') && $request->filled('start_at')) {
+                try {
+                    $startDate = Carbon::parse($request->start_at);
+                    $endDate = Carbon::parse($request->end_at);
+                    if ($endDate->lte($startDate)) {
+                        return back()->withErrors(['end_at' => 'The check-out date must be after the check-in date.'])->withInput();
+                    }
+                } catch (\Exception $e) {
+                    return back()->withErrors(['dates' => 'Invalid date format.'])->withInput();
+                }
+            }
             
             // Validate signature for long-term rentals
             if ($isLongTermRental && !$request->signature) {
@@ -816,20 +1113,17 @@ class BookingController extends Controller
                 $totalAmount = $endAt ? $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt) : 0;
                 $isShortTerm = $endAt && $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
                 
-                // Validate payment for short-term bookings
-                if ($isShortTerm && !$request->payment_method_id) {
-                    return back()->withErrors(['payment' => 'Payment is required for short-term bookings.'])->withInput();
-                }
-                
-                // Create booking
+                // Create booking (payment will be handled separately on billing page for short-term)
                 $booking = Booking::create([
+                    'user_id' => auth()->id(),
                     'room_id' => $selectedRoomId,
                     'start_at' => $startAt->utc(),
                     'end_at' => $endAt ? $endAt->utc() : null,
                     'source' => 'website',
-                    'status' => 'pending',
+                    'status' => 'pending', // Booking remains pending until payment is completed
                     'is_short_term' => $isShortTerm,
                     'total_amount' => $totalAmount,
+                    'payment_status' => 'pending', // Explicitly set payment status to pending
                     'guest_first_name' => $formData['step1']['guest_first_name'],
                     'guest_last_name' => $formData['step1']['guest_last_name'],
                     'language' => $formData['step1']['language'],
@@ -879,51 +1173,16 @@ class BookingController extends Controller
                 GenerateDocumentPdf::dispatch($document3);
                 // NOTE: Admin will sign and send this document manually
                 
-                // Process payment for short-term bookings
-                if ($isShortTerm) {
-                    if (!$request->payment_method_id) {
-                        // Short-term booking requires payment
-                        $booking->delete();
-                        return back()->withErrors(['payment' => 'Payment is required for short-term bookings.'])->withInput();
-                    }
-                    
-                    try {
-                        // Retrieve the payment intent that was created on the frontend
-                        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
-                        
-                        // The payment_method_id contains the payment intent ID
-                        $paymentIntentId = $request->payment_method_id;
-                        
-                        // Retrieve the payment intent
-                        $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
-                        
-                        // Update booking with payment intent ID
-                        $booking->update([
-                            'stripe_payment_intent_id' => $paymentIntent->id,
-                        ]);
-                        
-                        // Check if payment succeeded
-                        if ($paymentIntent->status === 'succeeded') {
-                            $this->paymentService->handleSuccessfulPayment($booking, $paymentIntent);
-                        } else {
-                            // Payment not completed - delete booking
-                            $booking->delete();
-                            return back()->withErrors(['payment' => 'Payment was not completed. Please try again.'])->withInput();
-                        }
-                    } catch (\Exception $e) {
-                        // Delete booking if payment fails
-                        if ($booking->exists) {
-                            $booking->delete();
-                        }
-                        \Log::error('Payment processing failed: ' . $e->getMessage());
-                        return back()->withErrors(['payment' => 'Payment processing failed: ' . $e->getMessage()])->withInput();
-                    }
-                }
-                
                 // Clear session
                 session()->forget('booking_form_data');
                 
-                // Booking is complete after step 1 - redirect to completion page
+                // For short-term bookings, redirect to billing page. For long-term, redirect to complete page
+                if ($isShortTerm) {
+                    return redirect()->route('booking.billing', ['booking' => $booking->id], 303)
+                        ->with('info', __('booking.please_complete_payment'));
+                }
+                
+                // Booking is complete for long-term - redirect to completion page
                 // Use 303 redirect to ensure proper redirect after POST
                 return redirect()->route('booking.complete', ['booking' => $booking->id], 303)
                     ->with('success', __('booking.booking_submitted_successfully'));
@@ -1032,6 +1291,7 @@ class BookingController extends Controller
             
             // Create booking
             $booking = Booking::create([
+                'user_id' => auth()->id(),
                 'room_id' => $selectedRoomId,
                 'start_at' => $startAt->utc(),
                 'end_at' => $endAt ? $endAt->utc() : null,
@@ -1091,5 +1351,57 @@ class BookingController extends Controller
             return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
                 ->withErrors(['error' => 'An error occurred. Please try again.']);
         }
+    }
+
+    /**
+     * Check if the current user can access a booking (admin, owner by user_id, or email match).
+     */
+    private function canAccessBooking(Booking $booking): bool
+    {
+        if (!auth()->check()) {
+            return false;
+        }
+        if (auth()->user()->hasRole('admin')) {
+            return true;
+        }
+        return $booking->user_id === auth()->id() || $booking->email === auth()->user()->email;
+    }
+
+    /**
+     * Authorize booking access; redirect to login or abort 403. Returns redirect if guest, null if authorized.
+     */
+    private function authorizeBookingAccess(Booking $booking): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!auth()->check()) {
+            return redirect()->guest(route('login'));
+        }
+        if (!$this->canAccessBooking($booking)) {
+            abort(403, 'You do not have access to this booking.');
+        }
+        return null;
+    }
+
+    /**
+     * Authorize billing access; redirect to register (instead of login) for guests, or abort 403.
+     * Returns redirect if guest, null if authorized.
+     */
+    private function authorizeBillingAccess(Booking $booking): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!auth()->check()) {
+            // Redirect to register page (with intended URL preserved for redirect after registration)
+            return redirect()->guest(route('register'));
+        }
+        
+        // Link the booking to the user if email matches and user_id is not set
+        // This handles the case where a guest created a booking, then registered
+        if ($booking->user_id === null && $booking->email === auth()->user()->email) {
+            $booking->update(['user_id' => auth()->id()]);
+            $booking->refresh(); // Refresh to get updated user_id
+        }
+        
+        if (!$this->canAccessBooking($booking)) {
+            abort(403, 'You do not have access to this booking.');
+        }
+        return null;
     }
 }

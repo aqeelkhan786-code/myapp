@@ -42,8 +42,9 @@ class AuthenticatedSessionController extends Controller
             'is_ajax' => $request->expectsJson(),
         ]);
 
-        // Get redirect URL
-        $redirectUrl = $request->session()->pull('url.intended', RouteServiceProvider::HOME);
+        // Get redirect URL: intended, or dashboard for admins, my-bookings for customers
+        $default = Auth::user()->hasRole('admin') ? RouteServiceProvider::HOME : route('my-bookings');
+        $redirectUrl = $request->session()->pull('url.intended', $default);
         
         // Handle AJAX requests
         if ($request->expectsJson()) {

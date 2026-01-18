@@ -42,10 +42,22 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Ensure registered users do NOT have admin role - they are customers only
+        // No role assignment needed - customers are identified by not having 'admin' role
+        // Admin role is only assigned manually via admin:create command or seeder
+
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(RouteServiceProvider::HOME);
+        // Check if there's an intended URL (e.g., from billing page redirect)
+        $redirectUrl = $request->session()->pull('url.intended', null);
+        
+        // If no intended URL, redirect based on user role
+        if (!$redirectUrl) {
+            $redirectUrl = $user->hasRole('admin') ? \App\Providers\RouteServiceProvider::HOME : route('my-bookings');
+        }
+        
+        return redirect($redirectUrl);
     }
 }
