@@ -305,7 +305,7 @@ class BookingController extends Controller
             'room_name' => $room->name,
             'guest_name' => "{$request->guest_first_name} {$request->guest_last_name}",
             'start_at' => $startAt->format('Y-m-d'),
-            'end_at' => $endAt->format('Y-m-d'),
+            'end_at' => $endAt ? $endAt->format('Y-m-d') : null,
             'status' => $request->status,
             'source' => $request->source,
             'has_conflicts' => $hasConflicts,

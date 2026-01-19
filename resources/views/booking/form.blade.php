@@ -385,15 +385,6 @@
                 <div class="mb-8 border-t pt-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.booking_information_title') }}</h2>
                     
-                    <!-- Important Notice -->
-                    <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Wichtiger Hinweis zur Buchung</h3>
-                        <p class="text-sm text-gray-700 leading-relaxed">
-                            Mit dem Absenden der Buchung schließen Sie einen Mietvertrag (Untermietvertrag) ab.<br>
-                            Der Vertrag ist verbindlich und wird digital unterschrieben bzw. mit Ihrer Unterschrift bestätigt.
-                        </p>
-                    </div>
-                    
                     <!-- Landlord Section (Hidden/Prefilled) -->
                     <div class="mb-6 p-4 bg-gray-50 rounded-md">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.landlord') }}</h3>
@@ -567,6 +558,15 @@
                                 <span><strong>Konsequenz bei Verstoß:</strong> Regelverstöße können zur sofortigen Kündigung führen.</span>
                             </li>
                         </ul>
+                    </div>
+
+                    <!-- Important Notice -->
+                    <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Wichtiger Hinweis zur Buchung</h3>
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            Mit dem Absenden der Buchung schließen Sie einen Mietvertrag (Untermietvertrag) ab.<br>
+                            Der Vertrag ist verbindlich und wird digital unterschrieben bzw. mit Ihrer Unterschrift bestätigt.
+                        </p>
                     </div>
 
                     <!-- Confirmation -->
