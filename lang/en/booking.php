@@ -84,6 +84,7 @@ return [
     'contact_support_complete_booking' => 'Please contact support to complete your booking.',
     'creating_booking' => 'Creating Booking...',
     'rental_agreement_title' => 'Rental Agreement',
+    'booking_information_title' => 'Booking information',
     'signature_instruction' => 'Please sign above using your mouse or touch screen',
     'please_provide_signature' => 'Please provide your signature',
     'signature_pad_error' => 'Error initializing signature pad. Please refresh the page.',

@@ -11,7 +11,6 @@
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white">
                     1
                 </div>
-                <span class="ml-2 text-sm font-medium text-blue-600">{{ __('booking.rental_agreement_title') }}</span>
             </div>
         </div>
         <p class="text-center text-sm text-gray-500 mt-2">{{ __('booking.complete_booking_request') }}</p>
@@ -107,7 +106,7 @@
     <div class="bg-white rounded-lg shadow-md p-8">
         @if($step == 1)
             <!-- Step 1: Rental Agreement Form -->
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.rental_agreement_title') }}</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.booking_information_title') }}</h2>
             
             @if(session('success'))
                 <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
@@ -384,7 +383,7 @@
                 @if($isLongTermRental)
                 <!-- RENTAL AGREEMENT Section - Only for Long-term Rentals -->
                 <div class="mb-8 border-t pt-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ strtoupper(__('booking.rental_agreement_title')) }}</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('booking.booking_information_title') }}</h2>
                     
                     <!-- Important Notice -->
                     <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
@@ -398,7 +397,6 @@
                     <!-- Landlord Section (Hidden/Prefilled) -->
                     <div class="mb-6 p-4 bg-gray-50 rounded-md">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ __('booking.landlord') }}</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <div class="space-y-2 text-sm">
                             <p><strong>{{ __('booking.surname_name') ?? 'Nachname, Name' }}:</strong> <span class="text-gray-600">{{ config('landlord.name', 'Martin Assies') }}</span></p>
                             <p><strong>{{ __('booking.address') }}:</strong> <span class="text-gray-600">{{ config('landlord.address') ?: '[' . __('booking.landlord_address') ?? 'Vermieteradresse' . ']' }}</span></p>
@@ -417,7 +415,6 @@
                     <!-- Rental property -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietobjekt</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2"><strong id="selected-room-name">{{ $room->name ?? 'N/A' }}</strong></p>
                         <p class="text-sm text-gray-600 mb-4">Inklusive gemeinsamer Nutzung von: Küche, Badezimmer, Möbel</p>
                         <div>
@@ -447,7 +444,6 @@
                     <!-- Rental Period -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietdauer</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-2">
                             <strong>Mietbeginn:</strong> ab <span id="tenancy-from">{{ isset($formData['step2']['start_at']) ? \Carbon\Carbon::parse($formData['step2']['start_at'])->format('d.m.Y') : '[Datum auswählen]' }}</span>
                         </p>
@@ -471,7 +467,6 @@
                     <!-- Rental Fee -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Miete</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         @php
                             $endAt = $formData['step2']['end_at'] ?? request()->get('check_out');
                             $isLongTerm = empty($endAt) || $endAt === null || trim($endAt) === '';
@@ -502,7 +497,6 @@
                     <!-- Payment of the rent -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Zahlung der Miete</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-3">
                             Die Miete ist monatlich im Voraus zu zahlen, spätestens bis zum 1. des Monats, per Überweisung an:
                         </p>
@@ -517,7 +511,6 @@
                     <!-- Deposit -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Kaution</h3>
-                        <p class="text-sm text-gray-600 mb-2"><strong>{{ __('booking.this_field_hidden') }}</strong></p>
                         <p class="text-sm text-gray-700 mb-3">
                             Die Kaution beträgt <strong>780 €</strong> und ist per Überweisung zu zahlen an:
                         </p>

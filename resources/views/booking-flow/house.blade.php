@@ -201,11 +201,7 @@
 
             <!-- Description Section -->
             <div class="mb-12 max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ __('booking_flow.description') }}</h2>
                 <div class="prose prose-lg max-w-none">
-                    <p class="text-gray-700 leading-relaxed mb-4">
-                        <strong>{{ __('booking_flow.furnished_rooms_brandenburg') }} {{ $location->name }}</strong>
-                    </p>
                     <p class="text-gray-700 leading-relaxed mb-6">
                         {{ __('booking_flow.at_haus_offer', ['location' => $location->name, 'count' => $houses->count(), 'house' => $houses->count() === 1 ? __('booking_flow.house_singular') : __('booking_flow.house_plural')]) }}
                     </p>
@@ -263,11 +259,6 @@
                     </div>
                 </div>
                 @endif
-            </div>
-
-            <!-- Location Name -->
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-900">{{ $location->name }}</h2>
             </div>
 
             <!-- Button Above Pictures -->
