@@ -116,12 +116,16 @@ class BookingFlowController extends Controller
                     // Both dates provided - check availability for date range
                     $endAt = \Carbon\Carbon::parse($checkOut)->setTimezone('Europe/Berlin')->startOfDay();
                     
-                    // Get room IDs that have confirmed bookings for these dates
+                    // Get room IDs that have confirmed bookings overlapping [startAt, endAt]
+                    // Include long-term bookings (end_at = null) as conflicts
                     $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
                         ->where(function ($q) use ($startAt, $endAt) {
                             $q->where(function ($q2) use ($startAt, $endAt) {
                                 $q2->where('start_at', '<', $endAt->utc())
-                                   ->where('end_at', '>', $startAt->utc());
+                                   ->where(function ($q3) use ($startAt) {
+                                       $q3->where('end_at', '>', $startAt->utc())
+                                          ->orWhereNull('end_at');
+                                   });
                             });
                         })
                         ->pluck('room_id')
@@ -133,11 +137,14 @@ class BookingFlowController extends Controller
                     });
                 } else {
                     // Only check-in provided - check if room is available on that date (for long-term rentals)
-                    // Get room IDs that have confirmed bookings starting on or before check-in and ending after check-in
+                    // Include long-term bookings (end_at = null) as conflicts
                     $unavailableRoomIds = \App\Models\Booking::where('status', 'confirmed')
                         ->where(function ($q) use ($startAt) {
                             $q->where('start_at', '<=', $startAt->utc())
-                              ->where('end_at', '>', $startAt->utc());
+                              ->where(function ($q2) use ($startAt) {
+                                  $q2->where('end_at', '>', $startAt->utc())
+                                     ->orWhereNull('end_at');
+                              });
                         })
                         ->pluck('room_id')
                         ->unique();

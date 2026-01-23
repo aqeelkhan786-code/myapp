@@ -135,6 +135,18 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+
+                <div>
+                    <label for="language" class="block text-sm font-medium text-gray-700 mb-2">{{ __('admin.language') }}</label>
+                    <select name="language" id="language" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Deutsch" {{ old('language', $booking->language ?? 'Deutsch') === 'Deutsch' ? 'selected' : '' }}>{{ __('booking_flow.deutsch') }}</option>
+                        <option value="Englisch" {{ old('language', $booking->language) === 'Englisch' ? 'selected' : '' }}>{{ __('booking_flow.englisch') }}</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">{{ __('admin.language_for_emails') }}</p>
+                    @error('language')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
 
             <div class="mt-6">

@@ -33,14 +33,19 @@ class DocumentSent extends Mailable
      */
     public function envelope(): Envelope
     {
-        $docTypeNames = [
-            'rental_agreement' => 'Rental Agreement',
-            'landlord_confirmation' => 'Landlord Confirmation',
-            'rent_arrears' => 'Certificate of Rent Arrears',
+        $locale = $this->booking->getLocaleFromLanguage();
+        app()->setLocale($locale);
+
+        $docTypeKeys = [
+            'rental_agreement' => 'rental_agreement',
+            'landlord_confirmation' => 'landlord_confirmation',
+            'rent_arrears' => 'rent_arrears_certificate',
         ];
-        
+        $key = $docTypeKeys[$this->document->doc_type] ?? 'rental_agreement';
+        $docTypeName = __('booking.' . $key);
+
         return new Envelope(
-            subject: $docTypeNames[$this->document->doc_type] . ' - ' . $this->booking->room->name,
+            subject: $docTypeName . ' - ' . $this->booking->room->name,
         );
     }
 
@@ -49,11 +54,15 @@ class DocumentSent extends Mailable
      */
     public function content(): Content
     {
+        $locale = $this->booking->getLocaleFromLanguage();
+        app()->setLocale($locale);
+
         return new Content(
             view: 'emails.document-sent',
             with: [
                 'document' => $this->document,
                 'booking' => $this->booking,
+                'locale' => $locale,
             ],
         );
     }

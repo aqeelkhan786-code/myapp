@@ -17,15 +17,22 @@ class CheckInPdfsSent extends Mailable
     public string $emailMessage;
     public array $pdfPaths;
     public string $emailSubject;
+    public string $locale;
 
     /**
      * Create a new message instance.
+     *
+     * @param string $message Email body
+     * @param array $pdfPaths Paths to PDF attachments
+     * @param string|null $subject Email subject (defaults from locale)
+     * @param string|null $locale 'de' or 'en' for header/footer; defaults to app locale (e.g. dashboard)
      */
-    public function __construct(string $message, array $pdfPaths, string $subject = null)
+    public function __construct(string $message, array $pdfPaths, ?string $subject = null, ?string $locale = null)
     {
         $this->emailMessage = $message;
         $this->pdfPaths = $pdfPaths;
-        $this->emailSubject = $subject ?? (app()->getLocale() === 'de' ? 'Check-in Informationen - MaRoom' : 'Check-in Information - MaRoom');
+        $this->locale = $locale ?? app()->getLocale();
+        $this->emailSubject = $subject ?? ($this->locale === 'de' ? 'Check-in Informationen - MaRoom' : 'Check-in Information - MaRoom');
     }
 
     /**
@@ -47,6 +54,7 @@ class CheckInPdfsSent extends Mailable
             view: 'emails.checkin-pdfs-sent',
             with: [
                 'emailMessage' => $this->emailMessage,
+                'locale' => $this->locale,
             ],
         );
     }

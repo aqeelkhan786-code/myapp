@@ -26,13 +26,19 @@ class IcalController extends Controller
             ->where('active', true)
             ->get();
         
+        // Check if there are no active feeds
+        if ($feeds->isEmpty()) {
+            return redirect()->route('admin.bookings.index')
+                ->with('warning', __('admin.no_active_ical_feeds'));
+        }
+        
         // Dispatch sync jobs to queue for each feed
         foreach ($feeds as $feed) {
             \App\Jobs\SyncIcalFeed::dispatch($feed, auth()->id());
         }
         
         return redirect()->route('admin.bookings.index')
-            ->with('success', 'iCal sync has been queued for ' . count($feeds) . ' feed(s). Please wait a moment and refresh to see results.');
+            ->with('success', __('admin.ical_sync_queued', ['count' => count($feeds)]));
     }
 }
 

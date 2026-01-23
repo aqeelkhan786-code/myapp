@@ -418,6 +418,102 @@ cPanel → Cron Jobs → Add New Cron Job:
 
 ---
 
+### 11.2 Windows Server (Task Scheduler) — Recommended for Win hosting
+
+Agar aap app Windows Server/IIS ya Windows VPS par run kar rahe hain, to cron ki jagah **Task Scheduler** use hota hai.
+
+#### Option A (Recommended): Laravel Scheduler (every minute)
+
+1. Open **Task Scheduler**
+2. **Create Task**
+3. **Triggers** → New → Daily → **Repeat task every: 1 minute** → for: Indefinitely
+4. **Actions** → New:
+   - **Program/script**: `C:\path\to\php.exe`
+   - **Add arguments**:
+     - `artisan schedule:run`
+   - **Start in**:
+     - `C:\path\to\your\project` (example: `C:\inetpub\wwwroot\laravel-booking-system`)
+
+Is se `app/Console/Kernel.php` ke scheduled tasks (including iCal hourly sync) automatically run hotay rahenge.
+
+#### Option B (Direct iCal sync command) — simple setup
+
+Ye option tab use karein jab aap schedule:run nahi chalana chahte.
+
+- **Trigger**: Repeat every **1 hour**
+- **Action**:
+  - Program/script: `C:\path\to\php.exe`
+  - Add arguments: `artisan ical:sync-imports`
+  - Start in: project directory
+
+---
+
+### 11.3 VPS/Linux (crontab) — Common deployment
+
+```bash
+# Laravel scheduler (every minute - required!)
+* * * * * cd /var/www/your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+---
+
+### 11.4 Queue Worker Reminder (Important for “Sync Now” jobs)
+
+Room page ka “Sync Now” button iCal sync ko **queue** mein dispatch karta hai (`App\\Jobs\\SyncIcalFeed`).
+
+- Agar queue worker run nahi ho raha, “Sync Now” press karne ke baad kuch nahi hoga.
+- Ensure karein:
+  - `php artisan queue:work` (or Supervisor) running ho
+  - Or use scheduler-based worker setup per your hosting
+
+---
+
+## 🏠 Airbnb Calendar Sync Setup (Import + Export)
+
+Project mein Airbnb-style iCal sync ka flow:
+
+- **Import (Airbnb → MaRoom)**: Airbnb par booking ho to MaRoom mein dates block ho jati hain
+- **Export (MaRoom → Airbnb)**: MaRoom par booking ho to Airbnb mein dates block ho jati hain
+
+### A) Import iCal (Airbnb → MaRoom)
+
+1. Airbnb Host Dashboard → Listing → **Availability / Calendar**  
+2. **Sync calendars** / **Export calendar**  
+3. Airbnb aapko `.ics` URL deta hai (example: `https://www.airbnb.com/calendar/ical/...`)
+4. MaRoom Admin:
+   - Admin → Rooms → Room open karein → **Calendar Sync** tab
+   - **Import (Airbnb → MaRoom)** section mein URL paste karein
+   - **Active** checkbox ON karein
+   - Save karein
+   - Optional: **Sync Now** click karein (immediate import)
+
+### B) Export iCal (MaRoom → Airbnb)
+
+1. MaRoom Admin:
+   - Admin → Rooms → Room open → **Calendar Sync** tab
+   - **Export (MaRoom → Airbnb)** section mein **Generate Export Token** click karein
+   - Aapko export URL milega like:
+     - `https://yourdomain.com/ical/{roomId}/{token}.ics`
+2. Airbnb Host Dashboard:
+   - Calendar → **Sync calendars** / **Import calendar**
+   - MaRoom export URL paste karein
+   - Save
+
+### Notes (No Double Booking)
+
+- MaRoom import side par **conflict detection** hai: agar Airbnb booking existing manual/website confirmed booking se clash kare to import **skip** hota hai (double booking avoid).
+- Export side par MaRoom **Airbnb-imported bookings export nahi karta** (circular sync avoid).
+
+### Optional: Timezone
+
+Default timezone `Europe/Berlin` hai. Change karna ho to `.env` mein:
+
+```env
+BOOKING_TIMEZONE=Europe/Berlin
+```
+
+---
+
 ## 🔒 Step 12: SSL Certificate
 
 ### 12.1 Enable SSL (cPanel)

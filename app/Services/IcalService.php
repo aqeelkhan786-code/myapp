@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Log;
 
 class IcalService
 {
+    protected function bookingTimezone(): string
+    {
+        // Keep behavior consistent with existing controllers, but make it configurable.
+        return (string) config('booking.timezone', 'Europe/Berlin');
+    }
+
     /**
      * Import bookings from an iCal feed
      */
@@ -50,12 +56,17 @@ class IcalService
             
             $imported = 0;
             $updated = 0;
+            $skippedConflicts = 0;
             $errors = [];
             
             foreach ($events as $event) {
                 try {
                     $result = $this->importEvent($feed->room, $event);
-                    if ($result['created']) {
+                    if (!empty($result['skipped']) && $result['skipped'] === true) {
+                        $skippedConflicts++;
+                        continue;
+                    }
+                    if (!empty($result['created']) && $result['created'] === true) {
                         $imported++;
                     } else {
                         $updated++;
@@ -72,6 +83,7 @@ class IcalService
                     'imported' => $imported,
                     'updated' => $updated,
                     'cancelled' => $cancelled,
+                    'skipped_conflicts' => $skippedConflicts,
                     'errors' => $errors,
                     'synced_at' => now()->toIso8601String(),
                 ],
@@ -82,6 +94,7 @@ class IcalService
                 'imported' => $imported,
                 'updated' => $updated,
                 'cancelled' => $cancelled,
+                'skipped_conflicts' => $skippedConflicts,
                 'errors' => $errors,
             ];
         } catch (\Exception $e) {
@@ -105,7 +118,21 @@ class IcalService
     protected function parseIcal(string $icalContent): array
     {
         $events = [];
-        $lines = explode("\n", $icalContent);
+        // Normalize newlines and unfold folded lines (RFC 5545).
+        $rawLines = preg_split("/\r\n|\n|\r/", $icalContent) ?: [];
+        $lines = [];
+        foreach ($rawLines as $rawLine) {
+            if ($rawLine === '') {
+                $lines[] = '';
+                continue;
+            }
+            // Lines that start with space or tab are continuations.
+            if (!empty($lines) && (str_starts_with($rawLine, ' ') || str_starts_with($rawLine, "\t"))) {
+                $lines[count($lines) - 1] .= ltrim($rawLine);
+            } else {
+                $lines[] = $rawLine;
+            }
+        }
         $currentEvent = null;
         
         foreach ($lines as $line) {
@@ -127,6 +154,12 @@ class IcalService
                     $currentEvent['end'] = $this->parseIcalDate($line);
                 } elseif (strpos($line, 'SUMMARY:') === 0) {
                     $currentEvent['summary'] = substr($line, 8);
+                } elseif (strpos($line, 'DESCRIPTION:') === 0) {
+                    $currentEvent['description'] = substr($line, 12);
+                } elseif (strpos($line, 'ORGANIZER') === 0) {
+                    $currentEvent['organizer'] = $line;
+                } elseif (strpos($line, 'STATUS:') === 0) {
+                    $currentEvent['ical_status'] = substr($line, 7);
                 }
             }
         }
@@ -139,23 +172,127 @@ class IcalService
      */
     protected function parseIcalDate(string $line): ?Carbon
     {
-        // Handle both DTSTART:20231122T120000 and DTSTART;VALUE=DATE:20231122
-        if (preg_match('/DTSTART[^:]*:(.+)/', $line, $matches)) {
-            $dateStr = $matches[1];
-            
-            // Remove timezone if present
-            $dateStr = preg_replace('/[TZ].*$/', '', $dateStr);
-            
-            if (strlen($dateStr) === 8) {
-                // Date only format YYYYMMDD
-                return Carbon::createFromFormat('Ymd', $dateStr)->setTimezone('Europe/Berlin')->startOfDay();
-            } elseif (strlen($dateStr) >= 14) {
-                // DateTime format YYYYMMDDHHmmss
-                return Carbon::createFromFormat('YmdHis', substr($dateStr, 0, 14))->setTimezone('Europe/Berlin');
+        // Handle DTSTART/DTEND like:
+        // - DTSTART:20231122T120000Z
+        // - DTSTART;VALUE=DATE:20231122
+        // - DTSTART;TZID=Europe/Berlin:20231122T120000
+        if (preg_match('/^(DTSTART|DTEND)[^:]*:(.+)$/', $line, $matches)) {
+            $dateStr = trim($matches[2]);
+
+            // If UTC 'Z' is present, keep it and parse as UTC.
+            $isUtc = str_ends_with($dateStr, 'Z');
+            if ($isUtc) {
+                $dateStr = substr($dateStr, 0, -1);
+            }
+
+            $tz = $this->bookingTimezone();
+
+            if (preg_match('/^\d{8}$/', $dateStr)) {
+                // Date-only (all-day) event
+                $dt = Carbon::createFromFormat('Ymd', $dateStr, $tz)->startOfDay();
+                return $isUtc ? $dt->utc() : $dt;
+            }
+
+            if (preg_match('/^\d{8}T\d{6}$/', $dateStr)) {
+                $dt = Carbon::createFromFormat('Ymd\THis', $dateStr, $tz);
+                return $isUtc ? $dt->utc() : $dt;
+            }
+
+            // Fallback: try parsing via Carbon
+            try {
+                $dt = Carbon::parse($dateStr, $tz);
+                return $isUtc ? $dt->utc() : $dt;
+            } catch (\Exception $e) {
+                return null;
             }
         }
         
         return null;
+    }
+
+    protected function parseGuestName(?string $summary): array
+    {
+        $summary = trim((string) $summary);
+        if ($summary === '') {
+            return ['first' => 'Airbnb', 'last' => 'Guest'];
+        }
+
+        // Airbnb often uses values like "Reserved", "Not available", etc.
+        $lower = strtolower($summary);
+        if (str_contains($lower, 'reserved') || str_contains($lower, 'not available') || str_contains($lower, 'blocked')) {
+            return ['first' => 'Airbnb', 'last' => 'Guest'];
+        }
+
+        // Try to isolate the name portion (before separators).
+        $namePart = preg_split('/\s+-\s+|\s+\|\s+|,/', $summary)[0] ?? $summary;
+        $namePart = trim($namePart);
+
+        // If it contains the word "Airbnb", it's not useful as a guest name.
+        if (str_contains(strtolower($namePart), 'airbnb')) {
+            return ['first' => 'Airbnb', 'last' => 'Guest'];
+        }
+
+        $parts = preg_split('/\s+/', $namePart) ?: [];
+        if (count($parts) >= 2) {
+            return ['first' => $parts[0], 'last' => implode(' ', array_slice($parts, 1))];
+        }
+
+        return ['first' => $namePart ?: 'Airbnb', 'last' => 'Guest'];
+    }
+
+    protected function extractEmail(?string $text): ?string
+    {
+        $text = (string) $text;
+        if ($text === '') {
+            return null;
+        }
+        if (preg_match('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $text, $m)) {
+            return $m[0];
+        }
+        return null;
+    }
+
+    protected function extractPhone(?string $text): ?string
+    {
+        $text = (string) $text;
+        if ($text === '') {
+            return null;
+        }
+        // Very loose phone matcher (international-ish). Keeps import resilient.
+        if (preg_match('/(\+?\d[\d\s().\-]{6,}\d)/', $text, $m)) {
+            return trim($m[1]);
+        }
+        return null;
+    }
+
+    protected function mapIcalStatusToBookingStatus(?string $icalStatus): string
+    {
+        $s = strtoupper(trim((string) $icalStatus));
+        return match ($s) {
+            'CANCELLED' => 'cancelled',
+            'TENTATIVE' => 'pending',
+            'CONFIRMED' => 'confirmed',
+            default => 'confirmed',
+        };
+    }
+
+    protected function hasNonAirbnbConflict(Room $room, Carbon $startAtUtc, Carbon $endAtUtc, ?int $excludeBookingId = null): bool
+    {
+        $q = Booking::where('room_id', $room->id)
+            ->where('status', 'confirmed')
+            ->where('source', '!=', 'airbnb')
+            ->where(function ($q2) use ($startAtUtc, $endAtUtc) {
+                $q2->where('start_at', '<', $endAtUtc)
+                    ->where(function ($q3) use ($startAtUtc) {
+                        $q3->where('end_at', '>', $startAtUtc)->orWhereNull('end_at');
+                    });
+            });
+
+        if ($excludeBookingId) {
+            $q->where('id', '!=', $excludeBookingId);
+        }
+
+        return $q->exists();
     }
     
     /**
@@ -166,31 +303,53 @@ class IcalService
         if (!isset($event['uid']) || !isset($event['start']) || !isset($event['end'])) {
             throw new \Exception('Invalid event data');
         }
-        
+
+        if (!$event['start'] instanceof Carbon || !$event['end'] instanceof Carbon) {
+            throw new \Exception('Invalid event dates');
+        }
+
         $startAt = $event['start']->utc();
         $endAt = $event['end']->utc();
+
+        if ($endAt->lte($startAt)) {
+            throw new \Exception('Invalid event range: end must be after start');
+        }
         
         // Find existing booking by UID
         $booking = Booking::where('room_id', $room->id)
             ->where('external_uid', $event['uid'])
             ->first();
+
+        // Conflict detection (avoid double-booking with non-Airbnb sources)
+        $excludeId = $booking?->id;
+        if ($this->hasNonAirbnbConflict($room, $startAt, $endAt, $excludeId)) {
+            Log::warning('iCal import skipped due to conflict', [
+                'room_id' => $room->id,
+                'uid' => $event['uid'],
+                'start_at' => $startAt->toIso8601String(),
+                'end_at' => $endAt->toIso8601String(),
+            ]);
+
+            return ['created' => false, 'skipped' => true, 'reason' => 'conflict'];
+        }
         
         if ($booking) {
             // Update existing booking
             $booking->update([
                 'start_at' => $startAt,
                 'end_at' => $endAt,
-                'status' => 'confirmed',
+                'status' => $this->mapIcalStatusToBookingStatus($event['ical_status'] ?? null),
                 'notes' => ($booking->notes ?? '') . "\nLast synced: " . now()->toDateTimeString(),
             ]);
             
             return ['created' => false, 'booking' => $booking];
         } else {
-            // Extract guest name from SUMMARY if available
-            $guestName = 'Airbnb Guest';
-            if (isset($event['summary'])) {
-                $guestName = $event['summary'];
-            }
+            $guest = $this->parseGuestName($event['summary'] ?? null);
+            $description = $event['description'] ?? null;
+            $organizerLine = $event['organizer'] ?? null;
+
+            $email = $this->extractEmail($description) ?? $this->extractEmail($organizerLine);
+            $phone = $this->extractPhone($description);
             
             // Create new booking
             $booking = Booking::create([
@@ -198,10 +357,11 @@ class IcalService
                 'start_at' => $startAt,
                 'end_at' => $endAt,
                 'source' => 'airbnb',
-                'status' => 'confirmed',
-                'guest_first_name' => 'Airbnb',
-                'guest_last_name' => 'Guest',
-                'email' => 'airbnb@example.com',
+                'status' => $this->mapIcalStatusToBookingStatus($event['ical_status'] ?? null),
+                'guest_first_name' => $guest['first'],
+                'guest_last_name' => $guest['last'],
+                'email' => $email,
+                'phone' => $phone,
                 'notes' => 'Imported from Airbnb - UID: ' . $event['uid'],
                 'external_uid' => $event['uid'],
             ]);
@@ -217,7 +377,13 @@ class IcalService
     {
         $bookings = Booking::where('room_id', $room->id)
             ->where('status', 'confirmed')
+            // Prevent circular sync: never export Airbnb-imported bookings back to Airbnb.
+            ->where('source', '!=', 'airbnb')
+            // iCal requires an end date; skip long-term bookings without end date.
+            ->whereNotNull('end_at')
             ->get();
+
+        $room->loadMissing('property');
         
         $ical = "BEGIN:VCALENDAR\r\n";
         $ical .= "VERSION:2.0\r\n";
@@ -226,8 +392,8 @@ class IcalService
         $ical .= "METHOD:PUBLISH\r\n";
         
         foreach ($bookings as $booking) {
-            $start = Carbon::parse($booking->start_at)->setTimezone('Europe/Berlin');
-            $end = Carbon::parse($booking->end_at)->setTimezone('Europe/Berlin');
+            $start = Carbon::parse($booking->start_at)->setTimezone($this->bookingTimezone());
+            $end = Carbon::parse($booking->end_at)->setTimezone($this->bookingTimezone());
             
             $ical .= "BEGIN:VEVENT\r\n";
             $ical .= "UID:maroom-booking-{$booking->id}@maroom.local\r\n";
@@ -235,7 +401,7 @@ class IcalService
             $ical .= "DTEND:" . $end->format('Ymd\THis') . "\r\n";
             $ical .= "SUMMARY:" . $room->name . " - " . $booking->guest_full_name . "\r\n";
             $ical .= "DESCRIPTION:Booking #{$booking->id}\r\n";
-            $ical .= "LOCATION:" . $room->property->address . "\r\n";
+            $ical .= "LOCATION:" . (($room->property?->address) ?? '') . "\r\n";
             $ical .= "STATUS:CONFIRMED\r\n";
             $ical .= "END:VEVENT\r\n";
         }

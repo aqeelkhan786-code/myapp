@@ -213,6 +213,7 @@ class BookingController extends Controller
             'guest_last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:255',
+            'language' => 'nullable|string|in:Deutsch,Englisch',
             'status' => 'required|in:pending,confirmed,cancelled',
             'source' => 'required|in:manual,website,airbnb',
             'notes' => 'nullable|string',
@@ -240,6 +241,7 @@ class BookingController extends Controller
             'guest_last_name' => $request->guest_last_name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'language' => $request->language ?? 'Deutsch',
             'notes' => $request->notes,
             'is_short_term' => $isShortTerm,
             'total_amount' => $totalAmount,
@@ -319,11 +321,11 @@ class BookingController extends Controller
 
         if ($hasConflicts) {
             return redirect()->route('admin.bookings.index')
-                ->with('warning', 'Booking created with conflicts. Please review.');
+                ->with('warning', __('admin.booking_created_with_conflicts'));
         }
 
         return redirect()->route('admin.bookings.index')
-            ->with('success', 'Booking created successfully.');
+            ->with('success', __('admin.booking_created_successfully'));
     }
 
     /**
@@ -420,7 +422,7 @@ class BookingController extends Controller
         $documentService = new \App\Services\DocumentService();
         $this->sendConfirmationDocuments($booking, $documentService);
         
-        return back()->with('success', __('admin.documents_sent_successfully') ?? 'Documents have been sent successfully to the guest.');
+        return back()->with('success', __('admin.documents_sent_successfully'));
     }
 
     /**
@@ -450,7 +452,7 @@ class BookingController extends Controller
             // Refresh document to get updated storage_path
             $document->refresh();
             
-            return back()->with('success', 'Document regenerated successfully.');
+            return back()->with('success', __('admin.document_regenerated_successfully'));
         } catch (\Exception $e) {
             \Log::error('Document regeneration error', [
                 'document_id' => $documentId,
@@ -458,8 +460,8 @@ class BookingController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
-            return back()->withErrors(['error' => 'Failed to regenerate document: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => __('admin.regenerate_document_failed', ['error' => $e->getMessage()])]);
         }
     }
 
@@ -476,6 +478,7 @@ class BookingController extends Controller
             'guest_last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:255',
+            'language' => 'nullable|string|in:Deutsch,Englisch',
             'status' => 'required|in:pending,confirmed,cancelled',
             'source' => 'required|in:manual,website,airbnb',
             'notes' => 'nullable|string',
@@ -492,7 +495,7 @@ class BookingController extends Controller
 
         if ($hasConflicts && !$request->override_conflict) {
             return back()
-                ->withErrors(['conflict' => 'There are conflicting bookings for these dates. Check "Override Conflict" to proceed.'])
+                ->withErrors(['conflict' => __('admin.conflict_error')])
                 ->withInput()
                 ->with('conflicts', $conflicts);
         }
@@ -550,6 +553,7 @@ class BookingController extends Controller
             'guest_last_name' => $request->guest_last_name,
             'email' => $request->email,
             'phone' => $request->phone,
+            'language' => $request->language ?? $booking->language ?? 'Deutsch',
             'notes' => $request->notes,
             'is_short_term' => $isShortTerm,
             'total_amount' => $totalAmount,
@@ -636,18 +640,19 @@ class BookingController extends Controller
                 \App\Jobs\SendDocumentEmail::dispatch($rentalAgreement, [$booking->email], false)->afterResponse();
             }
             
-            // Send check-in PDF if available
+            // Send check-in PDF if available (use booking language, not dashboard locale)
             $checkInPdfPath = $documentService->getCheckInPdfPath($booking->room);
             if ($checkInPdfPath && \Storage::exists($checkInPdfPath)) {
-                $message = app()->getLocale() === 'de' 
+                $locale = $booking->getLocaleFromLanguage();
+                $message = $locale === 'de'
                     ? "Sehr geehrter Kunde,\n\nBitte finden Sie die Check-in Informationen im Anhang.\n\nMit freundlichen Grüßen,\nMaRoom Team"
                     : "Dear customer,\n\nPlease find attached the check-in information document.\n\nBest regards,\nMaRoom Team";
-                
-                $subject = app()->getLocale() === 'de' 
+
+                $subject = $locale === 'de'
                     ? 'Check-in Informationen - MaRoom'
                     : 'Check-in Information - MaRoom';
-                
-                Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject));
+
+                Mail::to($booking->email)->send(new CheckInPdfsSent($message, [$checkInPdfPath], $subject, $locale));
             }
         } catch (\Exception $e) {
             \Log::error('Failed to send booking confirmation email and documents', [
@@ -673,9 +678,9 @@ class BookingController extends Controller
         ], auth()->id(), $booking);
 
         $booking->delete();
-        
+
         return redirect()->route('admin.bookings.index')
-            ->with('success', 'Booking deleted successfully.');
+            ->with('success', __('admin.booking_deleted_successfully'));
     }
 }
 

@@ -3,43 +3,43 @@
 @section('title', __('admin.table_calendar_view'))
 
 @section('content')
-<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">{{ __('admin.table_calendar_view') }}</h1>
-        <div class="flex gap-4 items-center">
-            <form method="GET" action="{{ route('admin.bookings.calendar-table') }}" class="flex gap-2 items-center">
-                <label class="text-sm font-medium text-gray-700">{{ __('admin.start_month') }}:</label>
+<div class="max-w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ __('admin.table_calendar_view') }}</h1>
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center w-full sm:w-auto">
+            <form method="GET" action="{{ route('admin.bookings.calendar-table') }}" class="flex flex-col sm:flex-row gap-1 sm:gap-2 items-start sm:items-center w-full sm:w-auto">
+                <label class="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">{{ __('admin.start_month') }}:</label>
                 <input type="month" name="month" value="{{ $startMonth }}" 
-                       class="border border-gray-300 rounded-md px-3 py-2 text-sm">
-                <label class="text-sm font-medium text-gray-700">{{ __('admin.months') }}:</label>
-                <select name="months" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
-                    <option value="3" {{ $monthsCount == 3 ? 'selected' : '' }}>3 {{ __('admin.months') }}</option>
-                    <option value="5" {{ $monthsCount == 5 ? 'selected' : '' }}>5 {{ __('admin.months') }}</option>
-                    <option value="6" {{ $monthsCount == 6 ? 'selected' : '' }}>6 {{ __('admin.months') }}</option>
-                    <option value="12" {{ $monthsCount == 12 ? 'selected' : '' }}>12 {{ __('admin.months') }}</option>
+                       class="border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-xs sm:text-sm w-full sm:w-auto">
+                <label class="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">{{ __('admin.months') }}:</label>
+                <select name="months" class="border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-xs sm:text-sm w-full sm:w-auto">
+                    <option value="3" {{ $monthsCount == 3 ? 'selected' : '' }}>3</option>
+                    <option value="5" {{ $monthsCount == 5 ? 'selected' : '' }}>5</option>
+                    <option value="6" {{ $monthsCount == 6 ? 'selected' : '' }}>6</option>
+                    <option value="12" {{ $monthsCount == 12 ? 'selected' : '' }}>12</option>
                 </select>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                <button type="submit" class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto">
                     {{ __('admin.update') }}
                 </button>
             </form>
-            <a href="{{ route('admin.bookings.calendar') }}" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm">
+            <a href="{{ route('admin.bookings.calendar') }}" class="bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-gray-700 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto text-center">
                 {{ __('admin.standard_calendar') }}
             </a>
         </div>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden overflow-x-auto">
         <div class="overflow-x-auto">
-            <table class="min-w-full border-collapse border border-gray-300">
+            <table class="min-w-full border-collapse border border-gray-300 text-xs sm:text-sm">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="border border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ __('admin.location') }}</th>
-                        <th class="border border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ __('admin.house') }}</th>
-                        <th class="border border-gray-300 px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ __('admin.room') }}</th>
+                        <th class="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700">{{ __('admin.location') }}</th>
+                        <th class="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 hidden sm:table-cell">{{ __('admin.house') }}</th>
+                        <th class="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700">{{ __('admin.room') }}</th>
                         @foreach($months as $month)
-                        <th class="border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                            {{ $month['name'] }}<br>
-                            <span class="text-xs font-normal text-gray-600">{{ $month['year'] }}</span>
+                        <th class="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700">
+                            <span class="hidden sm:inline">{{ $month['name'] }} {{ $month['year'] }}</span>
+                            <span class="sm:hidden">{{ substr($month['name'], 0, 3) }} {{ $month['year'] }}</span>
                         </th>
                         @endforeach
                     </tr>

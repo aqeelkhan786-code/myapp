@@ -80,7 +80,7 @@ class Booking extends Model
         return match(strtolower($this->language ?? '')) {
             'deutsch' => 'de',
             'englisch' => 'en',
-            default => 'en', // Default to English
+            default => 'de', // Default to German when not set or unknown
         };
     }
 }

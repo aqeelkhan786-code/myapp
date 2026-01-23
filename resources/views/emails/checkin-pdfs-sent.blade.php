@@ -34,14 +34,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Check-in Information</h1>
+            <h1>{{ __('booking.checkin_email_header', [], $locale ?? app()->getLocale()) }}</h1>
         </div>
         <div class="content">
             {!! nl2br(e($emailMessage)) !!}
         </div>
         <div class="footer">
-            <p>This is an automated email from MaRoom Booking System.</p>
-            <p>Please do not reply to this email.</p>
+            <p>{{ __('booking.checkin_email_footer', [], $locale ?? app()->getLocale()) }}</p>
         </div>
     </div>
 </body>

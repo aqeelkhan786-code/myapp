@@ -607,14 +607,17 @@
                     </div>
 
                     <!-- Signature Pad -->
-                    <div class="mb-4">
+                    <div class="mb-4" style="touch-action: none;">
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.signature_required') }}</label>
-                        <div class="border border-gray-300 rounded-md bg-white" style="max-width: 600px; position: relative;">
-                            <canvas id="signature-pad" style="width: 100%; height: 200px; display: block; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-tap-highlight-color: transparent;"></canvas>
+                        <div class="border-2 border-dashed border-gray-400 rounded-lg bg-white overflow-hidden" style="max-width: 600px; min-height: 200px; touch-action: none;">
+                            <canvas id="signature-pad" width="600" height="200" style="width: 100%; max-width: 600px; height: 200px; min-height: 200px; display: block; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-tap-highlight-color: transparent;"></canvas>
                         </div>
+                        @error('signature')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500">{{ __('booking.signature_instruction') }}</p>
                         <button type="button" id="clear-signature" class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline">{{ __('booking.clear_signature') }}</button>
                         <input type="hidden" name="signature" id="signature-data">
-                        <p class="mt-1 text-xs text-gray-500">{{ __('booking.signature_instruction') }}</p>
                     </div>
                 </div>
                 @else
@@ -842,7 +845,9 @@
                 
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.signature') }} *</label>
-                    <canvas id="signature-pad" class="border border-gray-300 rounded-md" width="600" height="200"></canvas>
+                    <div class="border border-gray-300 rounded-md bg-white" style="max-width: 600px; position: relative;">
+                        <canvas id="signature-pad" style="width: 100%; max-width: 600px; height: 200px; display: block; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; pointer-events: auto; -webkit-tap-highlight-color: transparent;"></canvas>
+                    </div>
                     <button type="button" id="clear-signature" class="mt-2 text-sm text-gray-600 hover:text-gray-800">{{ __('booking.clear_signature') }}</button>
                     <input type="hidden" name="signature" id="signature-data">
                     @error('signature')
@@ -874,376 +879,58 @@
 
 @push('scripts')
 @if($step == 1)
-<!-- Flatpickr for date selection -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<!-- SignaturePad is already loaded in layout, no need to load again -->
-
-<script>
-    // Room data for updates (passed from controller)
-    @php
+@php
+    $startAt = request()->query('check_in') ?? request()->get('check_in');
+    $endAt = request()->query('check_out') ?? request()->get('check_out');
+    if (empty($startAt)) { $startAt = $formData['step2']['start_at'] ?? null; }
+    if (empty($endAt)) { $endAt = $formData['step2']['end_at'] ?? null; }
+    if (empty($endAt) || $endAt === '' || $endAt === null) { $endAt = null; } else { $endAt = trim($endAt); if ($endAt === '') { $endAt = null; } }
+    $isLongTermRental = ($endAt === null || $endAt === '');
+    if (!$isLongTermRental && $endAt && $room->short_term_allowed && $startAt) {
         try {
-            $roomsDataJson = json_encode($roomsData ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
-            $roomsDataJson = '[]';
-        }
-    @endphp
-    const roomsData = {!! $roomsDataJson !!};
-    
-    // Date field is disabled/readonly - no need to initialize Flatpickr
-    // But we still need to update the tenancy from date if dates are pre-filled
-    const startAtInput = document.getElementById('start_at');
-    if (startAtInput && startAtInput.value) {
-        const startDate = new Date(startAtInput.value);
-        const tenancyFrom = document.getElementById('tenancy-from');
-        if (tenancyFrom) {
-            const formattedDate = String(startDate.getDate()).padStart(2, '0') + '.' + 
-                String(startDate.getMonth() + 1).padStart(2, '0') + '.' + 
-                startDate.getFullYear();
-            tenancyFrom.textContent = formattedDate;
-        }
+            $sd = \Carbon\Carbon::parse($startAt);
+            $ed = \Carbon\Carbon::parse($endAt);
+            $isLongTermRental = $sd->diffInDays($ed) > 30;
+        } catch (\Exception $e) { $isLongTermRental = true; }
     }
-    
-    // Apartment selection is disabled - no need for change handler
-    // But initialize the display with the selected room
-    const roomSelect = document.getElementById('room_id');
-    if (roomSelect) {
-        const selectedRoomId = roomSelect.value;
-        const selectedRoom = roomsData.find(r => r.id == selectedRoomId);
-        
-        if (selectedRoom) {
-            const selectedRoomNameEl = document.getElementById('selected-room-name');
-            const roomAddressEl = document.getElementById('room-address');
-            const rentPerNightEl = document.getElementById('rent-per-night');
-            
-            // Determine if long-term based on check_out parameter or end_at
-            const urlParams = new URLSearchParams(window.location.search);
-            const checkOut = urlParams.get('check_out');
-            const isLongTerm = !checkOut || checkOut === '';
-            
-            if (selectedRoomNameEl) selectedRoomNameEl.textContent = selectedRoom.name;
-            if (roomAddressEl) roomAddressEl.value = selectedRoom.address;
-            if (rentPerNightEl) {
-                // Use monthly_price for long-term, base_price for short-term
-                const price = isLongTerm ? (selectedRoom.monthly_price || 700) : (selectedRoom.base_price || 0);
-                rentPerNightEl.textContent = '€' + parseFloat(price).toFixed(2);
-            }
-        }
-    }
-    
-    // Update renter full name in signature section only (not the input field)
-    const firstNameInput = document.getElementById('guest_first_name');
-    const lastNameInput = document.getElementById('guest_last_name');
-    const renterFullName = document.getElementById('renter-full-name');
-    
-    function updateRenterFullName() {
-        const firstName = firstNameInput ? firstNameInput.value || '' : '';
-        const lastName = lastNameInput ? lastNameInput.value || '' : '';
-        const fullName = (firstName + ' ' + lastName).trim();
-        if (renterFullName) renterFullName.textContent = fullName;
-    }
-    
-    // Only update the signature section name, not the renter input fields
-    if (firstNameInput) {
-        firstNameInput.addEventListener('input', updateRenterFullName);
-        firstNameInput.addEventListener('change', updateRenterFullName);
-    }
-    if (lastNameInput) {
-        lastNameInput.addEventListener('input', updateRenterFullName);
-        lastNameInput.addEventListener('change', updateRenterFullName);
-    }
-    
-    // Initialize signature section name on page load
-    updateRenterFullName();
-    
-    @php
-        // Use the same logic as the main PHP block above
-        // Always check request parameters first (they take precedence)
-        $startAt = request()->query('check_in') ?? request()->get('check_in');
-        $endAt = request()->query('check_out') ?? request()->get('check_out');
-        
-        // If not in request, check form data
-        if (empty($startAt)) {
-            $startAt = $formData['step2']['start_at'] ?? null;
-        }
-        if (empty($endAt)) {
-            $endAt = $formData['step2']['end_at'] ?? null;
-        }
-        
-        // Clean up empty strings and null values
-        if (empty($endAt) || $endAt === '' || $endAt === null) {
-            $endAt = null;
-        } else {
-            $endAt = trim($endAt);
-            if ($endAt === '') {
-                $endAt = null;
-            }
-        }
-        
-        // If end_at is null or empty, it's definitely long-term
-        $isLongTermRental = ($endAt === null || $endAt === '');
-        
-        // If end_at exists and is not empty, check if it's short-term or long-term
-        if (!$isLongTermRental && $endAt && $room->short_term_allowed && $startAt) {
-            try {
-                $startDate = \Carbon\Carbon::parse($startAt);
-                $endDate = \Carbon\Carbon::parse($endAt);
-                $nights = $startDate->diffInDays($endDate);
-                // If more than 30 nights, it's long-term; otherwise short-term
-                $isLongTermRental = $nights > 30;
-            } catch (\Exception $e) {
-                // If parsing fails, treat as long-term
-                $isLongTermRental = true;
-            }
-        }
-        
-        // Ensure that if check_out is not provided in URL, it's always long-term
-        if (!request()->has('check_out') && !isset($formData['step2']['end_at'])) {
-            $isLongTermRental = true;
-        }
-    @endphp
-    
-    @if($isLongTermRental)
-    // Initialize Signature Pad only for long-term rentals
-    // Make signaturePad available globally for form submission
-    let signaturePad = null;
-    
-    // Translation strings for JavaScript
-    const translations = {
-        pleaseProvideSignature: @json(__('booking.please_provide_signature')),
-        signaturePadError: @json(__('booking.signature_pad_error')),
-        signaturePadNotInitialized: @json(__('booking.signature_pad_not_initialized')),
-        signatureInputNotFound: @json(__('booking.signature_input_not_found')),
-        errorCapturingSignature: @json(__('booking.error_capturing_signature'))
-    };
-    
-    // Wait for both DOM and SignaturePad library to be ready
-    function waitForSignaturePad(callback, maxAttempts = 50) {
-        let attempts = 0;
-        const checkInterval = setInterval(function() {
-            attempts++;
-            if (typeof SignaturePad !== 'undefined') {
-                clearInterval(checkInterval);
-                callback();
-            } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                console.error('SignaturePad library failed to load after ' + maxAttempts + ' attempts');
-            }
-        }, 100);
-    }
-    
-    function initializeSignaturePad() {
-        const canvas = document.getElementById('signature-pad');
-        if (!canvas) {
-            console.error('Signature pad canvas not found');
-            return;
-        }
-        
-        // Set up canvas size properly before initializing SignaturePad
-        function resizeCanvas() {
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            const rect = canvas.getBoundingClientRect();
-            
-            // Ensure canvas has valid dimensions
-            if (rect.width === 0 || rect.height === 0) {
-                // Use fallback size
-                const fallbackWidth = 600;
-                const fallbackHeight = 200;
-                canvas.width = fallbackWidth * ratio;
-                canvas.height = fallbackHeight * ratio;
-                canvas.style.width = fallbackWidth + 'px';
-                canvas.style.height = fallbackHeight + 'px';
-            } else {
-                canvas.width = rect.width * ratio;
-                canvas.height = rect.height * ratio;
-            }
-            
-            const ctx = canvas.getContext("2d");
-            ctx.scale(ratio, ratio);
-            
-            // Only clear if SignaturePad is already initialized (on resize)
-            if (signaturePad) {
-                signaturePad.clear();
-            }
-        }
-        
-        // Small delay to ensure canvas is fully rendered
-        setTimeout(function() {
-            // Initial resize before creating SignaturePad
-            resizeCanvas();
-            
-            // Initialize SignaturePad after canvas is properly sized
-            try {
-                signaturePad = new SignaturePad(canvas, {
-                    backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(0, 0, 0)',
-                    minWidth: 1,
-                    maxWidth: 3,
-                    throttle: 16,
-                    velocityFilterWeight: 0.7
-                });
-                
-                console.log('SignaturePad initialized successfully');
-                
-                // Make signaturePad available globally for form submission
-                window.signaturePad = signaturePad;
-                
-                // Handle window resize - clear signature on resize
-                let resizeTimeout;
-                window.addEventListener("resize", function() {
-                    clearTimeout(resizeTimeout);
-                    resizeTimeout = setTimeout(function() {
-                        resizeCanvas();
-                    }, 100);
-                });
-                
-                const clearBtn = document.getElementById('clear-signature');
-                if (clearBtn) {
-                    clearBtn.addEventListener('click', function() {
-                        if (signaturePad) {
-                            signaturePad.clear();
-                        }
-                    });
-                }
-                
-                // Ensure canvas is interactive
-                canvas.style.pointerEvents = 'auto';
-                canvas.setAttribute('tabindex', '0');
-                
-                // Add visual feedback
-                const container = canvas.parentElement;
-                if (container) {
-                    container.style.border = '2px solid #3b82f6';
-                }
-                
-                console.log('SignaturePad initialized successfully. Canvas dimensions:', canvas.width, 'x', canvas.height);
-                console.log('Canvas is ready for signature. Try drawing on it with mouse or touch.');
-                
-                // Test drawing capability
-                canvas.addEventListener('pointerdown', function(e) {
-                    console.log('Pointer down detected at:', e.clientX, e.clientY);
-                });
-            } catch (error) {
-                console.error('Error initializing SignaturePad:', error);
-                alert(translations.signaturePadError);
-            }
-        }, 100);
-    }
-    
-    // Wait for DOM to be ready, then wait for SignaturePad library
-    function startInitialization() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                waitForSignaturePad(initializeSignaturePad);
-            });
-        } else {
-            waitForSignaturePad(initializeSignaturePad);
-        }
-    }
-    
-    startInitialization();
-    @endif
-    
-    // Handle form submission
-    const form = document.getElementById('step1-form');
-    if (form) {
-        form.addEventListener('submit', async function(e) {
-            @if($isLongTermRental)
-            // Check signature only for long-term rentals
-            // Use window.signaturePad if available, otherwise try to get from scope
-            const currentSignaturePad = window.signaturePad || signaturePad;
-            
-            if (!currentSignaturePad) {
-                e.preventDefault();
-                alert(translations.signaturePadNotInitialized);
-                return false;
-            }
-            
-            if (currentSignaturePad.isEmpty()) {
-                e.preventDefault();
-                alert(translations.pleaseProvideSignature);
-                return false;
-            }
-            
-            // Capture signature data before form submission
-            try {
-                const signatureData = currentSignaturePad.toDataURL('image/png');
-                const signatureInput = document.getElementById('signature-data');
-                if (signatureInput) {
-                    signatureInput.value = signatureData;
-                } else {
-                    e.preventDefault();
-                    alert(translations.signatureInputNotFound);
-                    return false;
-                }
-            } catch (error) {
-                console.error('Error capturing signature:', error);
-                e.preventDefault();
-                alert(translations.errorCapturingSignature);
-                return false;
-            }
-            @endif
-            
-            @php
-            // Recalculate isShortTerm for form submission JavaScript
-            // Use the same logic as other sections
-            $startAtForSubmit = request()->query('check_in') ?? request()->get('check_in');
-            $endAtForSubmit = request()->query('check_out') ?? request()->get('check_out');
-            
-            // If not in request, check form data
-            if (empty($startAtForSubmit)) {
-                $startAtForSubmit = $formData['step2']['start_at'] ?? null;
-            }
-            if (empty($endAtForSubmit)) {
-                $endAtForSubmit = $formData['step2']['end_at'] ?? null;
-            }
-            
-            // Clean up empty strings
-            if (empty($endAtForSubmit) || $endAtForSubmit === '' || $endAtForSubmit === null) {
-                $endAtForSubmit = null;
-            } else {
-                $endAtForSubmit = trim($endAtForSubmit);
-                if ($endAtForSubmit === '') {
-                    $endAtForSubmit = null;
-                }
-            }
-            
-            $isShortTermForSubmit = false;
-            
-            // Only short-term if end_at exists, is not empty, and nights <= 30
-            if ($endAtForSubmit !== null && $startAtForSubmit && $room->short_term_allowed) {
-                try {
-                    $startDateForSubmit = \Carbon\Carbon::parse($startAtForSubmit);
-                    $endDateForSubmit = \Carbon\Carbon::parse($endAtForSubmit);
-                    $nightsForSubmit = $startDateForSubmit->diffInDays($endDateForSubmit);
-                    // Must be at least 1 night and <= 30 nights to be short-term
-                    $isShortTermForSubmit = $nightsForSubmit >= 1 && $nightsForSubmit <= 30;
-                } catch (\Exception $e) {
-                    $isShortTermForSubmit = false;
-                }
-            }
-            @endphp
-            // Allow normal form submission
-            // Payment will be handled on billing page for short-term bookings
-        });
-    }
-    
-    {{-- Payment is now handled on separate billing page, no Stripe initialization needed here --}}
+    if (!request()->has('check_out') && !isset($formData['step2']['end_at'])) { $isLongTermRental = true; }
+    $bookingFormConfig = [
+        'roomsData' => $roomsData ?? [],
+        'isLongTermRental' => $isLongTermRental,
+        'translations' => [
+            'pleaseProvideSignature' => __('booking.please_provide_signature'),
+            'signaturePadError' => __('booking.signature_pad_error'),
+            'signaturePadNotInitialized' => __('booking.signature_pad_not_initialized'),
+            'signatureInputNotFound' => __('booking.signature_input_not_found'),
+            'errorCapturingSignature' => __('booking.error_capturing_signature'),
+        ],
+    ];
+@endphp
+<script type="application/json" id="booking-form-config">@json($bookingFormConfig)</script>
+<script src="{{ asset('js/booking-form-step1.js') }}"></script>
 @endif
 
 @if($step == 2)
+@php
+    // Process bookings in PHP first (can't use closures in @json)
+    $blockedDates = collect($bookings ?? [])
+        ->filter(function($booking) {
+            return $booking->start_at && $booking->end_at;
+        })
+        ->map(function($booking) {
+            return [
+                \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
+                \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
+            ];
+        })
+        ->values()
+        ->all();
+@endphp
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    // Get blocked dates from bookings
-    const blockedDates = @json(($bookings ?? collect())->filter(function($booking) {
-        return $booking->start_at && $booking->end_at;
-    })->map(function($booking) {
-        return [
-            \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
-            \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
-        ];
-    }));
+    // Get blocked dates from bookings (processed in PHP above)
+    const blockedDates = @json($blockedDates);
     
     const fp = flatpickr("#dates", {
         mode: "range",
@@ -1292,39 +979,285 @@
 @endif
 
 @if($step == 3)
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
-    const canvas = document.getElementById('signature-pad');
-    const signaturePad = new SignaturePad(canvas, {
-        backgroundColor: 'rgb(255, 255, 255)',
-        penColor: 'rgb(0, 0, 0)'
-    });
+    console.log('🚀 Step 3 SignaturePad Script Started');
+    console.log('📋 Current step:', {{ $step ?? 'undefined' }});
+    console.log('📚 SignaturePad library available:', typeof SignaturePad !== 'undefined');
     
-    function resizeCanvas() {
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        canvas.width = canvas.offsetWidth * ratio;
-        canvas.height = canvas.offsetHeight * ratio;
-        canvas.getContext("2d").scale(ratio, ratio);
-        signaturePad.clear();
-    }
-    
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-    
-    document.getElementById('clear-signature').addEventListener('click', function() {
-        signaturePad.clear();
-    });
-    
-    document.getElementById('step3-form').addEventListener('submit', function(e) {
-        if (signaturePad.isEmpty()) {
-            e.preventDefault();
-            alert(@json(__('booking.please_provide_signature')));
-            return false;
+    // Wait for DOM and SignaturePad library
+    function initializeStep3SignaturePad() {
+        console.log('🔄 initializeStep3SignaturePad() called');
+        console.log('📄 Document ready state:', document.readyState);
+        
+        const canvas = document.getElementById('signature-pad');
+        console.log('🎯 Canvas element:', canvas);
+        
+        if (!canvas) {
+            console.error('❌ Signature pad canvas not found');
+            console.log('🔍 Searching for canvas with id="signature-pad"...');
+            const allCanvases = document.querySelectorAll('canvas');
+            console.log('📊 Total canvas elements found:', allCanvases.length);
+            allCanvases.forEach((c, i) => {
+                console.log(`  Canvas ${i}: id="${c.id}", class="${c.className}"`);
+            });
+            return;
         }
         
-        const signatureData = signaturePad.toDataURL();
-        document.getElementById('signature-data').value = signatureData;
-    });
+        console.log('✅ Canvas found:', {
+            id: canvas.id,
+            className: canvas.className,
+            tagName: canvas.tagName,
+            parentElement: canvas.parentElement?.tagName
+        });
+        
+        // Wait for SignaturePad library to load
+        if (typeof SignaturePad === 'undefined') {
+            console.log('⏳ Waiting for SignaturePad library... (attempt ' + (window.signaturePadAttempts || 0) + ')');
+            window.signaturePadAttempts = (window.signaturePadAttempts || 0) + 1;
+            if (window.signaturePadAttempts > 50) {
+                console.error('❌ SignaturePad library failed to load after 50 attempts');
+                return;
+            }
+            setTimeout(initializeStep3SignaturePad, 100);
+            return;
+        }
+        
+        console.log('✅ SignaturePad library loaded');
+        
+        // Check if canvas is visible and has dimensions
+        const style = window.getComputedStyle(canvas);
+        const rect = canvas.getBoundingClientRect();
+        
+        console.log('📏 Canvas dimensions check:', {
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            pointerEvents: style.pointerEvents,
+            boundingRect: {
+                width: rect.width,
+                height: rect.height,
+                top: rect.top,
+                left: rect.left
+            },
+            offsetWidth: canvas.offsetWidth,
+            offsetHeight: canvas.offsetHeight,
+            clientWidth: canvas.clientWidth,
+            clientHeight: canvas.clientHeight
+        });
+        
+        // If canvas dimensions are 0, wait a bit and retry
+        if (rect.width === 0 || rect.height === 0) {
+            console.log('⏳ Canvas not ready, retrying...', { 
+                width: rect.width, 
+                height: rect.height,
+                attempt: window.canvasReadyAttempts || 0
+            });
+            window.canvasReadyAttempts = (window.canvasReadyAttempts || 0) + 1;
+            if (window.canvasReadyAttempts > 10) {
+                console.error('❌ Canvas dimensions still 0 after 10 attempts');
+                console.log('💡 Trying to set fallback dimensions...');
+                canvas.width = 600;
+                canvas.height = 200;
+            } else {
+                setTimeout(initializeStep3SignaturePad, 200);
+                return;
+            }
+        }
+        
+        // Set canvas dimensions WITHOUT scaling BEFORE initializing SignaturePad
+        // This is CRITICAL - SignaturePad needs 1:1 coordinate mapping
+        const displayWidth = Math.floor(rect.width) || 600;
+        const displayHeight = Math.floor(rect.height) || 200;
+        
+        // Set canvas internal dimensions to display size (not multiplied by devicePixelRatio)
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        
+        // Ensure canvas is interactive
+        canvas.style.pointerEvents = 'auto';
+        canvas.style.touchAction = 'none';
+        canvas.style.cursor = 'crosshair';
+        
+        console.log('📐 Canvas dimensions set:', {
+            internal: canvas.width + 'x' + canvas.height,
+            bounding: rect.width + 'x' + rect.height
+        });
+        
+        // Initialize SignaturePad AFTER dimensions are set (NO scaling!)
+        console.log('🎨 Initializing SignaturePad...');
+        const signaturePad = new SignaturePad(canvas, {
+            backgroundColor: 'rgb(255, 255, 255)',
+            penColor: 'rgb(0, 0, 0)',
+            minWidth: 1,
+            maxWidth: 3,
+            throttle: 16,
+            velocityFilterWeight: 0.7
+        });
+        
+        // Make it globally accessible
+        window.signaturePad = signaturePad;
+        
+        console.log('✅ SignaturePad initialized successfully', {
+            isEmpty: signaturePad.isEmpty(),
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height
+        });
+        
+        // Add comprehensive event listeners for debugging
+        canvas.addEventListener('mousedown', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            console.log('🖱️ Mouse down on canvas:', {
+                clientX: e.clientX,
+                clientY: e.clientY,
+                canvasX: x,
+                canvasY: y,
+                button: e.button,
+                buttons: e.buttons
+            });
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            if (e.buttons === 1) {
+                console.log('🖱️ Mouse move (dragging)');
+            }
+        });
+        
+        canvas.addEventListener('mouseup', function(e) {
+            console.log('🖱️ Mouse up on canvas');
+        });
+        
+        canvas.addEventListener('touchstart', function(e) {
+            console.log('👆 Touch start on canvas:', {
+                touches: e.touches.length,
+                target: e.target.tagName
+            });
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', function(e) {
+            console.log('👆 Touch move on canvas');
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', function(e) {
+            console.log('👆 Touch end on canvas');
+        });
+        
+        canvas.addEventListener('click', function(e) {
+            console.log('🖱️ Canvas clicked');
+        });
+        
+        // Check SignaturePad event system
+        console.log('🔍 SignaturePad event system check:', {
+            hasAddEventListener: typeof signaturePad.addEventListener === 'function',
+            hasOn: typeof signaturePad.on === 'function',
+            signaturePadType: typeof signaturePad
+        });
+        
+        if (signaturePad && typeof signaturePad.addEventListener === 'function') {
+            signaturePad.addEventListener('beginStroke', function() {
+                console.log('✏️ Stroke began - drawing is working!');
+            });
+            signaturePad.addEventListener('endStroke', function() {
+                console.log('✏️ Stroke ended', { isEmpty: signaturePad.isEmpty() });
+            });
+        } else {
+            console.warn('⚠️ SignaturePad does not have addEventListener method');
+        }
+        
+        // Test if we can manually draw on the canvas context
+        try {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                console.log('✅ Canvas 2D context available');
+                // Draw a small test dot to verify context works
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+                ctx.fillRect(10, 10, 5, 5);
+                console.log('✅ Test dot drawn - canvas context is working');
+            } else {
+                console.error('❌ Cannot get 2D context from canvas');
+            }
+        } catch (error) {
+            console.error('❌ Error testing canvas context:', error);
+        }
+        
+        console.log('🎉 All event listeners attached and ready!');
+        
+        // Handle window resize (without scaling - keep 1:1 coordinates)
+        let resizeTimeout;
+        window.addEventListener("resize", function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                const rect = canvas.getBoundingClientRect();
+                const newWidth = Math.floor(rect.width) || 600;
+                const newHeight = Math.floor(rect.height) || 200;
+                
+                // Only resize if dimensions changed
+                if (canvas.width !== newWidth || canvas.height !== newHeight) {
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    signaturePad.clear();
+                    console.log('📐 Canvas resized to:', newWidth + 'x' + newHeight);
+                }
+            }, 100);
+        });
+        
+        // Clear button
+        const clearBtn = document.getElementById('clear-signature');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                signaturePad.clear();
+            });
+        }
+        
+        // Form submission
+        const form = document.getElementById('step3-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (signaturePad.isEmpty()) {
+                    e.preventDefault();
+                    alert(@json(__('booking.please_provide_signature')));
+                    return false;
+                }
+                
+                const signatureData = signaturePad.toDataURL();
+                const signatureInput = document.getElementById('signature-data');
+                if (signatureInput) {
+                    signatureInput.value = signatureData;
+                }
+            });
+        }
+    }
+    
+    // Initialize when DOM is ready
+    function startInitialization() {
+        console.log('🚀 startInitialization() called');
+        console.log('📄 Document ready state:', document.readyState);
+        
+        if (document.readyState === 'loading') {
+            console.log('⏳ Document still loading, waiting for DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('✅ DOMContentLoaded fired');
+                // Small delay to ensure canvas is rendered
+                setTimeout(function() {
+                    console.log('⏰ Initialization timeout fired (150ms)');
+                    initializeStep3SignaturePad();
+                }, 150);
+            });
+        } else {
+            console.log('✅ Document already ready');
+            // Small delay to ensure canvas is rendered
+            setTimeout(function() {
+                console.log('⏰ Initialization timeout fired (150ms)');
+                initializeStep3SignaturePad();
+            }, 150);
+        }
+    }
+    
+    console.log('🎬 Starting initialization process...');
+    startInitialization();
 </script>
 @endif
 

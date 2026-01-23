@@ -32,26 +32,35 @@
     </style>
 </head>
 <body>
+    @php $loc = $locale ?? app()->getLocale(); @endphp
     <div class="container">
         <div class="header">
-            <h1>Document Sent</h1>
+            <h1>{{ __('booking.document_sent_title', [], $loc) }}</h1>
         </div>
         <div class="content">
-            <p>Dear {{ $booking->guest_first_name }},</p>
+            <p>{{ __('booking.email_dear', [], $loc) }} {{ $booking->guest_first_name }},</p>
             
-            <p>Please find attached the {{ ucfirst(str_replace('_', ' ', $document->doc_type)) }} for your booking.</p>
+            @php
+                $docTypeKeys = [
+                    'rental_agreement' => __('booking.rental_agreement', [], $loc),
+                    'landlord_confirmation' => __('booking.landlord_confirmation', [], $loc),
+                    'rent_arrears' => __('booking.rent_arrears_certificate', [], $loc),
+                ];
+                $doctype = $docTypeKeys[$document->doc_type] ?? ucfirst(str_replace('_', ' ', $document->doc_type));
+            @endphp
+            <p>{{ __('booking.document_sent_attached', ['doctype' => $doctype], $loc) }}</p>
             
-            <p><strong>Booking Details:</strong></p>
+            <p><strong>{{ __('booking.booking_details', [], $loc) }}:</strong></p>
             <ul>
-                <li>{{ __('booking.room') }}: {{ $booking->room->name }}</li>
-                <li>{{ __('booking.check_in') }}: {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}</li>
-                <li>{{ __('booking.check_out') }}: {{ \Carbon\Carbon::parse($booking->end_at)->format('d.m.Y') }}</li>
+                <li>{{ __('booking.room', [], $loc) }}: {{ $booking->room->name }}</li>
+                <li>{{ __('booking.check_in', [], $loc) }}: {{ \Carbon\Carbon::parse($booking->start_at)->format('d.m.Y') }}</li>
+                <li>{{ __('booking.check_out', [], $loc) }}: {{ \Carbon\Carbon::parse($booking->end_at)->format('d.m.Y') }}</li>
             </ul>
             
-            <p>Best regards,<br>MaRoom Booking System</p>
+            <p>{{ __('booking.document_sent_best_regards', [], $loc) }}<br>{{ __('booking.document_sent_signoff', [], $loc) }}</p>
         </div>
         <div class="footer">
-            <p>This is an automated email. Please do not reply.</p>
+            <p>{{ __('booking.document_sent_automated', [], $loc) }}</p>
         </div>
     </div>
 </body>

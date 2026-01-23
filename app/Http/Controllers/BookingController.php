@@ -16,6 +16,7 @@ use App\Mail\BookingConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -704,12 +705,18 @@ class BookingController extends Controller
     }
 
     /**
-     * Show booking completion page
+     * Show booking completion page.
+     * Long-term: guests may access via signed URL (no login). Short-term: auth required, payment must be completed.
      */
     public function complete(Booking $booking)
     {
-        if ($r = $this->authorizeBookingAccess($booking)) {
-            return $r;
+        $isLongTerm = !$booking->is_short_term;
+        $allowedViaSignature = $isLongTerm && request()->hasValidSignature();
+
+        if (!$allowedViaSignature) {
+            if ($r = $this->authorizeBookingAccess($booking)) {
+                return $r;
+            }
         }
         $booking->load('room.images', 'documents');
         
@@ -1065,13 +1072,8 @@ class BookingController extends Controller
                 }
             } else {
                 // Long-term rental - check if room is available on check-in date
-                $unavailableRoomIds = Booking::where('status', 'confirmed')
-                    ->where('room_id', $selectedRoom->id)
-                    ->where('start_at', '<=', $startAt->utc())
-                    ->where('end_at', '>', $startAt->utc())
-                    ->exists();
-                
-                if ($unavailableRoomIds) {
+                // Use BookingService so we correctly treat existing long-term bookings (end_at = null) as conflicts
+                if (!$this->bookingService->isAvailable($selectedRoom, $startAt, null)) {
                     return back()->withErrors(['dates' => 'The selected date is not available.'])->withInput();
                 }
             }
@@ -1176,15 +1178,15 @@ class BookingController extends Controller
                 // Clear session
                 session()->forget('booking_form_data');
                 
-                // For short-term bookings, redirect to billing page. For long-term, redirect to complete page
+                // For short-term bookings, redirect to billing page (auth required). For long-term, redirect to complete page (guest allowed).
                 if ($isShortTerm) {
                     return redirect()->route('booking.billing', ['booking' => $booking->id], 303)
                         ->with('info', __('booking.please_complete_payment'));
                 }
                 
-                // Booking is complete for long-term - redirect to completion page
-                // Use 303 redirect to ensure proper redirect after POST
-                return redirect()->route('booking.complete', ['booking' => $booking->id], 303)
+                // Long-term: allow completion without login. Use signed URL so guest can access completion page.
+                $completeUrl = URL::temporarySignedRoute('booking.complete', now()->addDays(1), ['booking' => $booking->id]);
+                return redirect()->away($completeUrl, 303)
                     ->with('success', __('booking.booking_submitted_successfully'));
                 
             } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1272,14 +1274,8 @@ class BookingController extends Controller
                 return redirect()->route('booking.form', ['room' => $selectedRoomId, 'step' => 1])
                     ->withErrors(['dates' => 'The selected dates are no longer available.']);
             } elseif (!$endAt) {
-                // Long-term rental - check if room is available on check-in date
-                $unavailableRoomIds = Booking::where('status', 'confirmed')
-                    ->where('room_id', $selectedRoom->id)
-                    ->where('start_at', '<=', $startAt->utc())
-                    ->where('end_at', '>', $startAt->utc())
-                    ->exists();
-                
-                if ($unavailableRoomIds) {
+                // Long-term rental - use BookingService so we correctly treat existing long-term (end_at = null) as conflicts
+                if (!$this->bookingService->isAvailable($selectedRoom, $startAt, null)) {
                     return redirect()->route('booking.form', ['room' => $selectedRoomId, 'step' => 1])
                         ->withErrors(['dates' => 'The selected date is not available.']);
                 }
@@ -1343,8 +1339,14 @@ class BookingController extends Controller
             // Clear session
             session()->forget('booking_form_data');
             
-            // Redirect to completion page
-            return redirect()->route('booking.complete', ['booking' => $booking->id]);
+            // Long-term: use signed URL so guest can view completion without login. Short-term: go to billing (auth required).
+            if ($isShortTerm) {
+                return redirect()->route('booking.billing', ['booking' => $booking->id], 303)
+                    ->with('info', __('booking.please_complete_payment'));
+            }
+            $completeUrl = URL::temporarySignedRoute('booking.complete', now()->addDays(1), ['booking' => $booking->id]);
+            return redirect()->away($completeUrl, 303)
+                ->with('success', __('booking.booking_submitted_successfully'));
             
         } catch (\Exception $e) {
             \Log::error('Booking creation failed: ' . $e->getMessage());
