@@ -159,20 +159,12 @@ class BookingFlowController extends Controller
             }
         }
         
-        // Get blocked dates for JavaScript calendar
-        $blockedDates = \App\Models\Booking::where('status', 'confirmed')
-            ->whereHas('room', function($q) use ($house) {
-                $q->where('house_id', $house->id);
-            })
-            ->get()
-            ->map(function($booking) {
-                return [
-                    \Carbon\Carbon::parse($booking->start_at)->format('Y-m-d'),
-                    \Carbon\Carbon::parse($booking->end_at)->format('Y-m-d')
-                ];
-            })
-            ->toArray();
-        
+        // Do not block dates in the search calendar. Users must be able to select any
+        // dates (e.g. 24–27) and then see only available rooms. Room availability is
+        // filtered above via $filteredRooms; blocking dates here would hide dates when
+        // only some rooms are booked, preventing search for other rooms on those dates.
+        $blockedDates = [];
+
         // Prepare room data for modal (with amenities)
         $roomsDataForModal = $filteredRooms->map(function($room) {
             $amenitiesText = $room->amenities_text ?? ($room->house ? $room->house->amenities_text : null);

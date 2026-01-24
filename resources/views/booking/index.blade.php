@@ -3,11 +3,11 @@
 @section('title', __('booking.select_apartment'))
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ __('booking.select_apartment') }}</h1>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">{{ __('booking.select_apartment') }}</h1>
     
     <!-- Date Range Filter -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
         <form method="GET" action="{{ route('booking.index') }}" class="flex flex-col md:flex-row gap-4 items-end">
             <div class="flex-1">
                 <label for="check_in" class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.check_in_date') }}</label>
@@ -30,12 +30,12 @@
                        min="{{ date('Y-m-d', strtotime('+1 day')) }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <div class="flex gap-2">
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2.5 sm:px-6 sm:py-2 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base font-medium">
                     {{ __('booking.filter_available_rooms') }}
                 </button>
                 @if(request('check_in') || request('check_out'))
-                <a href="{{ route('booking.index') }}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 transition-colors">
+                <a href="{{ route('booking.index') }}" class="bg-gray-200 text-gray-700 px-4 py-2.5 sm:px-6 sm:py-2 rounded-md hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium text-center">
                     {{ __('booking.clear') }}
                 </a>
                 @endif
@@ -67,11 +67,11 @@
     </div>
     @endif
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         @foreach($rooms as $room)
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
             <!-- Image Slider -->
-            <div class="swiper room-swiper-{{ $room->id }} h-64">
+            <div class="swiper room-swiper-{{ $room->id }} h-48 sm:h-64">
                 <div class="swiper-wrapper">
                     @if($room->images->count() > 0)
                         @foreach($room->images as $image)
@@ -94,20 +94,20 @@
                 @endif
             </div>
             
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ $room->name }}</h2>
-                <p class="text-gray-600 mb-4">{{ Str::limit($room->description, 100) }}</p>
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ $room->capacity == 1 ? __('booking.guest') : __('booking.guests') }}</span>
+            <div class="p-4 sm:p-6">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{{ $room->name }}</h2>
+                <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">{{ Str::limit($room->description, 100) }}</p>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 sm:mb-4">
+                    <span class="text-xs sm:text-sm text-gray-500">{{ __('booking.capacity') }}: {{ $room->capacity }} {{ $room->capacity == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                     @php
                         $isLongTermBooking = isset($isLongTerm) && $isLongTerm;
                         $displayPrice = $isLongTermBooking ? ($room->monthly_price ?? 700.00) : $room->base_price;
                         $priceLabel = $isLongTermBooking ? (__('booking.month') ?? '/Monat') : (__('booking.night') ?? '/Nacht');
                     @endphp
-                    <span class="text-lg font-bold text-gray-900">€{{ number_format($displayPrice, 2) }}{{ $priceLabel }}</span>
+                    <span class="text-base sm:text-lg font-bold text-gray-900">€{{ number_format($displayPrice, 2) }}{{ $priceLabel }}</span>
                 </div>
                 <a href="{{ route('booking.form', $room) }}{{ request('check_in') ? '?check_in=' . request('check_in') . (request('check_out') ? '&check_out=' . request('check_out') : '') : '' }}" 
-                   class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                   class="block w-full text-center bg-blue-600 text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base font-medium">
                     {{ __('booking.view_details_book') }}
                 </a>
             </div>
@@ -115,6 +115,16 @@
         @endforeach
     </div>
 </div>
+
+@push('styles')
+<style>
+    @media (max-width: 768px) {
+        [class*="room-swiper-"] {
+            height: 200px !important;
+        }
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

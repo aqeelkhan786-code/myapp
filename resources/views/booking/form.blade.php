@@ -403,35 +403,6 @@
                         </div>
                     </div>
 
-                    <!-- Rental property -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietobjekt</h3>
-                        <p class="text-sm text-gray-700 mb-2"><strong id="selected-room-name">{{ $room->name ?? 'N/A' }}</strong></p>
-                        <p class="text-sm text-gray-600 mb-4">Inklusive gemeinsamer Nutzung von: Küche, Badezimmer, Möbel</p>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('booking.address_required') }}</label>
-                            <input type="text" id="room-address" value="{{ $room->property->address ?? 'Sample Address' }}" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
-                        </div>
-                        
-                        <!-- Keys & Access -->
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <h4 class="text-md font-semibold text-gray-900 mb-3">Schlüssel & Zugang</h4>
-                            <p class="text-sm text-gray-700 mb-3">Für die Dauer der Mietzeit erhält der Mieter:</p>
-                            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-4 mb-3">
-                                <li>1 Pin-Code für die Haustür</li>
-                                <li>1 Wohnungsschlüssel</li>
-                                <li>1 Zimmerschlüssel</li>
-                            </ul>
-                            <div class="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-                                <p class="text-sm text-gray-700 font-semibold mb-2">Wichtig: Das Anfertigen von Schlüsseln ist untersagt.</p>
-                                <p class="text-sm text-gray-600">
-                                    Bei Verlust eines oder mehrerer Schlüssel ist der Vermieter berechtigt, betroffene Schlösser auf Kosten des Mieters auszutauschen.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Rental Period -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Mietdauer</h3>

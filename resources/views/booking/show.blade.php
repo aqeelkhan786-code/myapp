@@ -10,11 +10,11 @@
         </div>
     </div>
 @else
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         <!-- Room Images -->
         <div>
-            <div class="swiper room-detail-swiper h-96 mb-4">
+            <div class="swiper room-detail-swiper h-64 sm:h-80 lg:h-96 mb-4">
                 <div class="swiper-wrapper">
                     @if($room->images && $room->images->count() > 0)
                         @foreach($room->images as $image)
@@ -37,15 +37,15 @@
                 @endif
             </div>
             
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ $room->name ?? __('booking.room') }}</h1>
-                <p class="text-gray-600 mb-4">{{ $room->description ?? '' }}</p>
+            <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">{{ $room->name ?? __('booking.room') }}</h1>
+                <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">{{ $room->description ?? '' }}</p>
                 <div class="space-y-2">
-                    <div class="flex justify-between">
+                    <div class="flex justify-between text-sm sm:text-base">
                         <span class="text-gray-600">{{ __('booking.capacity') }}:</span>
                         <span class="font-semibold">{{ $room->capacity ?? 0 }} {{ ($room->capacity ?? 0) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between text-sm sm:text-base">
                         <span class="text-gray-600">{{ __('booking.price_per_night') }}:</span>
                         <span class="font-semibold">€{{ number_format($room->base_price ?? 0, 2) }}</span>
                     </div>
@@ -54,12 +54,12 @@
         </div>
         
         <!-- Booking Button -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">{{ __('booking.book_this_room') }}</h2>
-            <p class="text-gray-600 mb-6">{{ __('booking.start_booking_description') }}</p>
+        <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">{{ __('booking.book_this_room') }}</h2>
+            <p class="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">{{ __('booking.start_booking_description') }}</p>
             
             <a href="{{ route('booking.form', $room) }}" 
-               class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block font-semibold">
+               class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block font-semibold text-sm sm:text-base">
                 {{ __('booking.start_booking') }}
             </a>
         </div>

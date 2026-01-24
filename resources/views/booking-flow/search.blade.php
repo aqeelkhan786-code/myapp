@@ -93,16 +93,16 @@
     </style>
 </head>
 <body class="font-sans antialiased bg-gray-50">
-    <div class="min-h-screen py-12 px-4">
+    <div class="min-h-screen py-6 sm:py-12 px-4">
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <div class="text-center mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
                     {{ __('booking_flow.select_apartment') }}
                 </h1>
                 <div class="mb-4">
-                    <p class="text-xl text-gray-600 mb-2">{{ __('booking_flow.select_apartment_description') }}</p>
-                    <div class="flex items-center justify-center gap-4 text-lg text-gray-700">
+                    <p class="text-base sm:text-xl text-gray-600 mb-2">{{ __('booking_flow.select_apartment_description') }}</p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm sm:text-lg text-gray-700">
                         <div class="flex items-center">
                             <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -145,10 +145,10 @@
             </div>
             
             <!-- Search Filter Section -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
                 <div class="mb-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">{{ __('booking_flow.search_by_date') }}</h2>
-                    <p class="text-sm text-gray-600">
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">{{ __('booking_flow.search_by_date') }}</h2>
+                    <p class="text-xs sm:text-sm text-gray-600">
                         <span class="font-medium">{{ $location->name }}</span> 
                         <span class="mx-2">→</span> 
                         <span class="font-medium">{{ $house->name }}</span>
@@ -175,13 +175,13 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                placeholder="{{ __('booking_flow.select_checkout_placeholder') }}">
                     </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition-colors font-semibold">
+                    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <button type="submit" class="bg-blue-600 text-white py-2.5 px-4 sm:px-6 rounded-md hover:bg-blue-700 transition-colors font-semibold text-sm sm:text-base">
                             {{ __('booking_flow.search') }}
                         </button>
                         @if($checkIn || $checkOut)
                         <a href="{{ route('booking-flow.search', ['location' => $location->id, 'house' => $house->id]) }}" 
-                           class="bg-gray-200 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors">
+                           class="bg-gray-200 text-gray-700 py-2.5 px-4 sm:px-6 rounded-md hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium text-center">
                             {{ __('booking_flow.clear') }}
                         </a>
                         @endif
@@ -192,11 +192,11 @@
             <!-- Rooms Grid -->
             @if($checkIn)
                 @if($filteredRooms->count() > 0)
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                     @foreach($filteredRooms as $room)
                     <div class="room-card bg-white rounded-2xl overflow-hidden shadow-lg group">
                         <!-- Room Image -->
-                        <div class="h-64 bg-gray-200 relative overflow-hidden">
+                        <div class="h-48 sm:h-64 bg-gray-200 relative overflow-hidden">
                             @if($room->images && $room->images->count() > 0)
                                 <img src="{{ asset('storage/' . $room->images->first()->path) }}" 
                                      alt="{{ $room->name }}" 
@@ -209,48 +209,48 @@
                                      loading="lazy">
                             @endif
                             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                            <div class="absolute bottom-4 left-4 right-4">
-                                <h2 class="text-2xl font-bold text-white drop-shadow-lg">{{ $room->name }}</h2>
+                            <div class="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                                <h2 class="text-lg sm:text-2xl font-bold text-white drop-shadow-lg">{{ $room->name }}</h2>
                             </div>
                         </div>
                         
                         <!-- Room Info -->
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-gray-900 mb-2">{{ $room->name }}</h3>
+                        <div class="p-4 sm:p-6">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">{{ $room->name }}</h3>
                             @if($room->description)
-                            <p class="text-gray-600 line-clamp-2 mb-4">{{ Str::limit($room->description, 100) }}</p>
+                            <p class="text-sm sm:text-base text-gray-600 line-clamp-2 mb-3 sm:mb-4">{{ Str::limit($room->description, 100) }}</p>
                             @endif
-                            <div class="flex justify-between items-center mb-4">
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3 sm:mb-4">
                                 <div class="flex items-center text-gray-600">
                                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
-                                    <span class="text-sm">{{ $room->capacity ?? 1 }} {{ ($room->capacity ?? 1) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
+                                    <span class="text-xs sm:text-sm">{{ $room->capacity ?? 1 }} {{ ($room->capacity ?? 1) == 1 ? __('booking.guest') : __('booking.guests') }}</span>
                                 </div>
-                                <div class="text-right">
+                                <div class="text-left sm:text-right">
                                     @php
                                         $isLongTerm = empty($checkOut) || $checkOut === null || trim($checkOut) === '';
                                         $weeklyPrice = ($room->base_price ?? 0) * 7;
                                     @endphp
                                     @if($isLongTerm)
                                         {{-- Long-term rental - show monthly price --}}
-                                        <div class="text-lg font-bold text-blue-600">
+                                        <div class="text-base sm:text-lg font-bold text-blue-600">
                                             €{{ number_format($room->monthly_price ?? 700, 2) }}/{{ __('booking.month') }}
                                         </div>
                                     @else
                                         {{-- Short-term rental - show nightly and weekly price --}}
-                                        <div class="text-lg font-bold text-blue-600 mb-1">
+                                        <div class="text-base sm:text-lg font-bold text-blue-600 mb-1">
                                             €{{ number_format($room->base_price, 2) }}/{{ __('booking.night') }}
                                         </div>
-                                        <div class="text-sm font-semibold text-gray-600">
+                                        <div class="text-xs sm:text-sm font-semibold text-gray-600">
                                             €{{ number_format($weeklyPrice, 2) }}/{{ __('booking.week') }}
                                         </div>
                                     @endif
                                 </div>
                             </div>
-                            <button onclick="openRoomDetailsModal({{ $room->id }})" class="mt-4 w-full flex items-center justify-center text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+                            <button onclick="openRoomDetailsModal({{ $room->id }})" class="mt-3 sm:mt-4 w-full flex items-center justify-center text-blue-600 font-semibold hover:text-blue-700 transition-colors text-sm sm:text-base py-2">
                                 <span>{{ __('booking_flow.view_details') }}</span>
-                                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
