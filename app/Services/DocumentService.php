@@ -18,6 +18,15 @@ class DocumentService
     {
         try {
             $booking = $document->booking->load('room.property');
+
+            // Long-term rental agreement: use user's PDF templates (Rental Agreement / Mietvertrag) when enabled
+            if ($document->doc_type === 'rental_agreement' && config('rental-pdf.use_pdf_templates', true)) {
+                $templateService = app(RentalPdfTemplateService::class);
+                $path = $templateService->generateFromTemplate($document);
+                if ($path !== null) {
+                    return $path;
+                }
+            }
             
             $templateMap = [
                 'rental_agreement' => [
@@ -44,11 +53,21 @@ class DocumentService
             if (!view()->exists($template)) {
                 throw new \Exception("PDF template not found: {$template}");
             }
-            
-            $pdf = Pdf::loadView($template, [
+
+            $viewData = [
                 'booking' => $booking,
                 'document' => $document,
-            ]);
+            ];
+
+            // Pass owner (landlord) signature for rental agreements – used in EN/DE templates
+            if ($document->doc_type === 'rental_agreement') {
+                $ownerSignature = $this->getOwnerSignatureDataUrl();
+                if ($ownerSignature) {
+                    $viewData['landlordSignature'] = $ownerSignature;
+                }
+            }
+            
+            $pdf = Pdf::loadView($template, $viewData);
             
             // Generate filename
             $filename = Str::slug($document->doc_type . '-' . $booking->id . '-' . $document->version) . '.pdf';
@@ -77,6 +96,25 @@ class DocumentService
             // Re-throw the exception so it can be handled by the caller
             throw $e;
         }
+    }
+
+    /**
+     * Get owner (landlord) signature as base64 data URL for embedding in PDF.
+     * Uses config('landlord.owner_signature_path') (default: images/owner-signature.png) under public.
+     */
+    protected function getOwnerSignatureDataUrl(): ?string
+    {
+        $path = config('landlord.owner_signature_path', 'images/owner-signature.png');
+        $fullPath = public_path($path);
+        if (!is_file($fullPath) || !is_readable($fullPath)) {
+            return null;
+        }
+        $mime = mime_content_type($fullPath) ?: 'image/png';
+        $data = file_get_contents($fullPath);
+        if ($data === false) {
+            return null;
+        }
+        return 'data:' . $mime . ';base64,' . base64_encode($data);
     }
     
     /**

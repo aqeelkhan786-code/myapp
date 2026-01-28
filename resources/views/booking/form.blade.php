@@ -324,8 +324,8 @@
                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed" 
                                readonly disabled>
                     @endif
-                    <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $formData['step2']['start_at'] ?? '') }}">
-                    <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $formData['step2']['end_at'] ?? '') }}">
+                    <input type="hidden" name="start_at" id="start_at" value="{{ old('start_at', $startAt ?? ($formData['step2']['start_at'] ?? request()->get('check_in', ''))) }}">
+                    <input type="hidden" name="end_at" id="end_at" value="{{ old('end_at', $endAt ?? ($formData['step2']['end_at'] ?? request()->get('check_out', ''))) }}">
                     <p class="mt-1 text-xs text-gray-500">{{ __('booking.date_cannot_change') ?? 'Dieses Feld kann nicht geändert werden, da das Datum bereits ausgewählt wurde.' }}</p>
                 </div>
 
@@ -1233,6 +1233,28 @@
 @endif
 
 <script>
+    // Ensure hidden date fields are populated from URL parameters if empty
+    (function() {
+        const startAtInput = document.getElementById('start_at');
+        const endAtInput = document.getElementById('end_at');
+        
+        if (startAtInput && !startAtInput.value) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkIn = urlParams.get('check_in');
+            if (checkIn) {
+                startAtInput.value = checkIn;
+            }
+        }
+        
+        if (endAtInput && !endAtInput.value) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkOut = urlParams.get('check_out');
+            if (checkOut) {
+                endAtInput.value = checkOut;
+            }
+        }
+    })();
+    
     // Initialize Swiper for room preview
     @if($room->images && $room->images->count() > 1)
     const roomPreviewSwiper = new Swiper('.room-preview-swiper', {

@@ -23,14 +23,14 @@
     </div>
     @endif
 
-    <!-- Mobile Card View -->
-    <div class="block md:hidden space-y-4">
+    <!-- Mobile Card View (phones/tablets) -->
+    <div class="block lg:hidden space-y-4">
         @forelse($properties as $property)
         <div class="bg-white shadow-md rounded-lg p-4 border border-gray-200">
-            <div class="mb-3">
+            <div class="mb-4">
                 <h3 class="text-base font-semibold text-gray-900">{{ $property->name }}</h3>
             </div>
-            <div class="space-y-2 mb-4">
+            <div class="space-y-2.5 mb-4">
                 <div class="flex items-start text-sm">
                     <span class="font-medium text-gray-700 w-24">{{ __('admin.address') }}:</span>
                     <span class="text-gray-900 flex-1">{{ $property->address }}</span>
@@ -45,16 +45,16 @@
                 </div>
                 <div class="flex items-center text-sm">
                     <span class="font-medium text-gray-700 w-24">{{ __('admin.rooms_count') }}:</span>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {{ $property->rooms_count }}
                     </span>
                 </div>
             </div>
-            <div class="flex gap-2 pt-3 border-t border-gray-200">
+            <div class="flex gap-2 pt-4 border-t border-gray-200">
                 <a href="{{ route('admin.properties.show', $property) }}" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-center text-sm font-medium">
                     {{ __('admin.view') }}
                 </a>
-                <a href="{{ route('admin.properties.edit', $property) }}" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors text-center text-sm font-medium">
+                <a href="{{ route('admin.properties.edit', $property) }}" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-center text-sm font-medium">
                     {{ __('admin.edit') }}
                 </a>
                 <form action="{{ route('admin.properties.destroy', $property) }}" method="POST" class="flex-1" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_property') }}');">
@@ -73,8 +73,8 @@
         @endforelse
     </div>
 
-    <!-- Desktop Table View -->
-    <div class="hidden md:block bg-white shadow-md rounded-lg overflow-x-auto">
+    <!-- Desktop Table View (lg and up) -->
+    <div class="hidden lg:block bg-white shadow-md rounded-lg overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -88,7 +88,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($properties as $property)
-                <tr>
+                <tr class="hover:bg-gray-50 transition-colors duration-150">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">{{ $property->name }}</div>
                     </td>
@@ -96,18 +96,22 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $property->city }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $property->postal_code }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                             {{ $property->rooms_count }}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="{{ route('admin.properties.show', $property) }}" class="text-blue-600 hover:text-blue-900 mr-3">{{ __('admin.view') }}</a>
-                        <a href="{{ route('admin.properties.edit', $property) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">{{ __('admin.edit') }}</a>
-                        <form action="{{ route('admin.properties.destroy', $property) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_property') }}');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('admin.delete') }}</button>
-                        </form>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('admin.properties.show', $property) }}" class="text-blue-600 hover:text-blue-800 transition-colors">{{ __('admin.view') }}</a>
+                            <span class="text-gray-300">|</span>
+                            <a href="{{ route('admin.properties.edit', $property) }}" class="text-green-600 hover:text-green-800 transition-colors">{{ __('admin.edit') }}</a>
+                            <span class="text-gray-300">|</span>
+                            <form action="{{ route('admin.properties.destroy', $property) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_property') }}');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">{{ __('admin.delete') }}</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty

@@ -240,11 +240,15 @@
                 <p>{{ config('landlord.name', 'Martin Assies') }}</p>
                 @if(isset($landlordSignature))
                     <img src="{{ $landlordSignature }}" class="signature-image" alt="Vermieter Unterschrift">
+                    <div class="date-info">
+                        <p>Datum: _________________</p>
+                    </div>
+                @else
+                    <div class="date-info">
+                        <p>_________________________</p>
+                        <p>Datum: _________________</p>
+                    </div>
                 @endif
-                <div class="date-info">
-                    <p>_________________________</p>
-                    <p>Datum: _________________</p>
-                </div>
             </div>
         </div>
         

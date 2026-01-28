@@ -206,7 +206,7 @@ class BookingFlowController extends Controller
                 'name' => $room->name,
                 'amenities' => array_values($amenities),
             ];
-        });
+        })->values()->toArray();
         
         return view('booking-flow.search', compact('location', 'house', 'rooms', 'filteredRooms', 'checkIn', 'checkOut', 'blockedDates', 'roomsDataForModal'));
     }

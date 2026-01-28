@@ -12,6 +12,8 @@ return [
     */
 
     'name' => env('LANDLORD_NAME', 'Martin Assies'),
+    'owner_signature_path' => env('LANDLORD_OWNER_SIGNATURE_PATH', 'images/owner-signature.png'),
+
     'address' => env('LANDLORD_ADDRESS', ''),
     'postal_code' => env('LANDLORD_POSTAL_CODE', ''),
     'city' => env('LANDLORD_CITY', ''),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Room;
 use App\Models\Booking;
 use App\Models\Document;
+use App\Models\IcalFeed;
 use Illuminate\Support\Facades\Storage;
 use App\Services\BookingService;
 use App\Services\DocumentService;
@@ -1005,15 +1006,28 @@ class BookingController extends Controller
             $selectedRoomId = $request->room_id ?: $room->id;
             $selectedRoom = \App\Models\Room::findOrFail($selectedRoomId);
             
-            // Check availability
-            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            // First, determine if this is a long-term rental based on request data (before validation)
+            // This is needed to set the correct validation rules
+            $endAtValue = $request->end_at;
+            $isLongTermRental = empty($endAtValue) || $endAtValue === null || trim($endAtValue) === '';
             
-            // Determine if this is a long-term rental (needed for validation)
-            $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
-            $isLongTermRental = empty($endAt) || $endAt === null || trim($endAt) === '';
-            if ($endAt && $selectedRoom->short_term_allowed) {
-                $nights = $startAt->diffInDays($endAt);
-                $isLongTermRental = $nights > 30;
+            // If end_at is provided, check if it's short-term or long-term
+            if (!$isLongTermRental && $selectedRoom->short_term_allowed && $request->start_at) {
+                try {
+                    $startDate = Carbon::parse($request->start_at);
+                    $endDate = Carbon::parse($endAtValue);
+                    $nights = $startDate->diffInDays($endDate);
+                    $isLongTermRental = $nights > 30;
+                } catch (\Exception $e) {
+                    // If parsing fails, we'll validate later
+                    $isLongTermRental = true;
+                }
+            }
+            
+            // Handle checkbox - if not present (unchecked), add it as empty to trigger validation error with proper message
+            // Checkboxes don't send a value when unchecked, so we need to handle this
+            if (!$request->has('communication_preference') || empty($request->communication_preference)) {
+                $request->merge(['communication_preference' => '']);
             }
             
             // Build validation rules conditionally
@@ -1021,7 +1035,7 @@ class BookingController extends Controller
                 'guest_first_name' => 'required|string|max:255',
                 'guest_last_name' => 'required|string|max:255',
                 'language' => 'required|in:Deutsch,Englisch',
-                'communication_preference' => 'required|string',
+                'communication_preference' => 'required|string|min:1',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:255',
                 'room_id' => 'nullable|exists:rooms,id',
@@ -1044,7 +1058,47 @@ class BookingController extends Controller
                 $validationRules['renter_phone'] = 'nullable|string|max:255';
             }
             
-            $request->validate($validationRules);
+            // Custom validation messages in German and English
+            $customMessages = [
+                'guest_first_name.required' => 'Der Vorname ist erforderlich. / First name is required.',
+                'guest_last_name.required' => 'Der Nachname ist erforderlich. / Last name is required.',
+                'language.required' => 'Bitte wählen Sie eine Sprache. / Please select a language.',
+                'language.in' => 'Bitte wählen Sie eine gültige Sprache (Deutsch oder Englisch). / Please select a valid language (German or English).',
+                'communication_preference.required' => 'Bitte akzeptieren Sie die Kommunikationsvereinbarung. / Please accept the communication agreement.',
+                'email.required' => 'Die E-Mail-Adresse ist erforderlich. / Email address is required.',
+                'email.email' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein. / Please enter a valid email address.',
+                'phone.required' => 'Die Telefonnummer ist erforderlich. / Phone number is required.',
+                'start_at.required' => 'Das Check-in-Datum ist erforderlich. / Check-in date is required.',
+                'start_at.date' => 'Bitte geben Sie ein gültiges Check-in-Datum ein. / Please enter a valid check-in date.',
+                'start_at.after' => 'Das Check-in-Datum muss in der Zukunft liegen. / Check-in date must be in the future.',
+                'renter_address.required' => 'Die Adresse ist erforderlich. / Address is required.',
+                'renter_postal_code.required' => 'Die Postleitzahl ist erforderlich. / Postal code is required.',
+                'renter_city.required' => 'Die Stadt ist erforderlich. / City is required.',
+            ];
+            
+            // Validate first before parsing dates
+            try {
+                $request->validate($validationRules, $customMessages);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                \Log::error('Booking form step 1 validation failed', [
+                    'errors' => $e->errors(),
+                    'request_data' => $request->all(),
+                    'room_id' => $room->id,
+                    'is_long_term' => $isLongTermRental
+                ]);
+                return back()->withErrors($e->errors())->withInput();
+            }
+            
+            // Now parse dates after validation passes
+            $startAt = Carbon::parse($request->start_at)->setTimezone('Europe/Berlin')->startOfDay();
+            $endAt = $request->end_at ? Carbon::parse($request->end_at)->setTimezone('Europe/Berlin')->startOfDay() : null;
+            
+            // Re-determine if this is a long-term rental after parsing (more accurate)
+            $isLongTermRental = empty($endAt) || $endAt === null;
+            if ($endAt && $selectedRoom->short_term_allowed) {
+                $nights = $startAt->diffInDays($endAt);
+                $isLongTermRental = $nights > 30;
+            }
             
             // Manual validation: Check if end_at is after start_at when both are provided
             if ($request->filled('end_at') && $request->filled('start_at')) {
@@ -1254,9 +1308,42 @@ class BookingController extends Controller
     {
         $formData = session('booking_form_data', []);
         
-        if (empty($formData['step1']) || empty($formData['step2']) || empty($formData['step3'])) {
+        // Check if all required steps are present
+        if (empty($formData['step1']) || empty($formData['step2'])) {
+            \Log::warning('Booking form completion attempted with incomplete session data', [
+                'has_step1' => !empty($formData['step1']),
+                'has_step2' => !empty($formData['step2']),
+                'room_id' => $room->id,
+                'form_data_keys' => array_keys($formData)
+            ]);
             return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
-                ->withErrors(['error' => 'Please complete all steps.']);
+                ->withErrors(['error' => 'Please complete all steps. Session data is missing.']);
+        }
+        
+        // Validate step1 has required fields
+        $step1Required = ['guest_first_name', 'guest_last_name', 'email', 'language', 'communication_preference'];
+        $missingStep1 = [];
+        foreach ($step1Required as $field) {
+            if (empty($formData['step1'][$field])) {
+                $missingStep1[] = $field;
+            }
+        }
+        if (!empty($missingStep1)) {
+            \Log::warning('Booking form step1 missing required fields', [
+                'missing_fields' => $missingStep1,
+                'step1_data' => $formData['step1'] ?? []
+            ]);
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                ->withErrors(['error' => 'Please fill in all required fields: ' . implode(', ', $missingStep1)]);
+        }
+        
+        // Validate step2 has required fields
+        if (empty($formData['step2']['start_at'])) {
+            \Log::warning('Booking form step2 missing start_at', [
+                'step2_data' => $formData['step2'] ?? []
+            ]);
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                ->withErrors(['error' => 'Please select a check-in date.']);
         }
         
         try {
@@ -1268,6 +1355,15 @@ class BookingController extends Controller
             $endAt = isset($formData['step2']['end_at']) && $formData['step2']['end_at'] 
                 ? Carbon::parse($formData['step2']['end_at'])->setTimezone('Europe/Berlin')->startOfDay() 
                 : null;
+            
+            // Step 3 (signature) is only required for long-term rentals
+            $isShortTerm = $endAt && $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+            
+            // Only require step3 (signature) for long-term rentals
+            if (!$isShortTerm && empty($formData['step3'])) {
+                return redirect()->route('booking.form', ['room' => $room->id, 'step' => 3])
+                    ->withErrors(['error' => 'Please provide your signature to complete the booking.']);
+            }
             
             // Re-check availability (only if end date is provided)
             if ($endAt && !$this->bookingService->isAvailable($selectedRoom, $startAt, $endAt)) {
@@ -1283,7 +1379,25 @@ class BookingController extends Controller
             
             // Calculate total
             $totalAmount = $this->bookingService->calculateTotal($selectedRoom, $startAt, $endAt);
-            $isShortTerm = $endAt && $selectedRoom->short_term_allowed && $startAt->diffInDays($endAt) <= 30;
+            
+            // Validate required fields before creating booking
+            $requiredFields = [
+                'guest_first_name' => $formData['step1']['guest_first_name'] ?? '',
+                'guest_last_name' => $formData['step1']['guest_last_name'] ?? '',
+                'email' => $formData['step1']['email'] ?? '',
+            ];
+            
+            $missingFields = [];
+            foreach ($requiredFields as $field => $value) {
+                if (empty(trim($value))) {
+                    $missingFields[] = $field;
+                }
+            }
+            
+            if (!empty($missingFields)) {
+                return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                    ->withErrors(['error' => 'Please fill in all required fields: ' . implode(', ', $missingFields)]);
+            }
             
             // Create booking
             $booking = Booking::create([
@@ -1295,16 +1409,16 @@ class BookingController extends Controller
                 'status' => 'pending',
                 'is_short_term' => $isShortTerm,
                 'total_amount' => $totalAmount,
-                'guest_first_name' => $formData['step1']['guest_first_name'],
-                'guest_last_name' => $formData['step1']['guest_last_name'],
-                'job' => $formData['step1']['job'],
-                'language' => $formData['step1']['language'],
-                'communication_preference' => $formData['step1']['communication_preference'],
-                'email' => $formData['step1']['email'],
-                'phone' => $formData['step1']['phone'],
-                'renter_address' => $formData['step2']['renter_address'],
-                'renter_postal_code' => $formData['step2']['renter_postal_code'],
-                'renter_city' => $formData['step2']['renter_city'],
+                'guest_first_name' => trim($formData['step1']['guest_first_name'] ?? ''),
+                'guest_last_name' => trim($formData['step1']['guest_last_name'] ?? ''),
+                'job' => !empty($formData['step1']['job']) ? trim($formData['step1']['job']) : null,
+                'language' => $formData['step1']['language'] ?? 'Deutsch',
+                'communication_preference' => $formData['step1']['communication_preference'] ?? null,
+                'email' => trim($formData['step1']['email'] ?? ''),
+                'phone' => !empty($formData['step1']['phone']) ? trim($formData['step1']['phone']) : null,
+                'renter_address' => !empty($formData['step2']['renter_address']) ? trim($formData['step2']['renter_address']) : null,
+                'renter_postal_code' => !empty($formData['step2']['renter_postal_code']) ? trim($formData['step2']['renter_postal_code']) : null,
+                'renter_city' => !empty($formData['step2']['renter_city']) ? trim($formData['step2']['renter_city']) : null,
             ]);
             
             // Create rental agreement document only for long-term rentals
@@ -1348,10 +1462,24 @@ class BookingController extends Controller
             return redirect()->away($completeUrl, 303)
                 ->with('success', __('booking.booking_submitted_successfully'));
             
-        } catch (\Exception $e) {
-            \Log::error('Booking creation failed: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Booking validation failed', [
+                'errors' => $e->errors(),
+                'form_data' => $formData,
+                'room_id' => $room->id
+            ]);
             return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
-                ->withErrors(['error' => 'An error occurred. Please try again.']);
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Booking creation failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'form_data' => $formData,
+                'room_id' => $room->id
+            ]);
+            return redirect()->route('booking.form', ['room' => $room->id, 'step' => 1])
+                ->withErrors(['error' => 'An error occurred: ' . $e->getMessage()]);
         }
     }
 

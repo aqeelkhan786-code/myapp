@@ -48,10 +48,17 @@ class SendDocumentEmail implements ShouldQueue
         }
         
         if ($this->sendToOwner) {
-            // Owner email would come from config
-            $ownerEmail = config('mail.owner_email', 'owner@example.com');
-            Mail::to($ownerEmail)->send(new DocumentSent($this->document, $booking));
-            $this->document->update(['sent_to_owner_at' => now()]);
+            // Use landlord email from config (preferred) or fallback to mail.owner_email
+            $ownerEmail = config('landlord.email') ?: config('mail.owner_email');
+            if ($ownerEmail && filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+                Mail::to($ownerEmail)->send(new DocumentSent($this->document, $booking));
+                $this->document->update(['sent_to_owner_at' => now()]);
+            } else {
+                \Log::warning('Owner email not configured, skipping owner email for document', [
+                    'document_id' => $this->document->id,
+                    'booking_id' => $booking->id,
+                ]);
+            }
         }
     }
 }

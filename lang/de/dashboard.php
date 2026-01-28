@@ -34,6 +34,11 @@ return [
     'cancel' => 'Abbrechen',
     'send_email' => 'E-Mail senden',
     'pdf_attached' => 'Die folgende PDF wird angehängt:',
+    'checkin_pdf_sent_success' => 'Check-in PDF wurde erfolgreich an :email gesendet',
+    'checkin_pdfs_sent_success' => 'Check-in PDFs wurden erfolgreich an :email gesendet',
+    'pdf_not_found' => 'PDF nicht gefunden: :name',
+    'no_checkin_pdfs_found' => 'Keine Check-in PDFs zum Senden gefunden.',
+    'failed_to_send_email' => 'E-Mail konnte nicht gesendet werden: :error',
 ];
 
 

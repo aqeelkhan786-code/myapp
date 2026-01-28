@@ -6,6 +6,31 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <h1 class="text-3xl font-bold text-gray-900 mb-8">{{ __('admin.edit_booking') }} #{{ $booking->id }}</h1>
 
+    @if(session('success'))
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm flex items-center gap-3">
+        <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <p class="text-green-800 font-medium">{{ session('success') }}</p>
+    </div>
+    @endif
+
+    @if(session('error') || $errors->any())
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 shadow-sm flex items-center gap-3">
+        <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div class="flex-1">
+            @if(session('error'))
+                <p class="text-red-800 font-medium">{{ session('error') }}</p>
+            @endif
+            @if($errors->any())
+                <ul class="list-disc list-inside text-red-700">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    </div>
+    @endif
+
     @if(session('conflicts'))
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <h3 class="text-lg font-semibold text-red-800 mb-2">⚠️ {{ __('admin.conflicting_bookings_detected') }}</h3>
@@ -264,7 +289,22 @@
                             @endif
                         </p>
                         @if($log->notes)
-                        <p class="text-xs text-gray-400 mt-1">{{ $log->notes }}</p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            @php
+                                // Translate old English default notes if they match
+                                $englishDefault = 'Manual payment recorded by admin';
+                                if ($log->notes === $englishDefault) {
+                                    // Get booking's locale for translation
+                                    $bookingLocale = $booking->getLocaleFromLanguage();
+                                    $originalLocale = app()->getLocale();
+                                    app()->setLocale($bookingLocale);
+                                    echo __('admin.manual_payment_recorded_by_admin');
+                                    app()->setLocale($originalLocale);
+                                } else {
+                                    echo $log->notes;
+                                }
+                            @endphp
+                        </p>
                         @endif
                     </div>
                     <div class="text-right">
@@ -337,7 +377,24 @@
 
     <!-- Documents Section -->
     <div class="mt-8 bg-white shadow-md rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ __('admin.documents') }}</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">{{ __('admin.documents') }}</h2>
+            <div class="flex gap-2">
+                <a href="{{ route('admin.bookings.debug-pdf-overlay', ['booking' => $booking, 'locale' => 'en']) }}" 
+                   target="_blank"
+                   class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm">
+                    Debug PDF (EN)
+                </a>
+                <a href="{{ route('admin.bookings.debug-pdf-overlay', ['booking' => $booking, 'locale' => 'de']) }}" 
+                   target="_blank"
+                   class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm">
+                    Debug PDF (DE)
+                </a>
+            </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+            Use the Debug PDF buttons above to see where fields are being placed. Red boxes show text positions, colored boxes show signature positions.
+        </p>
         
         @if($booking->documents->count() > 0)
         <div class="space-y-4">
@@ -370,6 +427,14 @@
                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
                         {{ __('admin.download_pdf') }}
                     </a>
+                    <form action="{{ route('admin.bookings.documents.send', ['booking' => $booking, 'document' => $document->id]) }}" 
+                          method="POST" class="inline">
+                        @csrf
+                        <button type="submit" 
+                                class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm">
+                            {{ __('admin.send_mail') }}
+                        </button>
+                    </form>
                     @else
                     <span class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md text-sm">
                         {{ __('admin.generating') }}

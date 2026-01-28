@@ -73,13 +73,14 @@ class Booking extends Model
 
     /**
      * Convert booking language to locale code
-     * "Deutsch" -> "de", "Englisch" -> "en"
+     * "Deutsch" / "de" -> "de", "Englisch" / "en" / "eng" -> "en"
      */
     public function getLocaleFromLanguage(): string
     {
-        return match(strtolower($this->language ?? '')) {
-            'deutsch' => 'de',
-            'englisch' => 'en',
+        $lang = strtolower(trim($this->language ?? ''));
+        return match($lang) {
+            'deutsch', 'de', 'german' => 'de',
+            'englisch', 'en', 'eng', 'english' => 'en',
             default => 'de', // Default to German when not set or unknown
         };
     }

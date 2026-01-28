@@ -17,7 +17,7 @@ class CheckInPdfsSent extends Mailable
     public string $emailMessage;
     public array $pdfPaths;
     public string $emailSubject;
-    public string $locale;
+    public string $emailLocale;
 
     /**
      * Create a new message instance.
@@ -31,8 +31,8 @@ class CheckInPdfsSent extends Mailable
     {
         $this->emailMessage = $message;
         $this->pdfPaths = $pdfPaths;
-        $this->locale = $locale ?? app()->getLocale();
-        $this->emailSubject = $subject ?? ($this->locale === 'de' ? 'Check-in Informationen - MaRoom' : 'Check-in Information - MaRoom');
+        $this->emailLocale = $locale ?? app()->getLocale();
+        $this->emailSubject = $subject ?? ($this->emailLocale === 'de' ? 'Check-in Informationen - MaRoom' : 'Check-in Information - MaRoom');
     }
 
     /**
@@ -54,7 +54,7 @@ class CheckInPdfsSent extends Mailable
             view: 'emails.checkin-pdfs-sent',
             with: [
                 'emailMessage' => $this->emailMessage,
-                'locale' => $this->locale,
+                'locale' => $this->emailLocale,
             ],
         );
     }

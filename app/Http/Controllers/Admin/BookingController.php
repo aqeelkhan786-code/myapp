@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Services\BookingService;
 use App\Mail\BookingConfirmation;
 use App\Mail\CheckInPdfsSent;
+use App\Mail\DocumentSent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -311,7 +312,7 @@ class BookingController extends Controller
             'status' => $request->status,
             'source' => $request->source,
             'has_conflicts' => $hasConflicts,
-            'conflicts' => $hasConflicts ? $conflicts->pluck('id')->toArray() : [],
+            'conflicts' => $hasConflicts ? collect($conflicts)->pluck('id')->toArray() : [],
         ], auth()->id(), $booking);
 
             // Send confirmation email and documents if booking is created as confirmed
@@ -361,14 +362,24 @@ class BookingController extends Controller
         $newPaidAmount = $booking->paid_amount + $amount;
         $oldStatus = $booking->status;
 
-        // Create payment log
+        // Get booking's locale and temporarily set it for translation
+        $bookingLocale = $booking->getLocaleFromLanguage();
+        $originalLocale = app()->getLocale();
+        app()->setLocale($bookingLocale);
+
+        // Create payment log with translated notes
+        $paymentNotes = $request->notes ?? __('admin.manual_payment_recorded_by_admin');
+        
+        // Restore original locale
+        app()->setLocale($originalLocale);
+
         \App\Models\PaymentLog::create([
             'booking_id' => $booking->id,
             'amount' => $amount,
             'type' => 'manual_adjustment',
             'status' => 'completed',
             'payment_method' => 'manual',
-            'notes' => $request->notes ?? 'Manual payment recorded by admin',
+            'notes' => $paymentNotes,
             'user_id' => auth()->id(),
         ]);
 
@@ -466,6 +477,130 @@ class BookingController extends Controller
     }
 
     /**
+     * Send a single document via email
+     */
+    public function sendDocument(Request $request, Booking $booking, $documentId)
+    {
+        try {
+            $document = \App\Models\Document::where('booking_id', $booking->id)
+                ->findOrFail($documentId);
+            
+            // Check if document has PDF
+            if (!$document->storage_path || !\Storage::exists($document->storage_path)) {
+                return back()->withErrors(['error' => __('admin.document_pdf_not_available')]);
+            }
+            
+            // Log before sending
+            \Log::info('Sending document via email', [
+                'document_id' => $document->id,
+                'document_type' => $document->doc_type,
+                'booking_id' => $booking->id,
+                'recipient_email' => $booking->email,
+                'guest_name' => "{$booking->guest_first_name} {$booking->guest_last_name}",
+                'sent_by' => auth()->user()->name ?? 'System',
+                'sent_at' => now()->toDateTimeString(),
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'from_address' => config('mail.from.address'),
+                ],
+            ]);
+            
+            // Send document via email directly (synchronously)
+            try {
+                Mail::to($booking->email)->send(new DocumentSent($document, $booking));
+                
+                // Update sent timestamp
+                $document->update(['sent_to_customer_at' => now()]);
+                
+                // Log successful send
+                \Log::info('Document sent successfully via email', [
+                    'document_id' => $document->id,
+                    'document_type' => $document->doc_type,
+                    'booking_id' => $booking->id,
+                    'recipient_email' => $booking->email,
+                    'sent_at' => now()->toDateTimeString(),
+                ]);
+            } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+                // SMTP/Transport connection errors
+                \Log::error('Mail Transport Exception when sending document', [
+                    'document_id' => $document->id,
+                    'booking_id' => $booking->id,
+                    'recipient_email' => $booking->email,
+                    'error' => $e->getMessage(),
+                    'error_code' => method_exists($e, 'getCode') ? $e->getCode() : null,
+                    'error_class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
+            } catch (\Symfony\Component\Mime\Exception\RfcComplianceException $e) {
+                // Invalid email address
+                \Log::error('Invalid email address when sending document', [
+                    'document_id' => $document->id,
+                    'booking_id' => $booking->id,
+                    'recipient_email' => $booking->email,
+                    'error' => $e->getMessage(),
+                    'error_class' => get_class($e),
+                ]);
+                throw $e;
+            } catch (\Exception $e) {
+                // Other mail-related errors
+                \Log::error('Mail exception when sending document', [
+                    'document_id' => $document->id,
+                    'booking_id' => $booking->id,
+                    'recipient_email' => $booking->email,
+                    'error' => $e->getMessage(),
+                    'error_class' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
+            }
+            
+            // Get document type name for success message
+            $docTypeNames = [
+                'rental_agreement' => __('admin.rental_agreement'),
+                'landlord_confirmation' => __('admin.landlord_confirmation'),
+                'rent_arrears' => __('admin.rent_arrears'),
+            ];
+            $docTypeName = $docTypeNames[$document->doc_type] ?? $document->doc_type;
+            
+            return back()->with('success', __('admin.document_sent_successfully') . ' (' . $docTypeName . ' → ' . $booking->email . ')');
+        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+            // SMTP/Transport connection errors
+            \Log::error('Document send error - SMTP/Transport failure', [
+                'document_id' => $documentId,
+                'booking_id' => $booking->id,
+                'recipient_email' => $booking->email ?? 'N/A',
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'from_address' => config('mail.from.address'),
+                ],
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $errorMessage = __('admin.send_document_failed', ['error' => $e->getMessage()]);
+            $errorMessage .= ' ' . __('admin.check_smtp_configuration');
+            return back()->withErrors(['error' => $errorMessage]);
+        } catch (\Exception $e) {
+            \Log::error('Document send error', [
+                'document_id' => $documentId,
+                'booking_id' => $booking->id,
+                'recipient_email' => $booking->email ?? 'N/A',
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors(['error' => __('admin.send_document_failed', ['error' => $e->getMessage()])]);
+        }
+    }
+
+    /**
      * Update the specified booking
      */
     public function update(Request $request, Booking $booking)
@@ -508,7 +643,7 @@ class BookingController extends Controller
                 'room_name' => $room->name,
                 'start_at' => $startAt->format('Y-m-d'),
                 'end_at' => $endAt ? $endAt->format('Y-m-d') : null,
-                'conflicting_booking_ids' => $conflicts->pluck('id')->toArray(),
+                'conflicting_booking_ids' => collect($conflicts)->pluck('id')->toArray(),
             ], auth()->id(), $booking, 'Booking conflict was overridden by admin');
         }
 
@@ -660,6 +795,40 @@ class BookingController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Debug PDF overlay positions - generates a test PDF with visible markers
+     */
+    public function debugPdfOverlay(Booking $booking, Request $request)
+    {
+        $locale = $request->get('locale', $booking->getLocaleFromLanguage() === 'de' ? 'de' : 'en');
+        
+        // Get or create a rental agreement document for testing
+        $documentService = new \App\Services\DocumentService();
+        $document = $booking->documents()
+            ->where('doc_type', 'rental_agreement')
+            ->where('locale', $locale)
+            ->first();
+        
+        if (!$document) {
+            $document = $documentService->createDocument($booking, 'rental_agreement', $locale, []);
+        }
+        
+        // Generate PDF with debug mode enabled
+        $templateService = app(\App\Services\RentalPdfTemplateService::class);
+        $debugPath = $templateService->generateDebugPdf($document, $locale);
+        
+        if (!$debugPath || !\Storage::exists($debugPath)) {
+            return redirect()->route('admin.bookings.edit', $booking)
+                ->with('error', 'Failed to generate debug PDF. Make sure PDF templates exist in storage/app/rental-templates/ as rental-agreement-en.pdf and rental-agreement-de.pdf');
+        }
+        
+        return response()->download(
+            \Storage::path($debugPath),
+            'pdf-overlay-debug-' . $locale . '.pdf',
+            ['Content-Type' => 'application/pdf']
+        )->deleteFileAfterSend(true);
     }
 
     /**

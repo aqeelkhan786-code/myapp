@@ -144,13 +144,13 @@ class DashboardController extends Controller
 
         $pdfPaths = [];
         
-        // If pdf_name is provided, send only that PDF
+            // If pdf_name is provided, send only that PDF
         if ($request->has('pdf_name') && !empty($request->pdf_name)) {
             $pdfName = base64_decode($request->pdf_name);
             $path = 'public/check-in-pdfs/' . $pdfName;
             
             if (!Storage::exists($path)) {
-                return back()->withErrors(['error' => 'PDF not found: ' . $pdfName])->withInput();
+                return back()->withErrors(['error' => __('dashboard.pdf_not_found', ['name' => $pdfName])])->withInput();
             }
             
             $pdfPaths[] = $path;
@@ -175,7 +175,7 @@ class DashboardController extends Controller
         }
 
         if (empty($pdfPaths)) {
-            return back()->withErrors(['error' => 'No check-in PDFs found to send.'])->withInput();
+            return back()->withErrors(['error' => __('dashboard.no_checkin_pdfs_found')])->withInput();
         }
 
         try {
@@ -208,8 +208,8 @@ MaRoom Team';
 
             $pdfCount = count($pdfPaths);
             $successMessage = $pdfCount === 1 
-                ? 'Check-in PDF has been sent successfully to ' . $request->recipient_email
-                : 'Check-in PDFs have been sent successfully to ' . $request->recipient_email;
+                ? __('dashboard.checkin_pdf_sent_success', ['email' => $request->recipient_email])
+                : __('dashboard.checkin_pdfs_sent_success', ['email' => $request->recipient_email]);
 
             return back()->with('success', $successMessage);
         } catch (\Exception $e) {
@@ -218,7 +218,7 @@ MaRoom Team';
                 'error' => $e->getMessage(),
             ]);
             
-            return back()->withErrors(['error' => 'Failed to send email: ' . $e->getMessage()])->withInput();
+            return back()->withErrors(['error' => __('dashboard.failed_to_send_email', ['error' => $e->getMessage()])])->withInput();
         }
     }
 }

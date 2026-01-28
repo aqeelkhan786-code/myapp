@@ -34,6 +34,11 @@ return [
     'cancel' => 'Cancel',
     'send_email' => 'Send Email',
     'pdf_attached' => 'The following PDF will be attached:',
+    'checkin_pdf_sent_success' => 'Check-in PDF has been sent successfully to :email',
+    'checkin_pdfs_sent_success' => 'Check-in PDFs have been sent successfully to :email',
+    'pdf_not_found' => 'PDF not found: :name',
+    'no_checkin_pdfs_found' => 'No check-in PDFs found to send.',
+    'failed_to_send_email' => 'Failed to send email: :error',
 ];
 
 

@@ -23,11 +23,11 @@
     </div>
     @endif
 
-    <!-- Mobile Card View -->
-    <div class="block md:hidden space-y-4">
+    <!-- Mobile Card View (phones/tablets) -->
+    <div class="block lg:hidden space-y-4">
         @forelse($locations as $location)
         <div class="bg-white shadow-md rounded-lg p-4 border border-gray-200">
-            <div class="flex items-start gap-3 mb-3">
+            <div class="flex items-start gap-4 mb-4">
                 @if($location->image)
                 <img src="{{ asset('storage/' . $location->image) }}" alt="{{ $location->name }}" class="h-16 w-16 rounded-lg object-cover flex-shrink-0">
                 @else
@@ -37,32 +37,32 @@
                 @endif
                 <div class="flex-1 min-w-0">
                     <h3 class="text-base font-semibold text-gray-900 truncate">{{ $location->name }}</h3>
-                    <p class="text-xs text-gray-500 truncate">{{ $location->slug }}</p>
+                    <p class="text-xs text-gray-500 truncate mt-1">{{ $location->slug }}</p>
                 </div>
             </div>
-            <div class="space-y-2 mb-4">
+            <div class="space-y-2.5 mb-4">
                 <div class="text-sm">
                     <span class="font-medium text-gray-700">{{ __('admin.description') }}:</span>
                     <p class="text-gray-900 mt-1">{{ $location->description ?? '-' }}</p>
                 </div>
                 <div class="flex items-center text-sm">
                     <span class="font-medium text-gray-700 w-24">{{ __('admin.sort_order') }}:</span>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                         {{ $location->sort_order }}
                     </span>
                 </div>
                 <div class="flex items-center text-sm">
                     <span class="font-medium text-gray-700 w-24">{{ __('admin.houses_count') }}:</span>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {{ $location->houses_count }}
                     </span>
                 </div>
             </div>
-            <div class="flex gap-2 pt-3 border-t border-gray-200">
+            <div class="flex gap-2 pt-4 border-t border-gray-200">
                 <a href="{{ route('admin.locations.show', $location) }}" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-center text-sm font-medium">
                     {{ __('admin.view') }}
                 </a>
-                <a href="{{ route('admin.locations.edit', $location) }}" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors text-center text-sm font-medium">
+                <a href="{{ route('admin.locations.edit', $location) }}" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-center text-sm font-medium">
                     {{ __('admin.edit') }}
                 </a>
                 <form action="{{ route('admin.locations.destroy', $location) }}" method="POST" class="flex-1" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_location') }}');">
@@ -81,8 +81,8 @@
         @endforelse
     </div>
 
-    <!-- Desktop Table View -->
-    <div class="hidden md:block bg-white shadow-md rounded-lg overflow-x-auto">
+    <!-- Desktop Table View (lg and up) -->
+    <div class="hidden lg:block bg-white shadow-md rounded-lg overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -95,7 +95,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($locations as $location)
-                <tr>
+                <tr class="hover:bg-gray-50 transition-colors duration-150">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             @if($location->image)
@@ -103,7 +103,7 @@
                             @endif
                             <div>
                                 <div class="text-sm font-medium text-gray-900">{{ $location->name }}</div>
-                                <div class="text-sm text-gray-500">{{ $location->slug }}</div>
+                                <div class="text-xs text-gray-500 mt-1">{{ $location->slug }}</div>
                             </div>
                         </div>
                     </td>
@@ -111,23 +111,27 @@
                         <div class="max-w-xs truncate">{{ $location->description ?? '-' }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                        <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                             {{ $location->sort_order }}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                             {{ $location->houses_count }}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="{{ route('admin.locations.show', $location) }}" class="text-blue-600 hover:text-blue-900 mr-3">{{ __('admin.view') }}</a>
-                        <a href="{{ route('admin.locations.edit', $location) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">{{ __('admin.edit') }}</a>
-                        <form action="{{ route('admin.locations.destroy', $location) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_location') }}');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-900">{{ __('admin.delete') }}</button>
-                        </form>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('admin.locations.show', $location) }}" class="text-blue-600 hover:text-blue-800 transition-colors">{{ __('admin.view') }}</a>
+                            <span class="text-gray-300">|</span>
+                            <a href="{{ route('admin.locations.edit', $location) }}" class="text-green-600 hover:text-green-800 transition-colors">{{ __('admin.edit') }}</a>
+                            <span class="text-gray-300">|</span>
+                            <form action="{{ route('admin.locations.destroy', $location) }}" method="POST" class="inline" onsubmit="return confirm('{{ __('admin.are_you_sure_delete_location') }}');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">{{ __('admin.delete') }}</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty
